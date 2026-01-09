@@ -1,35 +1,41 @@
-import Image from "next/image";
+import HeroSection from "@/components/landing/HeroSection";
+import DisciplinesGrid from "@/components/landing/DisciplinesGrid";
+import RankingsPreview from "@/components/landing/RankingsPreview";
+import TransparencyPanel from "@/components/landing/TransparencyPanel";
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Hero Section */}
-      <main className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-[var(--color-primary)] text-white">
-        <div className="max-w-4xl space-y-6">
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
-            Fechillar
-          </h1>
-          <p className="text-xl md:text-2xl text-slate-200">
-            Federación Chilena de Billar
-          </p>
-          <p className="text-lg text-slate-300 italic">
-            Excelencia Deportiva en el Billar Chileno
-          </p>
+    <div className="flex flex-col min-h-screen">
+      <HeroSection />
 
-          <div className="flex gap-4 justify-center mt-8">
-            <button className="px-6 py-3 bg-[var(--color-secondary)] hover:bg-red-700 text-white rounded-lg font-semibold transition-colors shadow-lg">
-              Ver Disciplinas
-            </button>
-            <button className="px-6 py-3 bg-[var(--color-accent-green)] hover:bg-green-800 text-white rounded-lg font-semibold transition-colors shadow-lg">
-              Portal Jugador
-            </button>
+      <DisciplinesGrid />
+
+      <RankingsPreview />
+
+      <TransparencyPanel />
+
+      <footer className="bg-slate-900 text-slate-400 py-12 border-t border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          <div>
+            <h4 className="text-white font-bold text-lg mb-4">Fechillar</h4>
+            <p className="text-sm">Federación Chilena de Billar<br />Fundada con pasión por el deporte.</p>
+          </div>
+          <div>
+            <h4 className="text-white font-bold text-lg mb-4">Enlaces</h4>
+            <ul className="space-y-2 text-sm">
+              <li><a href="#" className="hover:text-white">Reglamentos</a></li>
+              <li><a href="#" className="hover:text-white">Rankings</a></li>
+              <li><a href="#" className="hover:text-white">Clubes Asociados</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-white font-bold text-lg mb-4">Contacto</h4>
+            <p className="text-sm">contacto@fechillar.cl<br />Santiago, Chile</p>
           </div>
         </div>
-      </main>
-
-      {/* Footer Placeholder */}
-      <footer className="p-6 bg-slate-900 text-slate-400 text-center text-sm">
-        <p>© {new Date().getFullYear()} Fechillar. Todos los derechos reservados.</p>
+        <div className="text-center text-sm border-t border-slate-800 pt-8">
+          <p>© {new Date().getFullYear()} Fechillar. Todos los derechos reservados.</p>
+        </div>
       </footer>
     </div>
   );

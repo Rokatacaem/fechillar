@@ -1,0 +1,153 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// SQLite does not support Enums, using String instead.
+
+// Models
+
+model User {
+  id            String    @id @default(uuid())
+  name          String?
+  email         String    @unique
+  passwordHash  String?
+  role          String    @default("USER") // USER, PLAYER, CLUB_ADMIN, FEDERATION_ADMIN
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  playerProfile PlayerProfile?
+}
+
+model Club {
+  id            String    @id @default(uuid())
+  name          String
+  address       String?
+  city          String?
+  legalStatus   String?   // Personalidad Juridica ID
+  isValidated   Boolean   @default(false)
+  
+  players       PlayerProfile[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model PlayerProfile {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  clubId        String?
+  
+  federationId  String?   @unique 
+  birthDate     DateTime?
+  gender        String?   // 'M' or 'F'
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  club          Club?     @relation(fields: [clubId], references: [id])
+  
+  rankings      Ranking[]
+  tournamentRegistrations TournamentRegistration[]
+  matchHome     Match[]   @relation("HomePlayer")
+  matchAway     Match[]   @relation("AwayPlayer")
+  matchWinner   Match[]   @relation("WinnerPlayer")
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Tournament {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  startDate     DateTime
+  endDate       DateTime?
+  location      String?
+  
+  discipline    String    // CAROM_3_CUSHION, POOL_8_BALL, etc.
+  category      String    // MASCULINE, FEMININE, etc.
+  status        String    @default("UPCOMING") // UPCOMING, IN_PROGRESS, COMPLETED
+  
+  registrations TournamentRegistration[]
+  matches       Match[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model TournamentRegistration {
+  id            String    @id @default(uuid())
+  tournamentId  String
+  playerId      String
+  
+  registeredAt  DateTime  @default(now())
+  paid          Boolean   @default(false)
+  
+  tournament    Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player        PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, playerId])
+}
+
+model Match {
+  id            String    @id @default(uuid())
+  tournamentId  String
+  round         Int       // 1 = Final, 2 = Semis, etc.
+  
+  homePlayerId  String
+  awayPlayerId  String
+  winnerId      String?
+  
+  homeScore     Int?
+  awayScore     Int?
+  
+  tournament    Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  homePlayer    PlayerProfile @relation("HomePlayer", fields: [homePlayerId], references: [id])
+  awayPlayer    PlayerProfile @relation("AwayPlayer", fields: [awayPlayerId], references: [id])
+  winner        PlayerProfile? @relation("WinnerPlayer", fields: [winnerId], references: [id])
+  
+  createdAt     DateTime  @default(now())
+}
+
+model Ranking {
+  id            String    @id @default(uuid())
+  playerId      String
+  discipline    String
+  category      String
+  
+  points        Int       @default(0)
+  rankPosition  Int?
+  
+  player        PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([playerId, discipline, category])
+}
+
+model TransparencyDocument {
+  id            String    @id @default(uuid())
+  title         String
+  type          String    // ACTA, BALANCE, REGLAMENTO
+  url           String
+  uploadDate    DateTime  @default(now())
+  year          Int
+  
+  description   String?
+}
+
+model FinanceRecord {
+  id            String    @id @default(uuid())
+  date          DateTime
+  type          String    // 'INCOME' or 'EXPENSE'
+  category      String?
+  amount        Float
+  description   String?
+  
+  createdAt     DateTime  @default(now())
+}
