@@ -4,21 +4,20 @@ import Image from "next/image";
 export default function HeroSection() {
     return (
         <section className="relative h-screen min-h-[600px] flex items-center justify-center overflow-hidden">
-            {/* Background Overlay - Replace with video or high-quality image later */}
-            <div className="absolute inset-0 bg-[var(--color-primary)] z-0">
-                {/* Optional: Add a subtle pattern or image with opacity here */}
-                <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
+            {/* Background Overlay */}
+            <div className="absolute inset-0 bg-transparent z-0">
+                {/* Texture comes from body, so we can transparent/adjust here if needed */}
             </div>
 
             {/* Content */}
             <div className="relative z-10 text-center px-4 max-w-5xl mx-auto space-y-8 animate-fade-in-up">
                 <div className="flex justify-center mb-8">
                     <Image
-                        src="/fechillar_logo_final_v4_solid.png"
+                        src="/fechillar_logo_main.jpg"
                         alt="Logo Fechillar"
                         width={450}
                         height={450}
-                        className="drop-shadow-2xl animate-fade-in-down"
+                        className="drop-shadow-2xl animate-fade-in-down rounded-xl"
                     />
                 </div>
                 <div className="space-y-4">

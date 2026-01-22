@@ -11,7 +11,7 @@ export default function PlayerLayout({
             {/* Sidebar - Mobile Responsive hidden for MVP simplicity, assume desktop/tablet for structure */}
             <aside className="hidden md:flex flex-col w-64 bg-[var(--color-primary)] text-white">
                 <div className="p-6 border-b border-blue-900 flex flex-col items-center text-center">
-                    <Image src="/fechillar_logo_final_v4_solid.png" alt="Fechillar" width={60} height={60} className="mb-3" />
+                    <Image src="/fechillar_logo_main.jpg" alt="Fechillar" width={60} height={60} className="mb-3 rounded-md" />
                     <h2 className="text-xl font-bold tracking-tight">Fechillar</h2>
                     <p className="text-xs text-slate-300 uppercase tracking-widest mt-1">Portal Jugador</p>
                 </div>

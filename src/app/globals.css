@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  --background: #0f2040;
   --foreground: #171717;
+  --background-image: url('/fechillar_bg_texture.png');
 }
 
 @theme inline {
@@ -30,7 +31,7 @@
 }
 
 body {
-  background: var(--background);
+  background: var(--background) var(--background-image) repeat;
   color: var(--foreground);
   font-family: var(--font-sans);
 }
