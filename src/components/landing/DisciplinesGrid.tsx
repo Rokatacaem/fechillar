@@ -21,7 +21,7 @@ export default function DisciplinesGrid() {
         },
         {
             id: "bola-8",
-            title: "Bola 8 y 9",
+            title: "Bola 8, 9 y 10",
             description: "Velocidad y control internacional.",
             imageSrc: "/bola_8_9_cinematic.png",
             colSpan: "md:col-span-1",
