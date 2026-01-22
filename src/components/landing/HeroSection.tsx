@@ -14,7 +14,7 @@ export default function HeroSection() {
             <div className="relative z-10 text-center px-4 max-w-5xl mx-auto space-y-8 animate-fade-in-up">
                 <div className="flex justify-center mb-8">
                     <Image
-                        src="/fechillar_logo_final_v3_transparent.png"
+                        src="/fechillar_logo_final_v4_solid.png"
                         alt="Logo Fechillar"
                         width={450}
                         height={450}

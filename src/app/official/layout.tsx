@@ -11,7 +11,7 @@ export default function OfficialLayout({
             {/* Sidebar - Distinct 'Official' style (darker or different hue) */}
             <aside className="hidden md:flex flex-col w-64 bg-slate-900 text-white">
                 <div className="p-6 border-b border-slate-700 flex flex-col items-center text-center">
-                    <Image src="/fechillar_logo_final_v3_transparent.png" alt="Fechillar" width={60} height={60} className="mb-3" />
+                    <Image src="/fechillar_logo_final_v4_solid.png" alt="Fechillar" width={60} height={60} className="mb-3" />
                     <h2 className="text-xl font-bold tracking-tight text-[var(--color-secondary)]">Fechillar</h2>
                     <p className="text-xs text-slate-400 uppercase tracking-widest mt-1">Gestión Dirigencial</p>
                 </div>
