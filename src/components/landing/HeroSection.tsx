@@ -14,11 +14,11 @@ export default function HeroSection() {
             <div className="relative z-10 text-center px-4 max-w-5xl mx-auto space-y-8 animate-fade-in-up">
                 <div className="flex justify-center mb-8">
                     <Image
-                        src="/logo_fechillar_black_v14.png"
+                        src="/fechillar_logo_final_v2.png"
                         alt="Logo Fechillar"
                         width={450}
                         height={450}
-                        className="drop-shadow-2xl animate-fade-in-down mix-blend-lighten"
+                        className="drop-shadow-2xl animate-fade-in-down"
                     />
                 </div>
                 <div className="space-y-4">

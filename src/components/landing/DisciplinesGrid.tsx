@@ -1,11 +1,13 @@
 
+import Image from "next/image";
+
 export default function DisciplinesGrid() {
     const disciplines = [
         {
             id: "tres-bandas",
             title: "Tres Bandas",
             description: "Precisión, estrategia y técnica depurada.",
-            bgClass: "bg-slate-800", // Replace with specific images later
+            imageSrc: "/tres_bandas_cinematic.png",
             colSpan: "md:col-span-2",
             accent: "border-l-4 border-[var(--color-secondary)]"
         },
@@ -13,7 +15,7 @@ export default function DisciplinesGrid() {
             id: "pool",
             title: "Pool Chileno",
             description: "La tradición nacional en cada mesa.",
-            bgClass: "bg-[var(--color-accent-green)]",
+            imageSrc: "/pool_chileno_cinematic.png",
             colSpan: "md:col-span-1",
             accent: "border-l-4 border-white"
         },
@@ -21,7 +23,7 @@ export default function DisciplinesGrid() {
             id: "bola-8",
             title: "Bola 8 y 9",
             description: "Velocidad y control internacional.",
-            bgClass: "bg-blue-900",
+            imageSrc: "/bola_8_9_cinematic.png",
             colSpan: "md:col-span-1",
             accent: "border-l-4 border-cyan-400"
         },
@@ -29,7 +31,7 @@ export default function DisciplinesGrid() {
             id: "snooker",
             title: "Snooker / Otras",
             description: "Disciplinas emergentes y formativas.",
-            bgClass: "bg-slate-700",
+            imageSrc: "/snooker_cinematic.png",
             colSpan: "md:col-span-2",
             accent: "border-l-4 border-yellow-500"
         }
@@ -52,16 +54,27 @@ export default function DisciplinesGrid() {
                     {disciplines.map((item) => (
                         <div
                             key={item.id}
-                            className={`group relative overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 hover:shadow-xl ${item.bgClass} ${item.colSpan}`}
+                            className={`group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 ${item.colSpan}`}
                         >
-                            {/* Overlay Hover Effect */}
-                            <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-500"></div>
+                            {/* Background Image with Ken Burns Effect */}
+                            <div className="absolute inset-0 overflow-hidden">
+                                <Image
+                                    src={item.imageSrc}
+                                    alt={item.title}
+                                    fill
+                                    className="object-cover transform transition-transform duration-[20s] ease-in-out group-hover:scale-125"
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                />
+                                {/* Dark Gradient Overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-80 group-hover:opacity-70 transition-opacity duration-500"></div>
+                            </div>
 
-                            <div className={`absolute bottom-0 left-0 p-8 w-full ${item.accent}`}>
-                                <h3 className="text-2xl font-bold text-white mb-2 transform group-hover:translate-x-2 transition-transform">
+                            {/* Content */}
+                            <div className={`relative z-10 h-full flex flex-col justify-end p-8 ${item.accent}`}>
+                                <h3 className="text-2xl font-bold text-white mb-2 transform group-hover:translate-x-2 transition-transform duration-300 drop-shadow-md">
                                     {item.title}
                                 </h3>
-                                <p className="text-slate-200 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                                <p className="text-slate-200 opacity-90 transform translate-y-0 transition-all duration-300 text-sm md:text-base font-light drop-shadow-sm">
                                     {item.description}
                                 </p>
                             </div>
