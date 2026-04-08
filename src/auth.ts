@@ -25,6 +25,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     // Find user in DB
                     const user = await prisma.user.findUnique({
                         where: { email },
+                        include: { playerProfile: true }
                     });
                     console.log(" [AUTH_DEBUG] DB Query result:", user ? "User found" : "User not found");
 
@@ -53,7 +54,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                             id: user.id,
                             name: user.name,
                             email: user.email,
-                            // We will add custom claims in callbacks
+                            role: user.role,
+                            tenantId: user.playerProfile?.tenantId || null
                         };
                     } else {
                         console.log(" [AUTH_DEBUG] Password mismatch");
@@ -70,17 +72,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
-                // Fetch role from DB if not in user object (or if user object is limited)
-                // For the dev seeding above, we passed it manually.
-                // Real implementation should fetch from DB if needed or stick to user object.
-                // Casting for TS
                 token.role = (user as any).role || "USER";
+                token.tenantId = (user as any).tenantId || null;
             }
             return token;
         },
         async session({ session, token }) {
             if (session.user) {
                 (session.user as any).role = token.role;
+                (session.user as any).tenantId = token.tenantId;
             }
             return session;
         },
