@@ -24,6 +24,18 @@ enum TournamentScope {
   EXTERNAL_REFERENCE
 }
 
+enum TournamentStatus {
+  OPEN
+  IN_PROGRESS
+  FINISHED
+}
+
+enum RegistrationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id                 String                 @id @default(uuid())
   name               String?
@@ -33,8 +45,10 @@ model User {
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
   playerProfile      PlayerProfile?
-  createdTournaments Tournament[]           @relation("TournamentCreator")
+  createdTournaments Tournament[]             @relation("TournamentCreator")
   assignments        TournamentAssignment[]
+  validatedPayments  TournamentRegistration[] @relation("PaymentValidator")
+  auditLogs          AuditLog[]               @relation("AuditLogs")
 }
 
 model Club {
@@ -89,7 +103,7 @@ model Tournament {
   discipline    String
   modality      String?
   category      String
-  status        String                   @default("UPCOMING")
+  status        TournamentStatus         @default(OPEN)
   scope         TournamentScope          @default(INTERNAL)
   tenantId      String?
   createdById   String?
@@ -116,15 +130,19 @@ model Match {
   id           String         @id @default(uuid())
   tournamentId String
   round        Int
+  matchOrder   Int            @default(0)
+  tableNumber  String?
+  matchTime    DateTime?
+  matchDistance Int?
   homePlayerId String
-  awayPlayerId String
+  awayPlayerId String?
   winnerId     String?
   homeScore    Int?
   awayScore    Int?
   innings      Int?           @default(0)
   isWO         Boolean        @default(false)
   createdAt    DateTime       @default(now())
-  awayPlayer   PlayerProfile  @relation("AwayPlayer", fields: [awayPlayerId], references: [id])
+  awayPlayer   PlayerProfile? @relation("AwayPlayer", fields: [awayPlayerId], references: [id])
   homePlayer   PlayerProfile  @relation("HomePlayer", fields: [homePlayerId], references: [id])
   tournament   Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   winner       PlayerProfile? @relation("WinnerPlayer", fields: [winnerId], references: [id])
@@ -180,14 +198,21 @@ model TransparencyDocument {
 }
 
 model TournamentRegistration {
-  id           String        @id @default(uuid())
-  tournamentId String
-  playerId     String
-  registeredAt  DateTime      @default(now())
-  paid          Boolean       @default(false)
-  paymentStatus String        @default("PENDING")
-  player        PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  tournament   Tournament    @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  id            String             @id @default(uuid())
+  tournamentId  String
+  playerId      String
+  registeredAt  DateTime           @default(now())
+  paid          Boolean            @default(false)
+  paymentStatus String             @default("PENDING")
+  amountPaid    Float?
+  paymentRef    String?
+  paidAt        DateTime?
+  validatorId   String?
+  registeredPoints Int             @default(0)
+  status        RegistrationStatus @default(PENDING)
+  player        PlayerProfile      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  tournament    Tournament         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  validator     User?              @relation("PaymentValidator", fields: [validatorId], references: [id])
 
   @@unique([tournamentId, playerId])
 }
@@ -203,4 +228,14 @@ model TournamentAssignment {
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([tournamentId, userId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  targetId  String?
+  userId    String
+  details   String?
+  createdAt DateTime @default(now())
+  user      User     @relation("AuditLogs", fields: [userId], references: [id], onDelete: Cascade)
 }

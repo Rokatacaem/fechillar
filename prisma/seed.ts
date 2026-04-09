@@ -72,7 +72,7 @@ async function main() {
             create: {
                 userId: user.id,
                 rut: p.rut,
-                federationId: \`FED-\${Math.floor(1000 + Math.random() * 9000)}\`,
+                federationId: `FED-${Math.floor(1000 + Math.random() * 9000)}`,
                 tenantId: createdClubs[p.clubSlug].id,
                 gender: 'M',
             }
@@ -80,7 +80,7 @@ async function main() {
     }
 
     // Usuario Admin General
-    await prisma.user.upsert({
+    const adminUser = await prisma.user.upsert({
         where: { email: 'admin@fechillar.cl' },
         update: {},
         create: {
@@ -110,7 +110,7 @@ async function main() {
                 discipline: "POOL",
                 modality: "NINE_BALL",
                 category: "HONOR",
-                status: "UPCOMING",
+                status: "OPEN",
                 scope: "NATIONAL",
                 tenantId: createdClubs[t.club].id, // El club que es sede del open
                 startDate: startDate,
@@ -137,7 +137,7 @@ async function main() {
                 discipline: "CARAMBOLA",
                 modality: "THREE_BAND",
                 category: "HONOR",
-                status: "UPCOMING",
+                status: "OPEN",
                 scope: "EXTERNAL_REFERENCE",
                 startDate: startDate,
                 endDate: new Date(startDate.getTime() + (5 * 24 * 60 * 60 * 1000)), // 5 days
@@ -145,8 +145,208 @@ async function main() {
         });
     }
 
-    console.log('✅ Base de datos de SGF poblada con Jugadores Élite y Calendario FECHILLAR 2026.');
+    // ----------------------------------------------------
+    // 5. RANKING Y PULL DE INSCRIPCIÓN (PRUEBA UAT)
+    // ----------------------------------------------------
+    const openLaCalera = await prisma.tournament.findFirst({
+        where: { name: "Open La Calera 2026" }
+    });
+
+    if (openLaCalera) {
+        // Encontrar a los 3 mejores
+        const felipe = await prisma.user.findFirst({ where: { email: 'fgallegos@propool.cl' }, include: { playerProfile: true }});
+        const alejandro = await prisma.user.findFirst({ where: { email: 'acarvajal@santiago.cl' }, include: { playerProfile: true }});
+        const enrique = await prisma.user.findFirst({ where: { email: 'elobo@ovalle.cl' }, include: { playerProfile: true }});
+
+        const top3 = [
+            { player: felipe?.playerProfile, points: 1500 },
+            { player: alejandro?.playerProfile, points: 1350 },
+            { player: enrique?.playerProfile, points: 1100 }
+        ];
+
+        for (const t of top3) {
+            if (t.player) {
+                // Crear ranking
+                await prisma.ranking.upsert({
+                    where: {
+                        playerId_discipline_category: {
+                            playerId: t.player.id,
+                            discipline: openLaCalera.discipline,
+                            category: openLaCalera.category
+                        }
+                    },
+                    update: {},
+                    create: {
+                        playerId: t.player.id,
+                        discipline: openLaCalera.discipline,
+                        category: openLaCalera.category,
+                        points: t.points,
+                        rankPosition: top3.indexOf(t) + 1
+                    }
+                });
+
+                const isFelipe = t.player.userId === felipe?.id;
+                
+                // Inscribir al torneo con puntos congelados
+                await prisma.tournamentRegistration.upsert({
+                    where: {
+                        tournamentId_playerId: {
+                            tournamentId: openLaCalera.id,
+                            playerId: t.player.id
+                        }
+                    },
+                    update: {},
+                    create: {
+                        tournamentId: openLaCalera.id,
+                        playerId: t.player.id,
+                        registeredPoints: t.points,
+                        status: isFelipe ? "APPROVED" : "PENDING", // PENDING para los de UAT real, pero para el script... 
+                        paid: isFelipe,
+                        paymentStatus: isFelipe ? "PAID" : "PENDING",
+                        amountPaid: isFelipe ? 15000 : null,
+                        paymentRef: isFelipe ? "REF-INIT-001" : null,
+                        paidAt: isFelipe ? new Date() : null
+                    }
+                });
+            }
+        }
+
+        // ====================================================
+        // 6. GENERACIÓN DEL MATCHMAKING (Ronda 1)
+        // ====================================================
+        // Como el script pide generarlo automático sin usar la UI:
+        const inscriptions = await prisma.tournamentRegistration.findMany({
+            where: { tournamentId: openLaCalera.id }, // Asumimos que la Federación aprueba a los 3
+            orderBy: { registeredPoints: 'desc' }
+        });
+
+        // 3 Jugadores -> Bracket de 4. 2 Partidos.
+        const matchesToInsert = [];
+        const bracketSize = 4;
+        for (let i = 0; i < bracketSize / 2; i++) {
+            const homeIndex = i;
+            const awayIndex = bracketSize - 1 - i;
+            const home = inscriptions[homeIndex];
+            const away = inscriptions[awayIndex];
+
+            matchesToInsert.push({
+                tournamentId: openLaCalera.id,
+                round: 1,
+                matchOrder: i + 1,
+                tableNumber: i === 0 ? "1 (TV)" : "2",
+                homePlayerId: home ? home.playerId : "ERROR",
+                awayPlayerId: away ? away.playerId : null,
+                isWO: !away
+            });
+        }
+        
+        await prisma.match.deleteMany({ where: { tournamentId: openLaCalera.id }});
+        await prisma.match.createMany({ data: matchesToInsert.filter(m => m.homePlayerId !== "ERROR") });
+
+        // ====================================================
+        // 7. SIMULACIÓN DE PROPAGACIÓN (RESULTADOS RONDA 1)
+        // ====================================================
+        const r1Matches = await prisma.match.findMany({ where: { tournamentId: openLaCalera.id, round: 1 }, orderBy: { matchOrder: 'asc' }});
+        
+        // M1: Felipe Gallegos vs BYE (WO)
+        if (r1Matches[0]) {
+            const m1 = r1Matches[0];
+            await prisma.match.update({ where: { id: m1.id }, data: { winnerId: m1.homePlayerId }});
+            // Propagar a Ronda 2
+            await prisma.match.create({
+                data: {
+                    tournamentId: openLaCalera.id,
+                    round: 2,
+                    matchOrder: 1,
+                    tableNumber: "1 (TV)",
+                    homePlayerId: m1.homePlayerId,
+                    awayPlayerId: null // Esperando a Carvajal
+                }
+            });
+        }
+
+        // M2: Carvajal vs Lobo
+        if (r1Matches[1]) {
+            const m2 = r1Matches[1];
+            // Simulamos 15-8 a favor de Carvajal (HomePlayer)
+            await prisma.match.update({
+                where: { id: m2.id },
+                data: {
+                    homeScore: 15,
+                    awayScore: 8,
+                    winnerId: m2.homePlayerId
+                }
+            });
+            // Propagar Carvajal a Ronda 2 hacia el hueco away
+             const nextMatch = await prisma.match.findFirst({
+                 where: { tournamentId: openLaCalera.id, round: 2, matchOrder: 1 }
+             });
+             if (nextMatch) {
+                 await prisma.match.update({
+                     where: { id: nextMatch.id },
+                     data: { awayPlayerId: m2.homePlayerId }
+                 });
+             }
+        }
+        
+        // ====================================================
+        // 8. SIMULACIÓN DE LA GRAN FINAL Y CLAUSURA (RANKINGS)
+        // ====================================================
+        const finalMatch = await prisma.match.findFirst({
+            where: { tournamentId: openLaCalera.id, round: 2, matchOrder: 1 }
+        });
+
+        if (finalMatch && finalMatch.awayPlayerId) {
+            // Gallegos (Home) vs Carvajal (Away)
+            // Gana Gallegos espectacularmente 15-13
+            await prisma.match.update({
+                where: { id: finalMatch.id },
+                data: {
+                    homeScore: 15,
+                    awayScore: 13,
+                    winnerId: finalMatch.homePlayerId
+                }
+            });
+
+            // Motor de Rankings Absolutos (Clausura)
+            await prisma.tournament.update({
+                where: { id: openLaCalera.id },
+                data: { status: "FINISHED" }
+            });
+
+            // Dar Puntos
+            const championId = finalMatch.homePlayerId; // Gallegos
+            const runnerUpId = finalMatch.awayPlayerId; // Carvajal
+
+            const disciplines = { disc: openLaCalera.discipline, cat: openLaCalera.category };
+
+            // +60 Gallegos
+            const rankingG = await prisma.ranking.findFirst({ where: { playerId: championId, discipline: disciplines.disc, category: disciplines.cat }});
+            if (rankingG) {
+                await prisma.ranking.update({ where: { id: rankingG.id }, data: { points: rankingG.points + 60 }});
+            }
+
+            // +40 Carvajal
+            const rankingC = await prisma.ranking.findFirst({ where: { playerId: runnerUpId, discipline: disciplines.disc, category: disciplines.cat }});
+            if (rankingC) {
+                await prisma.ranking.update({ where: { id: rankingC.id }, data: { points: rankingC.points + 40 }});
+            }
+
+            // Audit
+            await prisma.auditLog.create({
+                data: {
+                    action: "TOURNAMENT_CLOSURE",
+                    targetId: openLaCalera.id,
+                    userId: adminUser.id, // SGF Admin
+                    details: "Torneo Open La Calera clausurado. Campeón asignado: +60 puntos."
+                }
+            });
+        }
+    }
+
+    console.log('✅ Base de datos de SGF poblada con Jugadores Élite, Ecosistema de Cuadros y Semillas Propagadas.');
 }
+
 
 main()
     .catch((e) => {
