@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  turbopack: {},
   // Configuración de Webpack para estabilidad en entornos con latencia de red
   webpack: (config, { dev, isServer }) => {
     if (dev && !isServer) {

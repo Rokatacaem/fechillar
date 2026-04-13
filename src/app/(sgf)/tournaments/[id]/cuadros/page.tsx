@@ -5,6 +5,8 @@ import { ArrowLeft, Swords, Trophy, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { MatchScoreEditor } from "@/components/tournaments/MatchScoreEditor";
+import { getTournamentPodium } from "@/lib/tournament-results";
+import { TournamentPodium } from "@/components/tournament/TournamentPodium";
 
 export default async function TournamentBracketsPage({ params }: { params: Promise<{ id: string }> }) {
     const session = await auth();
@@ -34,6 +36,12 @@ export default async function TournamentBracketsPage({ params }: { params: Promi
     const rounds = Array.from(new Set(allMatches.map(m => m.round))).sort((a, b) => a - b);
     const matchesByRound = rounds.map(r => allMatches.filter(m => m.round === r));
 
+    // Determinar si hay podio
+    let podiumData = null;
+    if (tournament.status === "FINISHED") {
+        podiumData = await getTournamentPodium(tournamentId);
+    }
+
     return (
         <div className="space-y-8 animate-in fade-in duration-700 max-w-6xl mx-auto overflow-hidden">
             {/* Nav */}
@@ -55,6 +63,17 @@ export default async function TournamentBracketsPage({ params }: { params: Promi
                     </div>
                 </div>
             </div>
+
+            {/* Podium VIP Overlay (Si finalizó) */}
+            {podiumData && (
+                <div className="mb-16">
+                    <TournamentPodium 
+                        champion={podiumData.champion} 
+                        runnerUp={podiumData.runnerUp} 
+                        bronze={podiumData.bronzes} 
+                    />
+                </div>
+            )}
 
             {/* Bracket Visualizer */}
             {allMatches.length === 0 ? (

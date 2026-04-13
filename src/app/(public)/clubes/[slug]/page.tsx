@@ -3,6 +3,8 @@ import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { Trophy, CalendarPlus, Users } from "lucide-react";
 import ClubRankingTable from "@/components/public/ClubRankingTable";
+import { TournamentPodium } from "@/components/tournament/TournamentPodium";
+import { getTournamentPodium } from "@/lib/tournament-results";
 import Link from "next/link";
 import { Metadata } from "next";
 
@@ -31,10 +33,18 @@ export default async function PublicClubPage({ params }: { params: Promise<{ slu
     if (!club) return notFound();
 
     // Obtener Torneos donde el club es Sede
-    const upcomingTournaments = await prisma.tournament.findMany({
+    const allTournaments = await prisma.tournament.findMany({
         where: { tenantId: club.id },
         orderBy: { startDate: 'asc' }
     });
+
+    const finishedTournaments = allTournaments.filter(t => t.status === "FINISHED");
+    const latestFinished = finishedTournaments.length > 0 ? finishedTournaments[finishedTournaments.length - 1] : null;
+    
+    let latestPodium = null;
+    if (latestFinished) {
+        latestPodium = await getTournamentPodium(latestFinished.id);
+    }
 
     return (
         <div className="bg-[#020817] min-h-screen pb-24 font-sans text-slate-300">
@@ -63,6 +73,20 @@ export default async function PublicClubPage({ params }: { params: Promise<{ slu
                 </div>
             </header>
 
+            {/* PODIUM DEL ÚLTIMO EVENTO (Si existe) */}
+            {latestPodium && latestFinished && (
+                <div className="max-w-7xl mx-auto mt-12 bg-slate-900/40 border border-white/5 rounded-3xl overflow-hidden shadow-2xl relative">
+                    <div className="absolute top-4 left-6 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest z-20">
+                        Podio Histórico: {latestFinished.name}
+                    </div>
+                    <TournamentPodium 
+                        champion={latestPodium.champion}
+                        runnerUp={latestPodium.runnerUp}
+                        bronze={latestPodium.bronzes}
+                    />
+                </div>
+            )}
+
             <main className="max-w-7xl mx-auto p-4 md:p-16 grid grid-cols-1 lg:grid-cols-3 gap-12 mt-8">
                 
                 {/* COLUMNA IZQUIERDA: RANKING LOCAL */}
@@ -82,13 +106,13 @@ export default async function PublicClubPage({ params }: { params: Promise<{ slu
                             <CalendarPlus className="w-6 h-6 text-indigo-400" />
                             <h2 className="text-xl font-bold text-white">Próximos Torneos</h2>
                         </div>
-                        {upcomingTournaments.length === 0 ? (
+                        {allTournaments.length === 0 ? (
                             <div className="bg-slate-900 border border-white/5 rounded-xl p-6 text-center">
                                 <p className="text-sm text-slate-500">No hay eventos programados en esta sede próximamente.</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                {upcomingTournaments.map(t => (
+                                {allTournaments.map(t => (
                                     <div key={t.id} className="bg-slate-900 border border-white/10 rounded-xl p-4 transition-colors relative overflow-hidden">
                                         <div className={`absolute top-0 left-0 w-1 h-full ${t.status === 'OPEN' ? 'bg-indigo-500' : 'bg-emerald-500'}`} />
                                         <h3 className="font-bold text-white pl-3">{t.name}</h3>

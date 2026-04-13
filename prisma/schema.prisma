@@ -74,6 +74,7 @@ model PlayerProfile {
   id               String                   @id @default(uuid())
   userId           String                   @unique
   tenantId         String?
+  slug             String                   @unique
   rut              String?                  @unique
   federationId     String?                  @unique
   photoUrl         String?

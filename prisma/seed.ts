@@ -47,11 +47,11 @@ async function main() {
     // 2. USUARIOS Y JUGADORES ÉLITE (Top Ranking Buchacas)
     // ----------------------------------------------------
     const playersData = [
-        { email: 'fgallegos@propool.cl', name: 'Felipe Gallegos', rut: '15.111.222-3', clubSlug: 'pro-pool' },
-        { email: 'acarvajal@santiago.cl', name: 'Alejandro Carvajal', rut: '16.222.333-4', clubSlug: 'santiago' },
-        { email: 'elobo@ovalle.cl', name: 'Enrique Lobo', rut: '14.333.444-5', clubSlug: 'ovalle' },
-        { email: 'jmartinez@patagonia.cl', name: 'Javier Martínez', rut: '17.444.555-6', clubSlug: 'patagonia' },
-        { email: 'psuarez@sanmiguel.cl', name: 'Pablo Suárez', rut: '18.555.666-7', clubSlug: 'san-miguel' },
+        { email: 'fgallegos@propool.cl', name: 'Felipe Gallegos', rut: '15.111.222-3', clubSlug: 'pro-pool', slug: 'felipe-gallegos' },
+        { email: 'acarvajal@santiago.cl', name: 'Alejandro Carvajal', rut: '16.222.333-4', clubSlug: 'santiago', slug: 'alejandro-carvajal' },
+        { email: 'elobo@ovalle.cl', name: 'Enrique Lobo', rut: '14.333.444-5', clubSlug: 'ovalle', slug: 'enrique-lobo' },
+        { email: 'jmartinez@patagonia.cl', name: 'Javier Martínez', rut: '17.444.555-6', clubSlug: 'patagonia', slug: 'javier-martinez' },
+        { email: 'psuarez@sanmiguel.cl', name: 'Pablo Suárez', rut: '18.555.666-7', clubSlug: 'san-miguel', slug: 'pablo-suarez' },
     ];
 
     for (const p of playersData) {
@@ -72,6 +72,7 @@ async function main() {
             create: {
                 userId: user.id,
                 rut: p.rut,
+                slug: p.slug,
                 federationId: `FED-${Math.floor(1000 + Math.random() * 9000)}`,
                 tenantId: createdClubs[p.clubSlug].id,
                 gender: 'M',

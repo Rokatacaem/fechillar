@@ -31,11 +31,11 @@ export default async function SgfDashboardPage() {
       upcomingTournaments
     ] = await Promise.all([
       prisma.playerProfile.count(),
-      prisma.tournament.count({ where: { status: "ACTIVE" } }),
+      prisma.tournament.count({ where: { status: "IN_PROGRESS" } }),
       prisma.transferRequest.count({ where: { status: "PENDING" } }),
       prisma.club.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
       prisma.tournament.findMany({ 
-        where: { status: "UPCOMING" }, 
+        where: { status: "OPEN" }, 
         orderBy: { startDate: "asc" }, 
         take: 4 
       })

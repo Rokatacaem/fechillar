@@ -32,6 +32,7 @@ async function main() {
                 data: {
                     userId: user.id,
                     tenantId: clubPropool.id,
+                    slug: `challenger-autolink-${i+1}`,
                     rut: `99.999.${100 + i}-0`,
                 },
                 include: { user: true }
