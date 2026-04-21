@@ -1,43 +1,53 @@
 "use client";
 
 import { useState } from "react";
-// import { signIn } from "next-auth/react"; // We'll implement the action manually or use client hook later
+import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export default function LoginPage() {
+/**
+ * Client Component: Formulario de autenticación.
+ * Post-login: navega a "/" para que el middleware evalúe el rol
+ * y ejecute la redirección final al dashboard correspondiente.
+ */
+export default function LoginForm() {
     const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
-
-        // Temporary simulation for demo flow until we wire up client-side next-auth completely
-        if (email === "admin@fechillar.cl" && password === "admin123") {
-            // redirect to pretend dashboard or just handle via next-auth signIn in real impl
-            console.log("Admin login attempt");
-        }
+        setIsLoading(true);
 
         try {
-            // Using NextAuth signIn (would need to be imported) or valid API call
-            // const res = await signIn("credentials", { email, password, redirect: false });
-            console.log("Logging in...", email);
-            // For now, let's just simulate specific redirects for the demo flow
-            if (email.includes("player")) router.push("/player");
-            else if (email.includes("admin")) router.push("/official");
-            else router.push("/player");
+            const res = await signIn("credentials", {
+                email,
+                password,
+                redirect: false,   // Manejamos el redirect manualmente
+            });
 
-        } catch (err) {
-            setError("Credenciales inválidas");
+            if (res?.error) {
+                setError("Credenciales inválidas. Verifica tu correo y contraseña.");
+                return;
+            }
+
+            // El middleware.ts detectará la sesión y redirigirá según el rol.
+            router.push("/");
+            router.refresh();
+
+        } catch {
+            setError("Error de conexión. Intenta nuevamente.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 relative overflow-hidden">
-            {/* Background Decorative */}
+            {/* Background Decorativo */}
             <div className="absolute top-0 left-0 w-full h-1/2 bg-[var(--color-primary)] z-0 rounded-b-[50px]"></div>
 
             <div className="relative z-10 w-full max-w-md p-6">
@@ -49,7 +59,9 @@ export default function LoginPage() {
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Correo Electrónico</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Correo Electrónico
+                            </label>
                             <input
                                 type="email"
                                 required
@@ -60,7 +72,9 @@ export default function LoginPage() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Contraseña</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Contraseña
+                            </label>
                             <input
                                 type="password"
                                 required
@@ -71,13 +85,26 @@ export default function LoginPage() {
                             />
                         </div>
 
-                        {error && <p className="text-red-500 text-sm">{error}</p>}
+                        {error && (
+                            <p className="text-red-500 text-sm bg-red-50 px-3 py-2 rounded-lg border border-red-200">
+                                {error}
+                            </p>
+                        )}
 
                         <button
                             type="submit"
-                            className="w-full py-4 bg-[var(--color-primary)] hover:bg-blue-900 text-white rounded-lg font-bold shadow-lg transition-transform hover:scale-[1.02]"
+                            disabled={isLoading}
+                            className="w-full py-4 bg-[var(--color-primary)] hover:bg-blue-900 disabled:bg-slate-400 text-white rounded-lg font-bold shadow-lg transition-all hover:scale-[1.02] disabled:scale-100 flex items-center justify-center gap-2"
                         >
-                            Ingresar
+                            {isLoading ? (
+                                <>
+                                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                    </svg>
+                                    Verificando...
+                                </>
+                            ) : "Ingresar"}
                         </button>
                     </form>
 

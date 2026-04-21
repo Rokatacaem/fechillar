@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-
-
-import "./globals.css";
+// globals.css NO se importa aquí — lo hereda del RootLayout (src/app/layout.tsx)
 
 export const metadata: Metadata = {
   title: "Fechillar - Federación Chilena de Billar",

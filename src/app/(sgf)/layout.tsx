@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { SgfSidebar } from "@/components/layout/SgfSidebar";
 import { SgfHeader } from "@/components/layout/SgfHeader";
-import "@/app/(public)/globals.css"; // Ruta absoluta con @ es más segura
+// globals.css NO se importa aquí — lo hereda del RootLayout (src/app/layout.tsx)
 
 
 

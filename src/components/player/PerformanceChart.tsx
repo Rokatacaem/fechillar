@@ -32,6 +32,8 @@ interface DataPoint {
 
 interface PerformanceChartProps {
     data: DataPoint[];
+    color?: string;
+    label?: string;
 }
 
 export function PerformanceChart({ data }: PerformanceChartProps) {
@@ -48,17 +50,17 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
         datasets: [
             {
                 fill: true,
-                label: 'Rating SGF',
+                label: label || 'Rating SGF',
                 data: data.map(d => d.points),
-                borderColor: '#8b5cf6', // Indigo/Violet
-                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                borderColor: color || '#8b5cf6', 
+                backgroundColor: color ? `${color}1A` : 'rgba(139, 92, 246, 0.1)',
                 borderWidth: 3,
-                pointBackgroundColor: '#10b981', // Emerald points
+                pointBackgroundColor: '#10b981', 
                 pointBorderColor: '#020817',
                 pointBorderWidth: 2,
                 pointRadius: 5,
                 pointHoverRadius: 7,
-                tension: 0.4, // Smooth line
+                tension: 0.4, 
             },
         ],
     };
@@ -80,7 +82,7 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
                 displayColors: false,
                 callbacks: {
                     label: function(context: any) {
-                        return `${context.parsed.y} Puntos`;
+                        return `${context.parsed.y} ${label === 'PGP' ? '' : 'Puntos'}`;
                     }
                 }
             },

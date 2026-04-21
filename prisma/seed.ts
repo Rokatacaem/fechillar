@@ -13,8 +13,8 @@ async function main() {
         create: {
             name: 'Federación Chilena de Billar',
             slug: 'federacion',
-            primaryColor: '#0f172a',
-            secondaryColor: '#10b981',
+            brandColor: '#0f172a',
+            accentColor: '#10b981',
             isValidated: true,
         },
     });
@@ -36,8 +36,8 @@ async function main() {
             create: {
                 name: data.name,
                 slug: data.slug,
-                primaryColor: data.color1,
-                secondaryColor: data.color2,
+                brandColor: data.color1,
+                accentColor: data.color2,
                 isValidated: true,
             }
         });
@@ -80,15 +80,41 @@ async function main() {
         });
     }
 
-    // Usuario Admin General
+    // ─── USUARIOS DE PRUEBA PARA QA DE ROLES ─────────────────────
+
+    // SuperAdmin / Federación Nacional
     const adminUser = await prisma.user.upsert({
         where: { email: 'admin@fechillar.cl' },
-        update: {},
+        update: { passwordHash: 'admin123', role: 'SUPERADMIN' },
         create: {
             email: 'admin@fechillar.cl',
             name: 'Administrador SGF',
-            role: 'FEDERATION_ADMIN',
+            role: 'SUPERADMIN',
             passwordHash: 'admin123'
+        },
+    });
+
+    // Delegado de Club (Club Santiago)
+    await prisma.user.upsert({
+        where: { email: 'delegado@clubsantiago.cl' },
+        update: { passwordHash: 'club123' },
+        create: {
+            email: 'delegado@clubsantiago.cl',
+            name: 'Delegado Club Santiago',
+            role: 'CLUB_DELEGATE',
+            passwordHash: 'club123'
+        },
+    });
+
+    // Jugador de prueba (sin perfil de jugador creado — flujo básico)
+    await prisma.user.upsert({
+        where: { email: 'jugador@test.cl' },
+        update: { passwordHash: 'player123' },
+        create: {
+            email: 'jugador@test.cl',
+            name: 'Jugador Test',
+            role: 'PLAYER',
+            passwordHash: 'player123'
         },
     });
 
@@ -108,11 +134,12 @@ async function main() {
             data: {
                 name: t.name,
                 description: t.desc,
-                discipline: "POOL",
-                modality: "NINE_BALL",
+                discipline: "POOL_CHILENO",
+                modality: "THREE_BAND",
                 category: "HONOR",
                 status: "OPEN",
                 scope: "NATIONAL",
+                venue: "Club La Calera - Sede Central",
                 tenantId: createdClubs[t.club].id, // El club que es sede del open
                 startDate: startDate,
                 endDate: new Date(startDate.getTime() + (3 * 24 * 60 * 60 * 1000)), // 3 days
@@ -135,9 +162,9 @@ async function main() {
             data: {
                 name: ext.name,
                 description: ext.desc,
-                discipline: "CARAMBOLA",
+                discipline: "THREE_BAND",
                 modality: "THREE_BAND",
-                category: "HONOR",
+                category: "MASTER",
                 status: "OPEN",
                 scope: "EXTERNAL_REFERENCE",
                 startDate: startDate,
@@ -316,19 +343,20 @@ async function main() {
             });
 
             // Dar Puntos
-            const championId = finalMatch.homePlayerId; // Gallegos
-            const runnerUpId = finalMatch.awayPlayerId; // Carvajal
+            const championId = finalMatch.homePlayerId as string; 
+            const runnerUpId = finalMatch.awayPlayerId as string; 
 
-            const disciplines = { disc: openLaCalera.discipline, cat: openLaCalera.category };
+            const discVal: any = "THREE_BAND";
+            const catVal: any = "MASTER";
 
             // +60 Gallegos
-            const rankingG = await prisma.ranking.findFirst({ where: { playerId: championId, discipline: disciplines.disc, category: disciplines.cat }});
+            const rankingG = await prisma.ranking.findFirst({ where: { playerId: championId, discipline: discVal, category: catVal }});
             if (rankingG) {
                 await prisma.ranking.update({ where: { id: rankingG.id }, data: { points: rankingG.points + 60 }});
             }
 
             // +40 Carvajal
-            const rankingC = await prisma.ranking.findFirst({ where: { playerId: runnerUpId, discipline: disciplines.disc, category: disciplines.cat }});
+            const rankingC = await prisma.ranking.findFirst({ where: { playerId: runnerUpId, discipline: discVal, category: catVal }});
             if (rankingC) {
                 await prisma.ranking.update({ where: { id: rankingC.id }, data: { points: rankingC.points + 40 }});
             }

@@ -51,29 +51,26 @@ export function PlayerSearch({ onSelect }: { onSelect?: (player: SearchPlayerRes
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-full justify-between bg-slate-950 border-white/10 hover:bg-slate-900 text-slate-300 px-4 py-6 rounded-xl transition-all font-medium"
-        >
-          <div className="flex items-center gap-2 overflow-hidden text-left">
-              {selectedPlayer ? (
-                  <>
-                      <User className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span className="truncate">{selectedPlayer.name}</span>
-                      <span className="text-[10px] text-slate-500 uppercase tracking-widest hidden sm:inline-block">({selectedPlayer.club})</span>
-                  </>
-              ) : (
-                  <>
-                      <Search className="w-4 h-4 text-slate-500 shrink-0" />
-                      Buscar afiliado por nombre o RUT...
-                  </>
-              )}
-          </div>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
+      <PopoverTrigger
+        className="w-full inline-flex items-center justify-between bg-slate-950 border border-white/10 hover:bg-slate-900 text-slate-300 px-4 py-6 rounded-xl transition-all font-medium cursor-pointer"
+        role="combobox"
+        aria-expanded={open}
+      >
+        <div className="flex items-center gap-2 overflow-hidden text-left">
+            {selectedPlayer ? (
+                <>
+                    <User className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span className="truncate">{selectedPlayer.name}</span>
+                    <span className="text-[10px] text-slate-500 uppercase tracking-widest hidden sm:inline-block">({selectedPlayer.club})</span>
+                </>
+            ) : (
+                <>
+                    <Search className="w-4 h-4 text-slate-500 shrink-0" />
+                    Buscar afiliado por nombre o RUT...
+                </>
+            )}
+        </div>
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-slate-950 border border-white/10 rounded-xl overflow-hidden shadow-2xl">
         <Command className="bg-transparent" shouldFilter={false}>

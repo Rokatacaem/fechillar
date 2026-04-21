@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
-  LayoutDashboard, 
+  LayoutDashboard,
   Shield, 
   Users, 
   Trophy, 
@@ -16,8 +16,8 @@ const cn = (...classes: (string | boolean | undefined)[]) => classes.filter(Bool
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Padrón Nacional", href: "/federacion/padron", icon: Users },
   { name: "Clubes", href: "/clubs", icon: Shield },
-  { name: "Jugadores", href: "/players", icon: Users },
   { name: "Torneos", href: "/tournaments", icon: Trophy },
   { name: "Traspasos", href: "/transfers", icon: ArrowLeftRight },
   { name: "Finanzas", href: "/finances", icon: DollarSign },

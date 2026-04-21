@@ -54,3 +54,78 @@ export async function getTournamentPodium(tournamentId: string) {
         bronzes: bronzes
     };
 }
+
+export async function getTournamentStandings(tournamentId: string) {
+    const registrations = await prisma.tournamentRegistration.findMany({
+        where: { tournamentId },
+        include: {
+            player: { 
+                include: { 
+                    user: true,
+                    club: true 
+                } 
+            }
+        },
+        orderBy: { registeredRank: 'asc' }
+    });
+
+    return registrations
+        .filter(r => r.registeredRank && r.registeredRank > 0)
+        .map(r => ({
+            id: r.id,
+            name: r.player.user.name || "Jugador Desconocido",
+            rank: r.registeredRank || 0,
+            handicap: (r as any).registeredHandicap || 30,
+            club: r.player.club?.name || "Independiente"
+        }));
+}
+
+export async function getTournamentStats(tournamentId: string) {
+    const matches = await prisma.match.findMany({
+        where: { tournamentId, isWO: false },
+        include: {
+            homePlayer: { include: { user: true } },
+            awayPlayer: { include: { user: true } }
+        }
+    });
+
+    if (!matches || matches.length === 0) return null;
+
+    let bestRun = { value: 0, playerName: "-", playerId: "" };
+    let bestAverage = { value: 0, playerName: "-", playerId: "" };
+
+    matches.forEach(m => {
+        // High Runs
+        if ((m.homeHighRun || 0) > bestRun.value) {
+            bestRun = { value: m.homeHighRun!, playerName: m.homePlayer?.user?.name || "Desconocido", playerId: m.homePlayerId || "" };
+        }
+        if ((m.awayHighRun || 0) > bestRun.value) {
+            bestRun = { value: m.awayHighRun!, playerName: m.awayPlayer?.user?.name || "Desconocido", playerId: m.awayPlayerId || "" };
+        }
+
+        // Averages
+        if (m.homeInnings && m.homeInnings > 0) {
+            const avg = m.homeScore! / m.homeInnings;
+            if (avg > bestAverage.value) {
+                bestAverage = { value: parseFloat(avg.toFixed(3)), playerName: m.homePlayer?.user?.name || "Desconocido", playerId: m.homePlayerId || "" };
+            }
+        }
+        if (m.awayInnings && m.awayInnings > 0) {
+            const avg = m.awayScore! / m.awayInnings;
+            if (avg > bestAverage.value) {
+                bestAverage = { value: parseFloat(avg.toFixed(3)), playerName: m.awayPlayer?.user?.name || "Desconocido", playerId: m.awayPlayerId || "" };
+            }
+        }
+    });
+
+    return {
+        bestRun,
+        bestAverage
+    };
+}
+
+export async function checkPlayerIsHighRun(tournamentId: string, playerId: string) {
+    const stats = await getTournamentStats(tournamentId);
+    if (!stats || stats.bestRun.value === 0) return false;
+    return stats.bestRun.playerId === playerId;
+}

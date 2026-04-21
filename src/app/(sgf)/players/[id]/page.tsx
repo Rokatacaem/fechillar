@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, User, IdCard, Shield, Calendar, Award } from "lucide-react";
+import { PlayerPhotoEdition } from "@/components/players/PlayerPhotoEdition";
 
 export default async function PlayerProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -36,14 +37,12 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
                 <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
                 
                 <div className="flex flex-col md:flex-row gap-8 items-center md:items-start relative z-10">
-                    {/* Foto */}
-                    <div className="w-40 h-40 md:w-48 md:h-48 rounded-[2rem] bg-slate-800 border-2 border-white/10 overflow-hidden shadow-xl shrink-0 flex items-center justify-center">
-                        {player.photoUrl ? (
-                            <img src={player.photoUrl} alt={player.user?.name || "Foto"} className="w-full h-full object-cover" />
-                        ) : (
-                            <User className="w-20 h-20 text-slate-600" />
-                        )}
-                    </div>
+                    {/* Foto Interactiva */}
+                    <PlayerPhotoEdition 
+                        playerId={player.id} 
+                        playerName={player.user?.name || "Deportista"} 
+                        initialPhotoUrl={player.photoUrl} 
+                    />
 
                     {/* Datos */}
                     <div className="flex-1 space-y-6 text-center md:text-left w-full">

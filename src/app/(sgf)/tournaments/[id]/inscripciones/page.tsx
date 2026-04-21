@@ -1,9 +1,8 @@
 import prisma from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, Users, Trophy, MapPin, CheckCircle, Clock } from "lucide-react";
+import { ArrowLeft, Users, Trophy, MapPin } from "lucide-react";
 import Link from "next/link";
-import { RegistrationManager } from "@/components/tournaments/RegistrationManager";
-import { PaymentValidateButton } from "@/components/tournaments/PaymentValidateButton";
+import { InscritosListClient } from "@/components/tournaments/InscritosListClient";
 import { auth } from "@/auth";
 
 export default async function TournamentRegistrationsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -23,19 +22,53 @@ export default async function TournamentRegistrationsPage({ params }: { params: 
 
     if (!tournament) return notFound();
 
-    // Obtener inscritos
+    // Obtener inscritos con promedio de ranking
     const registrations = await prisma.tournamentRegistration.findMany({
         where: { tournamentId },
-        orderBy: { registeredAt: 'desc' },
+        orderBy: [
+            { registeredPoints: 'desc' },
+            { registeredAt: 'asc' }
+        ],
         include: {
             player: {
                 include: {
-                    user: true,
-                    club: true
+                    user: { select: { name: true } },
+                    club: { select: { id: true, name: true } },
+                    rankings: {
+                        where: { discipline: tournament.discipline as any },
+                        select: { average: true },
+                        take: 1
+                    }
                 }
             }
         }
     });
+
+    // Obtener todos los clubes para el ingreso masivo
+    const allClubs = await prisma.club.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: "asc" }
+    });
+
+    // Normalizar para el componente cliente
+    const inscritosData = registrations.map(r => ({
+        id: r.id,
+        playerId: r.playerId, // Añadir playerId para validaciones en cliente
+        status: r.status,
+        paymentStatus: r.paymentStatus,
+        amountPaid: r.amountPaid,
+        paymentRef: r.paymentRef,
+        registeredPoints: r.registeredPoints,
+        rankingAverage: r.player.rankings?.[0]?.average ?? null,
+        player: {
+            user: r.player.user,
+            firstName: r.player.firstName,
+            lastName: r.player.lastName,
+            rut: r.player.rut,
+            federationId: r.player.federationId,
+            club: r.player.club,
+        }
+    }));
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700 max-w-5xl mx-auto">
@@ -79,87 +112,29 @@ export default async function TournamentRegistrationsPage({ params }: { params: 
                     </div>
                 </div>
                 
-                <span className={\`inline-flex items-center px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest \${
-                    tournament.status === 'OPEN' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 
+                <span className={[
+                    "inline-flex items-center px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest",
+                    tournament.status === 'OPEN' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
                     tournament.status === 'UPCOMING' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
+                    tournament.status === 'FINISHED' ? 'bg-emerald-900/30 text-emerald-600 border border-emerald-900/40' :
                     'bg-slate-500/10 text-slate-400 border border-slate-500/20'
-                }\`}>
+                ].join(" ")}>
                     ESTADO: {tournament.status}
                 </span>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-1 space-y-6">
-                     {/* Manager para buscar e inscribir */}
-                     <RegistrationManager tournamentId={tournamentId} />
+            {/* Padrón full-width */}
+            <div className="bg-slate-900/40 border border-white/5 rounded-3xl backdrop-blur-md overflow-hidden">
+                <div className="p-5 border-b border-white/5 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-emerald-500" />
+                    <h3 className="font-bold text-white">Padrón de Inscritos</h3>
                 </div>
 
-                <div className="lg:col-span-2">
-                    {/* Lista de Registrados */}
-                    <div className="bg-slate-900/40 border border-white/5 rounded-3xl backdrop-blur-md overflow-hidden">
-                        <div className="p-6 border-b border-white/5 flex items-center justify-between">
-                            <h3 className="font-bold text-white flex items-center gap-2">
-                                <Users className="w-5 h-5 text-emerald-500" />
-                                Padrón de Inscritos
-                            </h3>
-                        </div>
-
-                        {registrations.length === 0 ? (
-                            <div className="p-12 text-center">
-                                <Users className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-                                <p className="text-slate-500 text-sm">Aún no hay jugadores inscritos en este torneo.</p>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-white/5">
-                                {registrations.map(reg => (
-                                    <div key={reg.id} className="p-4 px-6 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center font-bold text-white border border-white/10 shrink-0">
-                                                {reg.player.user.name?.charAt(0) || "U"}
-                                            </div>
-                                            <div>
-                                                <p className="text-white font-bold text-sm">{reg.player.user.name}</p>
-                                                <p className="text-[10px] uppercase font-bold tracking-widest text-slate-500">
-                                                    {reg.player.club?.name || "JUGADOR LIBRE"} • RUT {reg.player.rut}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="flex items-center gap-6">
-                                            {/* Modulo Financiero  */}
-                                            <div className="text-right border-r border-white/5 pr-6 hidden md:block">
-                                                {reg.paymentStatus === 'PAID' ? (
-                                                    <div>
-                                                        <p className="text-emerald-400 font-black text-sm">
-                                                            {reg.amountPaid ? new Intl.NumberFormat('es-CL', {style: 'currency', currency: 'CLP'}).format(reg.amountPaid) : 'PAGADO'}
-                                                        </p>
-                                                        <p className="text-[9px] uppercase tracking-widest text-slate-500">Ref: {reg.paymentRef}</p>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex flex-col items-end gap-1">
-                                                        <p className="text-yellow-500 font-bold text-sm">PENDIENTE</p>
-                                                        <PaymentValidateButton registrationId={reg.id} />
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="text-right hidden sm:block">
-                                                <p className="text-white font-black text-sm">{reg.registeredPoints}</p>
-                                                <p className="text-[9px] uppercase tracking-widest text-slate-500">Puntos Rank.</p>
-                                            </div>
-                                            
-                                            {reg.status === 'APPROVED' ? (
-                                                <CheckCircle className="w-5 h-5 text-emerald-500" />
-                                            ) : (
-                                                <Clock className="w-5 h-5 text-yellow-500" />
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
+                <InscritosListClient 
+                    registrations={inscritosData} 
+                    tournamentId={tournamentId} 
+                    allClubs={allClubs} 
+                />
             </div>
         </div>
     );

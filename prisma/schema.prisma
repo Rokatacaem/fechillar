@@ -20,11 +20,41 @@ enum UserRole {
 
 enum TournamentScope {
   NATIONAL
+  CLUB
   INTERNAL
   EXTERNAL_REFERENCE
 }
 
+enum Discipline {
+  THREE_BAND
+  POOL_CHILENO
+  POOL_8
+  POOL_9
+  POOL_10
+  HAYBALL
+  SNOOKER
+  POOL_ABIERTO
+  BUCHACAS
+}
+
+enum Category {
+  MASTER
+  HONOR
+  FIRST
+  SECOND
+  THIRD
+  FOURTH
+  FIFTH_A
+  FIFTH_B
+  SENIOR
+  FEMALE
+  PROMO
+}
+
+
 enum TournamentStatus {
+  DRAFT
+  UPCOMING
   OPEN
   IN_PROGRESS
   FINISHED
@@ -36,6 +66,59 @@ enum RegistrationStatus {
   REJECTED
 }
 
+enum OfficializationStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum WorkflowRequestType {
+  CERTIFICATE
+  ENROLLMENT
+}
+
+enum WorkflowRequestStatus {
+  PENDING
+  CLUB_APPROVED
+  FEDERATION_APPROVED
+  REJECTED
+}
+
+enum MembershipType {
+  ANNUAL
+  MONTHLY
+}
+
+enum MembershipStatus {
+  PAID
+  PENDING
+  OVERDUE
+}
+
+enum EnrollmentPaymentStatus {
+  PAID
+  PENDING
+  REFUNDED
+}
+
+enum ClubMembershipStatus {
+  VIGENTE
+  MOROSO
+  RETIRADO
+  SUSPENDIDO
+}
+
+enum ClubBoardRole {
+  PRESIDENTE
+  VICEPRESIDENTE
+  SECRETARIO
+  TESORERO
+  DIRECTOR
+  DELEGADO_DEPORTIVO
+}
+
+
 model User {
   id                 String                 @id @default(uuid())
   name               String?
@@ -44,11 +127,21 @@ model User {
   role               UserRole               @default(USER)
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
+  managedClubId      String?
+  managedClub        Club?                  @relation("ClubDelegates", fields: [managedClubId], references: [id])
   playerProfile      PlayerProfile?
   createdTournaments Tournament[]             @relation("TournamentCreator")
   assignments        TournamentAssignment[]
   validatedPayments  TournamentRegistration[] @relation("PaymentValidator")
+  matchesRefereed    Match[]                  @relation("MatchReferee")
   auditLogs          AuditLog[]               @relation("AuditLogs")
+  workflowReqs       WorkflowRequest[]        @relation("UserRequests")
+  memberships        Membership[]             @relation("UserMemberships")
+  enrollments        TournamentEnrollment[]   @relation("UserEnrollments")
+  validatedEnrollments TournamentEnrollment[] @relation("EnrollmentValidator")
+  validatedMemberships Membership[]           @relation("MembershipValidator")
+  waitingList         WaitingList[]
+  boardRoles          ClubMember[]           @relation("UserBoardRoles")
 }
 
 model Club {
@@ -58,37 +151,70 @@ model Club {
   address          String?
   city             String?
   legalStatus      String?
+  legalExpiryDate  DateTime?
   isValidated      Boolean         @default(false)
   logoUrl          String?
-  primaryColor     String          @default("#0b1120")
-  secondaryColor   String          @default("#10b981")
+  brandColor       String?         @default("#0f2040")
+  accentColor      String?         @default("#10b981")
   monthlyPlayerFee Float           @default(0)
+  
+  // NUEVOS CAMPOS FEDERATIVOS
+  foundedDate      DateTime?
+  certificateUrl   String?
+  membershipStatus ClubMembershipStatus @default(VIGENTE)
+  infrastructure   Json?           // { "tables": [{ "type": "Gran Match", "count": 2 }] }
+  
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
+  
+  delegates        User[]          @relation("ClubDelegates")
+  boardMembers     ClubMember[]    // Relación con Directiva
   financeRecords   FinanceRecord[]
   players          PlayerProfile[]
-  tournaments      Tournament[]
+  hostedTournaments Tournament[]   @relation("TournamentHost")
+  venueTournaments  Tournament[]   @relation("TournamentVenue")
+  workflowReqs     WorkflowRequest[]
+}
+
+model ClubMember {
+  id        String        @id @default(uuid())
+  clubId    String
+  name      String        // Nombre del dirigente
+  role      ClubBoardRole
+  email     String?       // Contacto opcional
+  phone     String?
+  userId    String?       // Opcional, si tiene cuenta en el sistema
+  isValidated Boolean     @default(false) // NUEVO: Estado de validación ante la federación
+  
+  club      Club          @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user      User?         @relation("UserBoardRoles", fields: [userId], references: [id])
 }
 
 model PlayerProfile {
   id               String                   @id @default(uuid())
-  userId           String                   @unique
+  userId           String?                  @unique
   tenantId         String?
   slug             String                   @unique
+  publicSlug       String                   @unique @default(dbgenerated("gen_random_uuid()"))
   rut              String?                  @unique
+  firstName        String?
+  lastName         String?
+  email            String?
   federationId     String?                  @unique
   photoUrl         String?
   birthDate        DateTime?
   gender           String?
   balance          Float                    @default(0)
+  averageBase      Float?                   @default(0) // Promedio histórico/inicial
   createdAt        DateTime                 @default(now())
   updatedAt        DateTime                 @updatedAt
   matchAway        Match[]                  @relation("AwayPlayer")
   matchHome        Match[]                  @relation("HomePlayer")
   matchWinner      Match[]                  @relation("WinnerPlayer")
   club             Club?                    @relation(fields: [tenantId], references: [id])
-  user             User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   rankings         Ranking[]
+  rankSnapshots    RankingSnapshot[]
   registrations    TournamentRegistration[]
   transferRequests TransferRequest[]
 }
@@ -101,22 +227,67 @@ model Tournament {
   startDate     DateTime
   endDate       DateTime?
   location      String?
-  discipline    String
+  discipline    Discipline
   modality      String?
-  category      String
-  status        TournamentStatus         @default(OPEN)
+  category      Category
+  status        TournamentStatus         @default(DRAFT)
   scope         TournamentScope          @default(INTERNAL)
+  venue         String?                  // Texto libre para sede
+  venueClubId   String?                  // Vinculación opcional a club
+  venueLogoUrl  String?                  // Logo específico para la sede/torneo
+  officializationStatus OfficializationStatus @default(NONE)
   tenantId      String?
   createdById   String?
   createdAt     DateTime                 @default(now())
   updatedAt     DateTime                 @updatedAt
   matches       Match[]
-  hostClub      Club?                    @relation(fields: [tenantId], references: [id])
+  groups        TournamentGroup[]
+  hostClub      Club?                    @relation("TournamentHost", fields: [tenantId], references: [id])
+  venueClub     Club?                    @relation("TournamentVenue", fields: [venueClubId], references: [id])
   creator       User?                    @relation("TournamentCreator", fields: [createdById], references: [id])
   photos        TournamentPhoto[]
   registrations TournamentRegistration[]
   assignments   TournamentAssignment[]
+  enrollments   TournamentEnrollment[]
+  phases        TournamentPhase[]
+  waitingList   WaitingList[]
+  
+  // INFRAESTRUCTURA Y CAPACIDAD
+  maxTables       Int                    @default(8)
+  playersPerTable Int                    @default(4)
+  
+  // CONTROL DE TIEMPO Y HANDICAP (3 BANDAS)
+  hasTimeLimit        Boolean            @default(false)
+  secondsPerShot      Int                @default(40)
+  extensionsPerPlayer Int                @default(2)
+  
+  config          Json?                  // { waitlist: 16, groups: { size: 3, advance: 2 }, innings: 30, etc }
 }
+
+model TournamentPhase {
+  id                   String     @id @default(uuid())
+  tournamentId         String
+  name                 String     // e.g. "GRUPOS", "PLAYOFFS", "FINALES"
+  order                Int        @default(1)
+  hasEqualizingInning  Boolean    @default(true) // Contra Salida
+  inningLimit          Int?       @default(30)   // Límite de Entradas
+  matches              Match[]
+  
+  tournament           Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+}
+
+model WaitingList {
+  id           String     @id @default(uuid())
+  tournamentId String
+  userId       String
+  joinedAt     DateTime   @default(now())
+  priority     Int        @default(0)
+  
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
 
 model TournamentPhoto {
   id           String     @id @default(uuid())
@@ -130,23 +301,56 @@ model TournamentPhoto {
 model Match {
   id           String         @id @default(uuid())
   tournamentId String
+  groupId      String?
+  phaseId      String?
   round        Int
   matchOrder   Int            @default(0)
   tableNumber  String?
   matchTime    DateTime?
   matchDistance Int?
-  homePlayerId String
+  refereeName  String?        // Nombre del árbitro (texto libre para planillas en papel)
+  
+  // JUGADORES (Hándicap compatible)
+  homePlayerId String?        // Permite TBD
   awayPlayerId String?
+  homeTarget   Int?           // Carambolas objetivo (Handicap)
+  awayTarget   Int?
+  
   winnerId     String?
-  homeScore    Int?
-  awayScore    Int?
-  innings      Int?           @default(0)
+  homeScore    Int?           @default(0)
+  awayScore    Int?           @default(0)
+  homeInnings  Int?           @default(0)
+  awayInnings  Int?           @default(0)
+  homeHighRun  Int?           @default(0)
+  awayHighRun  Int?           @default(0)
+  
   isWO         Boolean        @default(false)
+  hasEqualizingInning Boolean? // Override por partido si aplica
+  
   createdAt    DateTime       @default(now())
   awayPlayer   PlayerProfile? @relation("AwayPlayer", fields: [awayPlayerId], references: [id])
-  homePlayer   PlayerProfile  @relation("HomePlayer", fields: [homePlayerId], references: [id])
+  homePlayer   PlayerProfile? @relation("HomePlayer", fields: [homePlayerId], references: [id])
   tournament   Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  group        TournamentGroup? @relation(fields: [groupId], references: [id])
+  phase        TournamentPhase? @relation(fields: [phaseId], references: [id])
   winner       PlayerProfile? @relation("WinnerPlayer", fields: [winnerId], references: [id])
+  refereeId    String?
+  referee      User?          @relation("MatchReferee", fields: [refereeId], references: [id])
+}
+
+
+model TournamentGroup {
+  id            String     @id @default(uuid())
+  tournamentId  String
+  name          String
+  order         Int        @default(0) // Nuevo: Para ordenamiento numérico
+  tieBreakType  String     @default("PGP")
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  tournament    Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  matches       Match[]
+  registrations TournamentRegistration[]
 }
 
 model TransferRequest {
@@ -163,16 +367,33 @@ model TransferRequest {
 model Ranking {
   id           String        @id @default(uuid())
   playerId     String
-  discipline   String
-  category     String
+  discipline   Discipline
+  category     Category
   points       Int           @default(0)
   rankPosition Int?
   average      Float?
+  handicapTarget Int?        @default(15) // Meta base para el motor hándicap
   updatedAt    DateTime      @updatedAt
   player       PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([playerId, discipline, category])
 }
+
+model RankingSnapshot {
+  id           String        @id @default(uuid())
+  playerId     String
+  discipline   Discipline
+  category     Category
+  points       Int
+  rankPosition Int
+  average      Float?
+  powerScore   Float?
+  snapshotDate DateTime      @default(now())
+  player       PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, snapshotDate])
+}
+
 
 model FinanceRecord {
   id          String    @id @default(uuid())
@@ -209,8 +430,23 @@ model TournamentRegistration {
   paymentRef    String?
   paidAt        DateTime?
   validatorId   String?
+  
+  // ESTADO Y COLA
+  isWaitingList Boolean            @default(false)
+  priority      Int                @default(0) // Para orden de la cola
+  
   registeredPoints Int             @default(0)
+  registeredAverage Float           @default(0)
+  registeredCategory String          @default("PROMO")
+  registeredHandicap Int?            @default(30)
+  registeredRank   Int?
   status        RegistrationStatus @default(PENDING)
+
+  // Asignación a grupo de fase grupal
+  groupId       String?
+  groupOrder    Int?               @default(0) // Nuevo: Orden manual dentro del grupo
+  group         TournamentGroup? @relation(fields: [groupId], references: [id])
+
   player        PlayerProfile      @relation(fields: [playerId], references: [id], onDelete: Cascade)
   tournament    Tournament         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   validator     User?              @relation("PaymentValidator", fields: [validatorId], references: [id])
@@ -240,3 +476,57 @@ model AuditLog {
   createdAt DateTime @default(now())
   user      User     @relation("AuditLogs", fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model WorkflowRequest {
+  id           String               @id @default(uuid())
+  type         WorkflowRequestType
+  status       WorkflowRequestStatus @default(PENDING)
+  details      String?
+  requesterId  String
+  clubId       String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  requester    User                 @relation("UserRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  club         Club?                @relation(fields: [clubId], references: [id])
+}
+
+model Membership {
+  id               String           @id @default(uuid())
+  userId           String
+  type             MembershipType   @default(ANNUAL)
+  status           MembershipStatus @default(PENDING)
+  amount           Float            @default(0)
+  lastAmount       Float?           // Nuevo campo solicitado por el motor de finanzas
+  validUntil       DateTime
+  lastPaymentDate  DateTime?
+  paymentReference String?
+  validatedAt      DateTime?
+  receiptUrl       String?
+  validatedById    String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  user             User             @relation("UserMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  validator        User?            @relation("MembershipValidator", fields: [validatedById], references: [id])
+}
+
+model TournamentEnrollment {
+  id               String                  @id @default(uuid())
+  userId           String
+  tournamentId     String
+  paymentStatus    EnrollmentPaymentStatus @default(PENDING)
+  paymentReference String?
+  validatedAt      DateTime?
+  receiptUrl       String?
+  validatedById    String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  user             User                    @relation("UserEnrollments", fields: [userId], references: [id], onDelete: Cascade)
+  tournament       Tournament              @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  validator        User?                   @relation("EnrollmentValidator", fields: [validatedById], references: [id])
+
+  @@unique([userId, tournamentId])
+}
+

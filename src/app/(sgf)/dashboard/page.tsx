@@ -9,53 +9,75 @@ import {
   ArrowLeftRight,
   Activity
 } from "lucide-react";
+import { PurificationTrigger } from "@/components/admin/PurificationTrigger";
+import { Toaster } from "sonner";
 
 export const dynamic = "force-dynamic";
 
 export default async function SgfDashboardPage() {
-  // Consultas paralelas con Prisma (Singleton)
   let stats = {
     totalPlayers: 0,
     activeTournamentsCount: 0,
     pendingTransfers: 0,
     recentClubs: [],
-    upcomingTournaments: []
+    upcomingTournaments: [],
+    isPurified: false,
+    isSystemEmpty: false
   };
 
+  // Consultas paralelas con manejo de errores defensivo para Prisma Accelerate
   try {
     const [
-      totalPlayers,
-      activeTournamentsCount,
-      pendingTransfers,
-      recentClubs,
-      upcomingTournaments
+      playersCount,
+      activeTournaments,
+      clubsCount,
+      tournamentsCount,
+      lastAudit
     ] = await Promise.all([
-      prisma.playerProfile.count(),
-      prisma.tournament.count({ where: { status: "IN_PROGRESS" } }),
-      prisma.transferRequest.count({ where: { status: "PENDING" } }),
-      prisma.club.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
-      prisma.tournament.findMany({ 
-        where: { status: "OPEN" }, 
-        orderBy: { startDate: "asc" }, 
-        take: 4 
-      })
+      prisma.playerProfile.count().catch(() => 0),
+      prisma.tournament.count({ where: { status: "IN_PROGRESS" } }).catch(() => 0),
+      prisma.club.count().catch(() => 0),
+      prisma.tournament.count().catch(() => 0),
+      prisma.auditLog.findMany({
+          take: 1,
+          orderBy: { createdAt: "desc" }
+      }).catch(() => [])
     ]);
-    stats = { totalPlayers, activeTournamentsCount, pendingTransfers, recentClubs, upcomingTournaments };
+
+    stats.totalPlayers = playersCount;
+    stats.activeTournamentsCount = activeTournaments;
+    stats.isPurified = lastAudit.length === 1 && lastAudit[0].action === "ENTORNO_PURIFICADO_SGF";
+    stats.isSystemEmpty = playersCount === 0 && clubsCount === 0 && tournamentsCount === 0;
+
   } catch (error) {
-    console.error("Error fetching dashboard data:", error);
-    // Fallback or static data if connection fails
+    console.warn("⚠️ Advertencia: Error de conectividad con el motor de datos. Cargando modo degradado.");
   }
 
   return (
     <div className="space-y-10 p-2 md:p-6 animate-in fade-in duration-1000">
-      {/* Header Section */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-          Dashboard SGF <span className="text-emerald-500 font-medium">|</span> <span className="text-slate-400 font-medium">Federación</span>
-        </h1>
-        <p className="max-w-2xl text-slate-500 font-semibold uppercase tracking-widest text-[10px]">
-          Panel Central de Gestión Federativa • Fechillar v1.2
-        </p>
+      <Toaster position="top-right" theme="dark" richColors />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+            Dashboard SGF <span className="text-emerald-500 font-medium">|</span> <span className="text-slate-400 font-medium">Federación</span>
+          </h1>
+          <p className="max-w-2xl text-slate-500 font-semibold uppercase tracking-widest text-[10px]">
+            Panel Central de Gestión Federativa • Fechillar v1.2
+          </p>
+          
+          {(stats as any).isPurified || (stats as any).isSystemEmpty ? (
+            <div className="mt-2 inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-emerald-400 font-black text-[10px] uppercase tracking-widest animate-pulse w-fit">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Entorno Purificado: Listo para Carga Oficial de Clubes
+            </div>
+          ) : null}
+        </div>
+        
+        {!(stats as any).isSystemEmpty && (
+            <div className="flex shrink-0">
+                <PurificationTrigger />
+            </div>
+        )}
       </div>
 
       {/* Metrics Grid */}

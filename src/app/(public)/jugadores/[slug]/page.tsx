@@ -6,19 +6,34 @@ import { Metadata } from "next";
 import { MapPin, Trophy, Calendar, Medal, Activity, TrendingUp } from "lucide-react";
 import ShareProfileButton from "@/components/public/ShareProfileButton";
 import { PerformanceChart } from "@/components/player/PerformanceChart";
+import { checkPlayerIsHighRun } from "@/lib/tournament-results";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const slugParams = await params;
     const profile = await prisma.playerProfile.findUnique({ 
         where: { slug: slugParams.slug },
-        include: { user: true }
+        include: { 
+            user: true,
+            club: true,
+            rankings: {
+                orderBy: { points: 'desc' },
+                take: 1
+            }
+        }
     });
     
-    if (!profile) return { title: 'Jugador no encontrado' };
+    if (!profile) return { title: 'Jugador no encontrado | FECHILLAR' };
+
+    const topRanking = profile.rankings[0];
+    const rankingInfo = topRanking ? `- Ranking ${topRanking.discipline} (${topRanking.points} pts)` : '';
+    const clubInfo = profile.club ? `representando a ${profile.club.name}` : 'Jugador Independiente';
 
     return {
-        title: `${profile.user.name} | Perfil Oficial FECHILLAR`,
+        title: `Perfil de Billarista Profesional: ${profile.user.name} ${rankingInfo}`,
+        description: `Consulta el perfil oficial de ${profile.user.name} en FECHILLAR. Historial de torneos, promedio PGP y logros ${clubInfo}.`,
         openGraph: {
+            title: `${profile.user.name} - Ficha Oficial FECHILLAR`,
+            description: `Rendimiento y estadísticas de ${profile.user.name} en el ecosistema nacional de billar.`,
             images: profile.photoUrl ? [profile.photoUrl] : []
         }
     };
@@ -50,22 +65,41 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
     const totalPoints = topRanking ? topRanking.points : 0;
     const rankTitle = topRanking ? `${topRanking.discipline} - ${topRanking.category}` : "NO CLASIFICADO";
 
-    // Fase A: Analítica Visual de Progresión
+    // Fase A: Analítica Visual de Progresión (PGP)
     const finishedRegistrations = player.registrations
         .filter(r => r.tournament.status === "FINISHED")
         .sort((a, b) => new Date(a.tournament.startDate).getTime() - new Date(b.tournament.startDate).getTime());
 
     const chartData = finishedRegistrations.map(r => ({
-        name: r.tournament.name.split(' ')[0] + ' ' + new Date(r.tournament.startDate).getFullYear(), // Format corto
-        points: r.registeredPoints
+        name: r.tournament.name.split(' ')[0] + ' ' + new Date(r.tournament.startDate).getFullYear(), 
+        points: r.registeredAverage || 0 // Usar PGP real del snapshot
     }));
 
-    if (totalPoints > 0) {
-        chartData.push({
-            name: "Actualidad",
-            points: totalPoints
-        });
+    // Fase B: Extracción de Logros (Medallero)
+    const achievements = [];
+    for (const reg of player.registrations) {
+        if (reg.tournament.status === "FINISHED") {
+            if (reg.registeredRank === 1) {
+                achievements.push({
+                    title: `Campeón ${reg.tournament.name}`,
+                    icon: "Trophy",
+                    color: "text-yellow-500"
+                });
+            }
+            
+            // Verificar Mejor Tacada automáticamente
+            const isHighRun = await checkPlayerIsHighRun(reg.tournamentId, player.id);
+            if (isHighRun) {
+                achievements.push({
+                    title: `Mejor Tacada ${reg.tournament.name}`,
+                    icon: "Zap",
+                    color: "text-amber-500"
+                });
+            }
+        }
     }
+
+    const clubColor = player.club?.accentColor || "#10b981";
 
     return (
         <div className="bg-[#020817] min-h-screen pb-24 font-sans text-slate-300">
@@ -125,13 +159,17 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 
             <main className="max-w-5xl mx-auto px-4 mt-12 space-y-12">
                 
-                {/* GRÁFICO EVOLUTIVO */}
                 <section className="bg-slate-900/50 border border-white/5 rounded-3xl p-6 md:p-8 shadow-2xl">
-                    <div className="flex items-center gap-3 mb-6">
-                        <TrendingUp className="w-6 h-6 text-emerald-400" />
-                        <h2 className="text-xl font-bold text-white">Evolución de Ránking Nacional</h2>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                        <div className="flex items-center gap-3">
+                            <TrendingUp className="w-6 h-6 text-emerald-400" />
+                            <h2 className="text-xl font-bold text-white">Rendimiento Técnico (PGP)</h2>
+                        </div>
+                        <div className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-white/5 border border-white/5 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                            Promedio General Ponderado
+                        </div>
                     </div>
-                    <PerformanceChart data={chartData} />
+                    <PerformanceChart data={chartData} color={clubColor} label="PGP" />
                 </section>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -194,15 +232,31 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
                     <div className="bg-slate-900 border border-white/5 rounded-2xl p-6">
                         <div className="flex items-center gap-2 mb-6">
                             <Medal className="w-5 h-5 text-yellow-500" />
-                            <h3 className="font-bold text-white">Palmarés Nacional</h3>
+                            <h3 className="font-bold text-white">Medallero e Historial</h3>
                         </div>
+                        
+                        {achievements.length > 0 && (
+                            <div className="space-y-3 mb-8">
+                                {achievements.map((ach, idx) => (
+                                    <div key={idx} className="flex items-center gap-3 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 group hover:bg-yellow-500/20 transition-all">
+                                        <div className={`p-2 rounded-lg bg-black/40 ${ach.color}`}>
+                                            {ach.icon === 'Trophy' ? <Trophy className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
+                                        </div>
+                                        <span className="text-xs font-black text-white uppercase tracking-tight leading-tight">
+                                            {ach.title}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
                         <ul className="space-y-4">
                             {player.rankings.length === 0 ? (
                                 <li className="text-sm text-slate-500 text-center">Sin records.</li>
                             ) : (
                                 player.rankings.map(r => (
                                     <li key={r.id} className="flex items-center justify-between border-b border-white/5 last:border-0 pb-3 last:pb-0">
-                                        <span className="text-sm font-medium text-slate-300">{r.discipline}</span>
+                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{r.discipline}</span>
                                         <span className="font-mono font-bold text-white">{r.points} <span className="text-[10px] text-slate-500 font-sans">pts</span></span>
                                     </li>
                                 ))

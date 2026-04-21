@@ -1,10 +1,10 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient(); // In prod, use a singleton pattern for Prisma
+import prisma from "@/lib/prisma";
+import { authConfig } from "./auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+    ...authConfig,
     providers: [
         Credentials({
             credentials: {
@@ -23,42 +23,47 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 try {
                     console.log(" [AUTH_DEBUG] Attempting to find user in DB:", email);
                     // Find user in DB
-                    const user = await prisma.user.findUnique({
+                    const user = await prisma.user.findFirst({
                         where: { email },
                         include: { playerProfile: true }
                     });
                     console.log(" [AUTH_DEBUG] DB Query result:", user ? "User found" : "User not found");
 
                     if (!user) {
-                        // For demo purposes, if no user exists, create one if it matches a specific "admin" email
-                        // THIS IS FOR DEV ONLY
+                        // FOR DEV ONLY: Hardcoded admin
+                        // FOR DEV ONLY: Sincronización de Superadmin con la DB Real
                         if (email === "admin@fechillar.cl" && credentials.password === "admin123") {
-                            console.log(" [AUTH_DEBUG] Returning hardcoded admin user");
+                            const adminUser = await prisma.user.upsert({
+                                where: { email },
+                                update: { role: "SUPERADMIN" },
+                                create: {
+                                    email,
+                                    name: "Rodrigo Zúñiga (Admin)",
+                                    role: "SUPERADMIN",
+                                    passwordHash: "admin123", // En prod esto no se usará así
+                                }
+                            });
+
                             return {
-                                id: "1",
-                                name: "Admin Fechillar",
-                                email: email,
-                                role: "FEDERATION_ADMIN"
+                                id: adminUser.id,
+                                name: adminUser.name,
+                                email: adminUser.email,
+                                role: adminUser.role,
+                                tenantId: null // Global
                             }
                         }
                         return null;
                     }
 
-                    // Verify password (In real app, use bcrypt)
-                    // For this MVP step, we will assume plain text match or create a proper seeding later.
-                    // Implementing simple check for now:
-                    console.log(" [AUTH_DEBUG] Verifying password...");
                     if (user.passwordHash === credentials.password) {
-                        console.log(" [AUTH_DEBUG] Password match!");
                         return {
                             id: user.id,
                             name: user.name,
                             email: user.email,
                             role: user.role,
-                            tenantId: user.playerProfile?.tenantId || null
+                            managedClubId: user.managedClubId,
+                            tenantId: user.playerProfile?.tenantId || user.managedClubId || null
                         };
-                    } else {
-                        console.log(" [AUTH_DEBUG] Password mismatch");
                     }
 
                     return null;
@@ -69,23 +74,4 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
         }),
     ],
-    callbacks: {
-        async jwt({ token, user }) {
-            if (user) {
-                token.role = (user as any).role || "USER";
-                token.tenantId = (user as any).tenantId || null;
-            }
-            return token;
-        },
-        async session({ session, token }) {
-            if (session.user) {
-                (session.user as any).role = token.role;
-                (session.user as any).tenantId = token.tenantId;
-            }
-            return session;
-        },
-    },
-    pages: {
-        signIn: '/login',
-    }
 });

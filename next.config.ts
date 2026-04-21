@@ -2,15 +2,15 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   turbopack: {},
-  // Configuración de Webpack para estabilidad en entornos con latencia de red
+  // Fuerza la transpilación de librerías con incompatibilidad en React 19
+  // react-chartjs-2 usa imports de useRef que no resuelven correctamente en ESM
+  transpilePackages: ["react-chartjs-2", "chart.js"],
   webpack: (config, { dev, isServer }) => {
     if (dev && !isServer) {
       config.watchOptions = {
         poll: 1000,
         aggregateTimeout: 300,
       };
-      // Hemos eliminado la modificación manual de entries que causaba
-      // el error "app/layout depends on main-app".
     }
     return config;
   },

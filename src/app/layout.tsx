@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Inter, Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
+import "@/app/(public)/globals.css";
+import { NextAuthProvider } from "@/components/providers/NextAuthProvider";
+import { Toaster } from "sonner";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -25,7 +28,10 @@ export default function RootLayout({
         className={`${inter.variable} antialiased`}
         suppressHydrationWarning
       >
-        {children}
+        <NextAuthProvider>
+          {children}
+          <Toaster theme="dark" position="top-right" richColors closeButton />
+        </NextAuthProvider>
       </body>
     </html>
   );
