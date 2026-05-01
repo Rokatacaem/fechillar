@@ -6,6 +6,15 @@ import { evaluateMatchWinner } from "@/lib/billiards/match-engine";
 import { getGroupStandings } from "@/lib/tournament-results";
 import { revalidatePath } from "next/cache";
 
+interface GroupStanding {
+    playerId: string;
+    matchPoints: number;
+    totalCaroms: number;
+    totalInnings: number;
+    generalAverage: number;
+    groupName?: string;
+}
+
 /**
  * Obtiene el ranking efectivo para un jugador según el tipo de torneo
  * Prioriza Ranking Anual para torneos sin handicap
@@ -646,7 +655,7 @@ export async function generatePlayoffsFromGroups(tournamentId: string) {
         if (!tournament) throw new Error("Torneo no encontrado");
 
         // 1. Obtener clasificados directos de grupos (Top 28)
-        const allClassified: any[] = [];
+        const allClassified: GroupStanding[] = [];
         for (const group of tournament.groups) {
             const playerIds = group.registrations.map(r => r.playerId);
             const standings = calculateStandings(group.matches, playerIds);
@@ -787,7 +796,7 @@ export async function generateAdjustmentPhase(tournamentId: string) {
         if (tournament.groups.length === 0) throw new Error("No hay grupos configurados.");
 
         // 1. Calcular clasificados (2 por grupo)
-        const allClassified: any[] = [];
+        const allClassified: GroupStanding[] = [];
 
         for (const group of tournament.groups) {
             const playerIds = group.registrations.map(r => r.playerId);
@@ -887,8 +896,8 @@ export async function generateAdjustmentPhase(tournamentId: string) {
 /**
  * Función auxiliar: Calcular tabla de posiciones de un grupo
  */
-function calculateStandings(matches: any[], playerIds: string[]) {
-    const stats: any = {};
+function calculateStandings(matches: any[], playerIds: string[]): GroupStanding[] {
+    const stats: Record<string, GroupStanding> = {};
 
     // Inicializar stats
     playerIds.forEach(pid => {
@@ -927,12 +936,12 @@ function calculateStandings(matches: any[], playerIds: string[]) {
     });
 
     // Calcular promedios
-    Object.values(stats).forEach((s: any) => {
+    Object.values(stats).forEach((s) => {
         s.generalAverage = s.totalInnings > 0 ? s.totalCaroms / s.totalInnings : 0;
     });
 
     // Ordenar
-    return Object.values(stats).sort((a: any, b: any) => {
+    return Object.values(stats).sort((a, b) => {
         if (b.matchPoints !== a.matchPoints) return b.matchPoints - a.matchPoints;
         if (b.generalAverage !== a.generalAverage) return b.generalAverage - a.generalAverage;
         return b.totalCaroms - a.totalCaroms;
