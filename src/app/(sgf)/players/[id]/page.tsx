@@ -51,7 +51,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
                                 Nivel Federado
                             </div>
                             <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tighter leading-none">
-                                {player.user?.name || "Sin Nombre"}
+                                {[player.firstName, player.lastName].filter(Boolean).join(' ') || player.user?.name || "Sin Nombre"}
                             </h1>
                             <p className="text-slate-500 font-mono text-lg mt-2">
                                 {player.rut || "Sin RUT"}
@@ -97,14 +97,54 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
                     {player.rankings.length === 0 ? (
                         <p className="text-sm text-slate-500 italic">No hay registros de ranking aún.</p>
                     ) : (
-                        <ul className="space-y-2">
-                             {player.rankings.map(r => (
-                                 <li key={r.id} className="text-sm flex justify-between bg-slate-950 p-3 rounded-xl border border-white/5">
-                                     <span className="text-slate-400">{r.discipline} - {r.category}</span>
-                                     <span className="font-bold text-emerald-400">{r.points} pts</span>
-                                 </li>
-                             ))}
-                        </ul>
+                        <div className="space-y-4">
+                             {player.rankings.map(r => {
+                                 const isAnnual = r.discipline === 'THREE_BAND_ANNUAL';
+                                 const label = isAnnual ? 'Ranking Anual' : r.discipline === 'THREE_BAND' ? 'Ranking Nacional' : r.discipline;
+                                 const accentColor = isAnnual ? 'blue' : 'emerald';
+
+                                 return (
+                                     <div key={r.id} className="bg-slate-950 rounded-xl border border-white/5 overflow-hidden">
+                                         {/* Header del ranking */}
+                                         <div className={`px-4 py-2 border-b border-white/5 flex items-center justify-between bg-${accentColor}-500/5`}>
+                                             <span className={`text-xs font-bold uppercase tracking-widest text-${accentColor}-400`}>
+                                                 {label}
+                                             </span>
+                                             <span className="text-[10px] text-slate-500 uppercase">{r.category}</span>
+                                         </div>
+                                         {/* Métricas */}
+                                         <div className={`grid ${isAnnual ? 'grid-cols-3' : 'grid-cols-4'} gap-px bg-white/5`}>
+                                             <div className="bg-slate-950 p-3 text-center">
+                                                 <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Posición</p>
+                                                 <p className={`text-xl font-extrabold text-${accentColor}-400`}>
+                                                     {r.rankPosition ? `#${r.rankPosition}` : '-'}
+                                                 </p>
+                                             </div>
+                                             <div className="bg-slate-950 p-3 text-center">
+                                                 <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Promedio</p>
+                                                 <p className="text-xl font-extrabold text-white font-mono">
+                                                     {r.average != null ? r.average.toFixed(3) : '-'}
+                                                 </p>
+                                             </div>
+                                             {!isAnnual && (
+                                                 <div className="bg-slate-950 p-3 text-center">
+                                                     <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Handicap</p>
+                                                     <p className="text-xl font-extrabold text-amber-400">
+                                                         {r.handicapTarget ?? '-'}
+                                                     </p>
+                                                 </div>
+                                             )}
+                                             <div className="bg-slate-950 p-3 text-center">
+                                                 <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Puntos</p>
+                                                 <p className="text-xl font-extrabold text-white">
+                                                     {r.points}
+                                                 </p>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 );
+                             })}
+                        </div>
                     )}
                 </div>
                 <div className="bg-slate-900/40 border border-white/5 p-6 rounded-3xl backdrop-blur-md">

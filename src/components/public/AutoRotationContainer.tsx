@@ -5,14 +5,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { LiveGroupsGrid, LiveStandingsHeader } from "./LiveGroupsGrid";
 import { LiveBrackets } from "./LiveBrackets";
 import { LiveTopPerformers } from "./LiveTopPerformers";
+import { LiveGeneralRanking } from "./LiveGeneralRanking";
 
-type ViewType = "GROUPS" | "BRACKETS" | "PERFORMERS";
+type ViewType = "GROUPS" | "BRACKETS" | "PERFORMERS" | "RANKING";
 
 interface AutoRotationProps {
     tournament: any;
     groups: any[];
     matches: any[];
     topPerformers: any;
+    allStandings?: any[];
     rotationInterval?: number;
     clubLogo?: string | null;
 }
@@ -22,13 +24,14 @@ export function AutoRotationContainer({
     groups, 
     matches, 
     topPerformers, 
+    allStandings = [],
     rotationInterval = 45000,
     clubLogo
 }: AutoRotationProps) {
     const [currentView, setCurrentView] = useState<ViewType>("GROUPS");
 
     useEffect(() => {
-        const views: ViewType[] = ["GROUPS", "BRACKETS", "PERFORMERS"];
+        const views: ViewType[] = ["GROUPS", "RANKING", "BRACKETS", "PERFORMERS"];
         let index = 0;
 
         const interval = setInterval(() => {
@@ -46,6 +49,7 @@ export function AutoRotationContainer({
                 title={tournament.name} 
                 lastUpdate={new Date().toLocaleTimeString()} 
                 clubLogo={clubLogo}
+                tournamentId={tournament.id}
             />
 
             {/* Rotative Content Section */}
@@ -69,6 +73,12 @@ export function AutoRotationContainer({
                             <div className="flex flex-col items-center">
                                 <h1 className="text-3xl font-black uppercase tracking-[0.3em] mb-4 text-[var(--color-accent)]">Cuadro Final</h1>
                                 <LiveBrackets matches={matches} />
+                            </div>
+                        )}
+
+                        {currentView === "RANKING" && (
+                            <div className="h-full">
+                                <LiveGeneralRanking standings={allStandings} />
                             </div>
                         )}
 

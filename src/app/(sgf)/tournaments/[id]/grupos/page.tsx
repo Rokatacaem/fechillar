@@ -2,9 +2,10 @@ import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import Link from "next/link";
-import { ArrowLeft, Users, Trophy, MapPin, Shuffle } from "lucide-react";
+import { ArrowLeft, Users, Trophy, MapPin, Shuffle, LayoutDashboard, Share2 } from "lucide-react";
 import { getGroupsWithPlayers } from "./actions";
-import { GroupsEditor } from "./GroupsEditor";
+import { GroupsEditorClient } from "./GroupsEditor";
+import { PrintPhasePlanillasButton } from "@/components/tournaments/PrintPhasePlanillasButton";
 
 export default async function GruposPage({ params }: { params: Promise<{ id: string }> }) {
     const { id: tournamentId } = await params;
@@ -26,20 +27,46 @@ export default async function GruposPage({ params }: { params: Promise<{ id: str
     return (
         <div className="space-y-8 animate-in fade-in duration-700 max-w-7xl mx-auto">
             {/* Nav */}
-            <div className="flex items-center gap-4">
-                <Link
-                    href={`/tournaments/${tournamentId}/inscripciones`}
-                    className="p-3 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
-                >
-                    <ArrowLeft className="w-5 h-5" />
-                </Link>
-                <div>
-                    <h1 className="text-3xl font-extrabold text-white tracking-tighter">
-                        FASE DE <span className="text-violet-400">GRUPOS</span>
-                    </h1>
-                    <p className="text-slate-500 text-sm font-medium uppercase tracking-widest mt-1">
-                        Distribución y ajuste manual de llaves
-                    </p>
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <Link
+                        href={`/tournaments/${tournamentId}/inscripciones`}
+                        className="p-3 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </Link>
+                    <div>
+                        <h1 className="text-3xl font-extrabold text-white tracking-tighter">
+                            FASE DE <span className="text-violet-400">GRUPOS</span>
+                        </h1>
+                        <p className="text-slate-500 text-sm font-medium uppercase tracking-widest mt-1">
+                            Distribución y ajuste manual de llaves
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <PrintPhasePlanillasButton 
+                        tournamentId={tournamentId} 
+                        phaseName="Fase de Grupos" 
+                        className="bg-slate-800 border-white/10 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-widest"
+                    />
+
+                    <Link
+                        href={`/tournaments/${tournamentId}/reporte`}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all hover:scale-105"
+                    >
+                        <Share2 className="w-4 h-4" />
+                        Reporte WhatsApp
+                    </Link>
+
+                    <Link
+                        href={`/tournaments/${tournamentId}/gestion`}
+                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all hover:scale-105"
+                    >
+                        <LayoutDashboard className="w-4 h-4" />
+                        Dashboard
+                    </Link>
                 </div>
             </div>
 
@@ -72,7 +99,7 @@ export default async function GruposPage({ params }: { params: Promise<{ id: str
             </div>
 
             {/* Editor interactivo */}
-            <GroupsEditor
+            <GroupsEditorClient
                 tournamentId={tournamentId}
                 groups={groups as any}
                 unassigned={unassigned as any}

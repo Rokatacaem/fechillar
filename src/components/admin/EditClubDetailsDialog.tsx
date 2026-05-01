@@ -15,6 +15,10 @@ import { parseLegalStatus } from "@/lib/utils";
 interface Props {
     club: {
         id: string;
+        name: string;
+        address?: string | null;
+        city?: string | null;
+        logoUrl?: string | null;
         foundedDate?: Date | null;
         membershipStatus: ClubMembershipStatus;
         certificateUrl?: string | null;
@@ -29,6 +33,9 @@ export function EditClubDetailsDialog({ club }: Props) {
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     
+    const [name, setName] = useState(club.name || "");
+    const [address, setAddress] = useState(club.address || "");
+    const [city, setCity] = useState(club.city || "");
     const [foundedDate, setFoundedDate] = useState(
         club.foundedDate ? new Date(club.foundedDate).toISOString().split('T')[0] : ""
     );
@@ -77,6 +84,9 @@ export function EditClubDetailsDialog({ club }: Props) {
         try {
             // 1. Guardar detalles básicos
             const basicResult = await updateClubFederativeDetails(club.id, {
+                name: name || undefined,
+                address: address || undefined,
+                city: city || undefined,
                 foundedDate: foundedDate || undefined,
                 membershipStatus,
                 certificateUrl: certificateUrl || undefined,
@@ -126,18 +136,52 @@ export function EditClubDetailsDialog({ club }: Props) {
                     </p>
                 </DialogHeader>
 
-                <div className="space-y-4">
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Fecha de Fundación</label>
-                        <div className="relative">
+                        <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Nombre del Club</label>
+                        <input 
+                            type="text"
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/50"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Ej: Club de Billar Santiago"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Ciudad</label>
                             <input 
-                                type="date"
+                                type="text"
                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/50"
-                                value={foundedDate}
-                                onChange={(e) => setFoundedDate(e.target.value)}
+                                value={city}
+                                onChange={(e) => setCity(e.target.value)}
+                                placeholder="Ej: Santiago"
                             />
-                            <CalendarIcon className="absolute right-4 top-3 w-4 h-4 text-slate-600 pointer-events-none" />
                         </div>
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Fecha de Fundación</label>
+                            <div className="relative">
+                                <input 
+                                    type="date"
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/50"
+                                    value={foundedDate}
+                                    onChange={(e) => setFoundedDate(e.target.value)}
+                                />
+                                <CalendarIcon className="absolute right-4 top-3 w-4 h-4 text-slate-600 pointer-events-none" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Dirección Oficial</label>
+                        <input 
+                            type="text"
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/50"
+                            value={address}
+                            onChange={(e) => setAddress(e.target.value)}
+                            placeholder="Ej: Av. Libertador Bernardo O'Higgins 2820"
+                        />
                     </div>
 
                     <div className="space-y-1">

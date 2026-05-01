@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 
-export async function registerPlayer(tournamentId: string, playerId: string) {
+export async function registerPlayer(tournamentId: string, playerId: string, preferredTurn: string = "T1") {
     const session = await auth();
     
     if (!session || !session.user) {
@@ -46,6 +46,7 @@ export async function registerPlayer(tournamentId: string, playerId: string) {
         });
 
         const pointsToFreeze = ranking ? ranking.points : 0;
+        const averageToFreeze = ranking ? ranking.average : 0;
 
         // 4. Inscribir al jugador
         const registration = await prisma.tournamentRegistration.create({
@@ -53,7 +54,9 @@ export async function registerPlayer(tournamentId: string, playerId: string) {
                 tournamentId,
                 playerId,
                 registeredPoints: pointsToFreeze,
-                status: "APPROVED", // Por defecto aprobado por inscripción directa de admin
+                registeredAverage: averageToFreeze,
+                preferredTurn,
+                status: "APPROVED",
                 paid: false,
                 paymentStatus: "PENDING"
             }
@@ -65,6 +68,47 @@ export async function registerPlayer(tournamentId: string, playerId: string) {
     } catch (error: any) {
         console.error("Error registering player:", error);
         return { success: false, error: error.message || "Error al inscribir jugador" };
+    }
+}
+
+/**
+ * Actualiza la disponibilidad horaria (turno) de un jugador inscrito.
+ * Bloqueado si ya existen grupos generados para el torneo.
+ */
+export async function updatePlayerAvailability(registrationId: string, preferredTurn: string) {
+    const session = await auth();
+    if (!session) return { success: false, error: "No autorizado" };
+
+    try {
+        const reg = await prisma.tournamentRegistration.findUnique({
+            where: { id: registrationId },
+            select: { tournamentId: true }
+        });
+
+        if (!reg) throw new Error("Inscripción no encontrada");
+
+        // Verificar si hay grupos generados
+        const hasGroups = await prisma.tournamentGroup.findFirst({
+            where: { tournamentId: reg.tournamentId }
+        });
+
+        if (hasGroups) {
+            return { 
+                success: false, 
+                error: "No se puede cambiar el turno: existen grupos generados. Elimine los grupos para editar." 
+            };
+        }
+
+        await prisma.tournamentRegistration.update({
+            where: { id: registrationId },
+            data: { preferredTurn }
+        });
+
+        revalidatePath(`/tournaments/${reg.tournamentId}/inscripciones`);
+        revalidatePath(`/tournaments/${reg.tournamentId}/grupos`);
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
     }
 }
 
@@ -89,12 +133,18 @@ export async function removePlayerFromTournament(registrationId: string) {
 
         if (!reg) return { success: false, error: "Inscripción no encontrada" };
 
-        // No permitir si el jugador ya tiene partidas con resultado
+        // No permitir si el jugador ya tiene partidas con resultado real
         const hasResults = await prisma.match.findFirst({
             where: {
                 tournamentId: reg.tournamentId,
                 OR: [{ homePlayerId: reg.playerId }, { awayPlayerId: reg.playerId }],
-                homeScore: { not: null }
+                OR: [
+                    { winnerId: { not: null } },
+                    { homeScore: { gt: 0 } },
+                    { awayScore: { gt: 0 } },
+                    { homeInnings: { gt: 0 } },
+                    { awayInnings: { gt: 0 } }
+                ]
             }
         });
 
@@ -156,23 +206,23 @@ export async function registerPlayersBulk(tournamentId: string, playerIds: strin
                     category: tournament.category
                 }
             });
-            const rankingMap = new Map(rankings.map(r => [r.playerId, r.points]));
+            const rankingMap = new Map(rankings.map(r => [r.playerId, { points: r.points, average: r.average }]));
 
-            // C. Inscribir (Prisma no tiene createMany que retorne IDs de forma portable, 
-            // pero podemos usar una serie de promesas dentro del bloque tx)
-            // IMPORTANTE: Al estar dentro de tx, se ejecutan secuencialmente o en paralelo 
-            // pero bajo el mismo contexto de transacción.
-            await Promise.all(idsToRegister.map(playerId => 
-                tx.tournamentRegistration.create({
+            // C. Inscribir
+            await Promise.all(idsToRegister.map(playerId => {
+                const rData = rankingMap.get(playerId);
+                return tx.tournamentRegistration.create({
                     data: {
                         tournamentId,
                         playerId,
-                        registeredPoints: rankingMap.get(playerId) ?? 0,
+                        registeredPoints: rData?.points ?? 0,
+                        registeredAverage: rData?.average ?? 0,
                         status: "APPROVED",
-                        paymentStatus: "PENDING"
+                        paymentStatus: "PENDING",
+                        preferredTurn: "T1"
                     }
-                })
-            ));
+                });
+            }));
 
             return idsToRegister.length;
         }, {

@@ -1,10 +1,11 @@
-"use client";
+'use client';
 
 import { useState, useTransition } from "react";
 import { Shuffle, Loader2, GripVertical, Edit2, Check, X, Users, AlertTriangle, ArrowRightLeft, ChevronUp, ChevronDown } from "lucide-react";
-import { generateGroups, movePlayerToGroup, renameGroup, movePlayerOrder } from "./actions";
+import { movePlayerToGroup, renameGroup, movePlayerOrder, generateGroups, resetGroups } from "./actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
 
 interface PlayerData {
     id: string;
@@ -34,7 +35,7 @@ interface Props {
     isAdmin: boolean;
 }
 
-export function GroupsEditor({ tournamentId, groups: initialGroups, unassigned: initialUnassigned, isAdmin }: Props) {
+export function GroupsEditorClient({ tournamentId, groups: initialGroups, unassigned: initialUnassigned, isAdmin }: Props) {
     const router = useRouter();
     const [groups, setGroups] = useState<GroupData[]>(initialGroups);
     const [unassigned, setUnassigned] = useState<RegData[]>(initialUnassigned);
@@ -62,13 +63,34 @@ export function GroupsEditor({ tournamentId, groups: initialGroups, unassigned: 
         try {
             const res = await generateGroups(tournamentId);
             if (res.success) {
-                toast.success(`✅ ${res.numGroups} grupos generados con ${res.total} jugadores`, { id: "generate-groups" });
+                toast.success(`✅ Grupos generados con éxito`, { id: "generate-groups" });
                 startTransition(() => router.refresh());
             } else {
                 toast.error(`Error: ${res.error}`, { id: "generate-groups" });
             }
         } catch (e: any) {
             toast.error(`Error inesperado: ${e.message}`, { id: "generate-groups" });
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    const handleReset = async () => {
+        const ok = confirm("⚠️ ¿Estás seguro de que deseas ELIMINAR TODOS LOS GRUPOS? Esto habilitará nuevamente la edición de turnos en la lista de inscritos.");
+        if (!ok) return;
+
+        setGenerating(true);
+        toast.loading("Eliminando grupos...", { id: "reset-groups" });
+        try {
+            const res = await resetGroups(tournamentId);
+            if (res.success) {
+                toast.success("Grupos eliminados correctamente", { id: "reset-groups" });
+                startTransition(() => router.refresh());
+            } else {
+                toast.error(`Error: ${res.error}`, { id: "reset-groups" });
+            }
+        } catch (e: any) {
+            toast.error(`Error inesperado: ${e.message}`, { id: "reset-groups" });
         } finally {
             setGenerating(false);
         }
@@ -149,14 +171,25 @@ export function GroupsEditor({ tournamentId, groups: initialGroups, unassigned: 
                             </div>
                         )}
                     </div>
-                    <button
-                        onClick={handleGenerate}
-                        disabled={generating}
-                        className="flex items-center gap-2 px-5 py-3 bg-violet-600 hover:bg-violet-500 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-violet-500/20"
-                    >
-                        {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shuffle className="w-4 h-4" />}
-                        {generating ? "Generando..." : groups.length > 0 ? "Regenerar Grupos" : "Generar Grupos"}
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleReset}
+                            disabled={generating || groups.length === 0}
+                            className="flex items-center gap-2 px-5 py-3 bg-red-950/40 border border-red-500/20 hover:bg-red-500/10 text-red-400 font-black uppercase tracking-widest text-[10px] rounded-2xl transition-all active:scale-95 disabled:opacity-30 shadow-lg"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Eliminar Grupos
+                        </button>
+
+                        <button
+                            onClick={handleGenerate}
+                            disabled={generating}
+                            className="flex items-center gap-2 px-5 py-3 bg-violet-600 hover:bg-violet-500 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-violet-500/20"
+                        >
+                            {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shuffle className="w-4 h-4" />}
+                            {generating ? "Generando..." : groups.length > 0 ? "Regenerar Grupos" : "Generar Grupos"}
+                        </button>
+                    </div>
                 </div>
             )}
 

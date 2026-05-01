@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import { Discipline, Category } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { CATEGORY_TARGETS } from "@/lib/billiards/constants";
 
 /**
  * Mapea nombres de disciplinas de Chile a Enums de Prisma.
@@ -158,7 +159,9 @@ export async function processBulkImport(data: {
                                     category: cat,
                                     points: player.points || 0,
                                     average: player.average || 0,
-                                    handicapTarget: player.handicap || 15
+                                    handicapTarget: player.handicap || 
+                                        (mappedDisc === Discipline.THREE_BAND ? CATEGORY_TARGETS[cat] : 15) || 
+                                        15
                                 }
                             });
                         } else {
@@ -169,7 +172,9 @@ export async function processBulkImport(data: {
                                     category: cat,
                                     points: player.points || 0,
                                     average: player.average || 0,
-                                    handicapTarget: player.handicap || 15
+                                    handicapTarget: player.handicap || 
+                                        (mappedDisc === Discipline.THREE_BAND ? CATEGORY_TARGETS[cat] : 15) || 
+                                        15
                                 }
                             });
                         }
@@ -223,7 +228,9 @@ export async function processBulkImport(data: {
                                 category: mapCategory(player.category || "PROMO"),
                                 points: player.points || 0,
                                 average: player.average || 0,
-                                handicapTarget: player.handicap || 15
+                                handicapTarget: player.handicap || 
+                                    (mappedDisc === Discipline.THREE_BAND ? CATEGORY_TARGETS[mapCategory(player.category || "PROMO")] : 15) || 
+                                    15
                             }
                         });
                     }

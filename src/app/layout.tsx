@@ -1,11 +1,9 @@
-import type { Metadata } from "next";
-import { Inter, Geist } from "next/font/google";
-import { cn } from "@/lib/utils";
-import "@/app/(public)/globals.css";
-import { NextAuthProvider } from "@/components/providers/NextAuthProvider";
+﻿import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import { cn } from "@/src/lib/utils";
+import "@/src/app/(public)/globals.css";
+import { NextAuthProvider } from "@/src/components/providers/NextAuthProvider";
 import { Toaster } from "sonner";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const inter = Inter({
   subsets: ["latin"],
@@ -23,9 +21,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
+    <html lang="es" suppressHydrationWarning>
       <body
-        className={`${inter.variable} antialiased`}
+        className={cn(inter.variable, "antialiased font-sans")}
         suppressHydrationWarning
       >
         <NextAuthProvider>

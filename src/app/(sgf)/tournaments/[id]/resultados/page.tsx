@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Shuffle, Trophy, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { MatchResultForm } from "./MatchResultForm";
 import { CloseTournamentButton } from "./CloseTournamentButton";
+import GenerateBracketButton from "./GenerateBracketButton";
 import { generateRoundRobinMatches, generateMatchesByGroup } from "./actions";
 
 export default async function ResultadosPage({ params }: { params: Promise<{ id: string }> }) {
@@ -38,12 +39,14 @@ export default async function ResultadosPage({ params }: { params: Promise<{ id:
     if (!tournament) return notFound();
 
     const config = tournament.config as any;
-    const inningLimit: number = config?.inningsPerPhase ?? 30;
+    // Forzado global a 35 para el Nacional de Mayo según bases
+    const inningLimit: number = 35; 
+
     const isNational = tournament.scope === "NATIONAL";
     const isApproved = tournament.officializationStatus === "APPROVED";
 
     const totalMatches = tournament.matches.length;
-    const completedMatches = tournament.matches.filter(m => m.homeScore !== null).length;
+    const completedMatches = tournament.matches.filter(m => m.winnerId !== null || m.isWO || (m.homeInnings ?? 0) > 0).length;
     const pendingMatches = totalMatches - completedMatches;
 
     const playerName = (player: any) =>
@@ -156,12 +159,20 @@ export default async function ResultadosPage({ params }: { params: Promise<{ id:
 
                     {/* Cierre */}
                     {totalMatches > 0 && tournament.status !== "FINISHED" && (
-                        <CloseTournamentButton
-                            tournamentId={tournamentId}
-                            isNational={isNational}
-                            isApproved={isApproved}
-                            pendingMatches={pendingMatches}
-                        />
+                        <div className="space-y-4">
+                            <GenerateBracketButton 
+                                tournamentId={tournamentId}
+                                hasPendingMatches={pendingMatches > 0}
+                                hasExistingBracket={tournament.matches.some(m => m.id.includes("_W") || m.id.includes("_L"))}
+                            />
+
+                            <CloseTournamentButton
+                                tournamentId={tournamentId}
+                                isNational={isNational}
+                                isApproved={isApproved}
+                                pendingMatches={pendingMatches}
+                            />
+                        </div>
                     )}
 
                     {tournament.status === "FINISHED" && (
@@ -201,24 +212,34 @@ export default async function ResultadosPage({ params }: { params: Promise<{ id:
                         </div>
                     ) : (
                         (() => {
-                            // Agrupar partidas por nombre de grupo
-                            const groupsMap: Record<string, any[]> = {};
-                            tournament.matches.forEach(m => {
-                                const groupName = (m as any).group?.name || "Sin Grupo";
-                                if (!groupsMap[groupName]) groupsMap[groupName] = [];
-                                groupsMap[groupName].push(m);
-                            });
+                             // Agrupar partidas por nombre de grupo o fase
+                             const groupsMap: Record<string, any[]> = {};
+                             tournament.matches.forEach(m => {
+                                 let groupName = (m as any).group?.name;
+                                 if (!groupName) {
+                                     groupName = m.id.startsWith(tournament.id) ? "Eliminatorias" : "Sin Grupo";
+                                 }
+                                 if (!groupsMap[groupName]) groupsMap[groupName] = [];
+                                 groupsMap[groupName].push(m);
+                             });
 
-                            return Object.entries(groupsMap).map(([groupName, matches]) => (
-                                <div key={groupName} className="space-y-3 mb-8">
-                                    <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] bg-emerald-500/5 px-4 py-2 rounded-lg inline-block">
-                                        Fase de Grupos: {groupName}
-                                    </h4>
+                             return Object.entries(groupsMap).map(([groupName, matches]) => {
+                                 const isKnockout = groupName === "Eliminatorias";
+                                 const label = isKnockout ? "Cuadro de Eliminación Directa" : (groupName === "Sin Grupo" ? "Otras Partidas" : `Fase de Grupos: ${groupName}`);
+
+                                 return (
+                                     <div key={groupName} className="space-y-3 mb-8">
+                                         <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-lg inline-block ${isKnockout ? "text-amber-500 bg-amber-500/5" : "text-emerald-500 bg-emerald-500/5"}`}>
+                                             {label}
+                                         </h4>
                                     {matches.map(match => {
                                         if (!match.homePlayer || !match.awayPlayer) return null;
 
-                                        const existingResult = match.homeScore !== null ? {
-                                            homeScore: match.homeScore,
+                                        const isMatchPlayed = match.winnerId !== null || match.isWO || (match.homeInnings ?? 0) > 0;
+                                        // Las partidas de eliminación directa tienen IDs generados con prefijo del torneo + _W o _L
+                                        const isKnockout = match.id.startsWith(tournament.id);
+                                        const existingResult = isMatchPlayed ? {
+                                            homeScore: match.homeScore ?? 0,
                                             awayScore: match.awayScore ?? 0,
                                             homeInnings: match.homeInnings ?? inningLimit,
                                             awayInnings: match.awayInnings ?? inningLimit,
@@ -243,13 +264,16 @@ export default async function ResultadosPage({ params }: { params: Promise<{ id:
                                                     club: playerClub(match.awayPlayer),
                                                 }}
                                                 inningLimit={inningLimit}
+                                                allowDraws={!isKnockout}
+                                                groupId={match.groupId}
                                                 existingResult={existingResult}
                                             />
                                         );
                                     })}
-                                </div>
-                            ));
-                        })()
+                                     </div>
+                                 );
+                             });
+                         })()
                     )}
                 </div>
             </div>

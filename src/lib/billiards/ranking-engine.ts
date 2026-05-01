@@ -49,7 +49,7 @@ export function calculateStandings(matches: Match[], playerIds: string[]): Playe
             stats[homeId].matchPoints += 2;
         } else if (match.winnerId === awayId) {
             stats[awayId].matchPoints += 2;
-        } else if (match.winnerId === null && match.homeScore !== null) {
+        } else if (match.winnerId === null && (match.homeInnings ?? 0) > 0) {
             // Empate (si se jugaron entradas)
             stats[homeId].matchPoints += 1;
             stats[awayId].matchPoints += 1;

@@ -6,6 +6,7 @@ import { PlayerTableActions } from "@/components/players/PlayerTableActions";
 import { QuickValidateButton } from "./QuickValidateButton";
 import { BulkActivateButton } from "@/components/players/BulkActivateButton";
 import { DedupTool } from "@/components/admin/DedupTool";
+import { RankingEditButton } from "@/components/admin/RankingEditButton";
 import { Users, Plus, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
@@ -181,6 +182,7 @@ export default async function FederatedCensusPage({
                                                 >
                                                     <ExternalLink className="w-4 h-4" />
                                                 </Link>
+                                                <RankingEditButton player={player} isSuper={isSuper} />
                                                 <QuickValidateButton playerId={player.id} currentStatus={standing.status} />
                                                 <PlayerTableActions 
                                                     player={{

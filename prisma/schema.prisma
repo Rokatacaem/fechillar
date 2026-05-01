@@ -8,6 +8,421 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model User {
+  id                   String                   @id @default(uuid())
+  name                 String?
+  email                String                   @unique
+  passwordHash         String?
+  role                 UserRole                 @default(USER)
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  managedClubId        String?
+  auditLogs            AuditLog[]               @relation("AuditLogs")
+  boardRoles           ClubMember[]             @relation("UserBoardRoles")
+  matchesRefereed      Match[]                  @relation("MatchReferee")
+  memberships          Membership[]             @relation("UserMemberships")
+  validatedMemberships Membership[]             @relation("MembershipValidator")
+  playerProfile        PlayerProfile?
+  createdTournaments   Tournament[]             @relation("TournamentCreator")
+  assignments          TournamentAssignment[]
+  enrollments          TournamentEnrollment[]   @relation("UserEnrollments")
+  validatedEnrollments TournamentEnrollment[]   @relation("EnrollmentValidator")
+  validatedPayments    TournamentRegistration[] @relation("PaymentValidator")
+  managedClub          Club?                    @relation("ClubDelegates", fields: [managedClubId], references: [id])
+  waitingList          WaitingList[]
+  workflowReqs         WorkflowRequest[]        @relation("UserRequests")
+}
+
+model Club {
+  id                String               @id @default(uuid())
+  slug              String               @unique
+  name              String
+  address           String?
+  city              String?
+  legalStatus       String?
+  legalExpiryDate   DateTime?
+  isValidated       Boolean              @default(false)
+  logoUrl           String?
+  brandColor        String?              @default("#0f2040")
+  accentColor       String?              @default("#10b981")
+  monthlyPlayerFee  Float                @default(0)
+  foundedDate       DateTime?
+  certificateUrl    String?
+  membershipStatus  ClubMembershipStatus @default(VIGENTE)
+  infrastructure    Json?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  boardMembers      ClubMember[]
+  financeRecords    FinanceRecord[]
+  players           PlayerProfile[]
+  hostedTournaments Tournament[]         @relation("TournamentHost")
+  venueTournaments  Tournament[]         @relation("TournamentVenue")
+  delegates         User[]               @relation("ClubDelegates")
+  workflowReqs      WorkflowRequest[]
+}
+
+model ClubMember {
+  id          String        @id @default(uuid())
+  clubId      String
+  name        String
+  role        ClubBoardRole
+  email       String?
+  phone       String?
+  userId      String?
+  isValidated Boolean       @default(false)
+  club        Club          @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user        User?         @relation("UserBoardRoles", fields: [userId], references: [id])
+}
+
+model PlayerProfile {
+  id               String                   @id @default(uuid())
+  userId           String?                  @unique
+  tenantId         String?
+  slug             String                   @unique
+  publicSlug       String                   @unique @default(dbgenerated("gen_random_uuid()"))
+  rut              String?                  @unique
+  firstName        String?
+  lastName         String?
+  email            String?
+  federationId     String?                  @unique
+  photoUrl         String?
+  birthDate        DateTime?
+  gender           String?
+  balance          Float                    @default(0)
+  averageBase      Float?                   @default(0)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  matchAway        Match[]                  @relation("AwayPlayer")
+  matchHome        Match[]                  @relation("HomePlayer")
+  matchWinner      Match[]                  @relation("WinnerPlayer")
+  club             Club?                    @relation(fields: [tenantId], references: [id])
+  user             User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rankings         Ranking[]
+  rankSnapshots    RankingSnapshot[]
+  registrations    TournamentRegistration[]
+  transferRequests TransferRequest[]
+}
+
+model Tournament {
+  id                    String                   @id @default(uuid())
+  name                  String
+  description           String?
+  bannerUrl             String?
+  startDate             DateTime
+  endDate               DateTime?
+  location              String?
+  discipline            Discipline
+  modality              String?
+  category              Category
+  status                TournamentStatus         @default(DRAFT)
+  scope                 TournamentScope          @default(INTERNAL)
+  venue                 String?
+  venueClubId           String?
+  venueLogoUrl          String?
+  officializationStatus OfficializationStatus    @default(NONE)
+  tenantId              String?
+  createdById           String?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  maxTables             Int                      @default(8)
+  playersPerTable       Int                      @default(4)
+  hasTimeLimit          Boolean                  @default(false)
+  secondsPerShot        Int                      @default(40)
+  extensionsPerPlayer   Int                      @default(2)
+  registrationFee       Int?                     @default(30000)
+  prizeDistribution     Json?
+  bankAccountName       String?
+  bankAccountRut        String?
+  bankName              String?
+  bankAccountType       String?
+  bankAccountNumber     String?
+  bankAccountEmail      String?
+  groupFormat           String?
+  maxCapacity           Int?
+  distanceGroups        Int?                     @default(25)
+  distancePlayoffs      Int?                     @default(25)
+  distanceFinal         Int?                     @default(30)
+  finalUnlimitedInnings Boolean?                 @default(true)
+  scheduleDay1Start     String?
+  scheduleDay2Start     String?
+  registrationContact   String?
+  registrationPhone     String?
+  registrationDeadline  DateTime?
+  groupsPublishDate     DateTime?
+  playoffBracketSize    Int?                     // 128, 64, 32, 16, 8
+  requiresAdjustment    Boolean                  @default(false)
+  adjustmentPhaseConfig Json?                    // { directos: 28, playoff: 8, partidos: 4 }
+  tournamentStructure   String?                  @db.Text // Bases generadas automáticamente
+  config                Json?
+  matches               Match[]
+  creator               User?                    @relation("TournamentCreator", fields: [createdById], references: [id])
+  hostClub              Club?                    @relation("TournamentHost", fields: [tenantId], references: [id])
+  venueClub             Club?                    @relation("TournamentVenue", fields: [venueClubId], references: [id])
+  assignments           TournamentAssignment[]
+  enrollments           TournamentEnrollment[]
+  groups                TournamentGroup[]
+  phases                TournamentPhase[]
+  photos                TournamentPhoto[]
+  registrations         TournamentRegistration[]
+  waitingList           WaitingList[]
+}
+
+model PrizeTemplate {
+  id           String   @id @default(uuid())
+  name         String
+  distribution Json
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model TournamentPhase {
+  id                  String     @id @default(uuid())
+  tournamentId        String
+  name                String
+  order               Int        @default(1)
+  hasEqualizingInning Boolean    @default(true)
+  inningLimit         Int?       @default(30)
+  matches             Match[]
+  tournament          Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+}
+
+model WaitingList {
+  id           String     @id @default(uuid())
+  tournamentId String
+  userId       String
+  joinedAt     DateTime   @default(now())
+  priority     Int        @default(0)
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TournamentPhoto {
+  id           String     @id @default(uuid())
+  url          String
+  caption      String?
+  tournamentId String
+  createdAt    DateTime   @default(now())
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+}
+
+model Match {
+  id                  String           @id @default(uuid())
+  tournamentId        String
+  groupId             String?
+  phaseId             String?
+  round               Int
+  matchOrder          Int              @default(0)
+  tableNumber         String?
+  matchTime           DateTime?
+  matchDistance       Int?
+  refereeName         String?
+  homePlayerId        String?
+  awayPlayerId        String?
+  homeTarget          Int?
+  awayTarget          Int?
+  winnerId            String?
+  homeScore           Int?             @default(0)
+  awayScore           Int?             @default(0)
+  homeInnings         Int?             @default(0)
+  awayInnings         Int?             @default(0)
+  homeHighRun         Int?             @default(0)
+  awayHighRun         Int?             @default(0)
+  isWO                Boolean          @default(false)
+  tossWinnerId        String?
+  hasEqualizingInning Boolean?
+  createdAt           DateTime         @default(now())
+  refereeId           String?
+  awayPlayer          PlayerProfile?   @relation("AwayPlayer", fields: [awayPlayerId], references: [id])
+  group               TournamentGroup? @relation(fields: [groupId], references: [id])
+  homePlayer          PlayerProfile?   @relation("HomePlayer", fields: [homePlayerId], references: [id])
+  phase               TournamentPhase? @relation(fields: [phaseId], references: [id])
+  referee             User?            @relation("MatchReferee", fields: [refereeId], references: [id])
+  tournament          Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  winner              PlayerProfile?   @relation("WinnerPlayer", fields: [winnerId], references: [id])
+}
+
+model TournamentGroup {
+  id            String                   @id @default(uuid())
+  tournamentId  String
+  name          String
+  order         Int                      @default(0)
+  tieBreakType  String                   @default("PGP")
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  matches       Match[]
+  tournament    Tournament               @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  registrations TournamentRegistration[]
+}
+
+model TransferRequest {
+  id          String        @id @default(uuid())
+  playerId    String
+  fromClubId  String
+  toClubId    String
+  status      String        @default("PENDING")
+  requestedAt DateTime      @default(now())
+  resolvedAt  DateTime?
+  player      PlayerProfile @relation(fields: [playerId], references: [id])
+}
+
+model Ranking {
+  id             String        @id @default(uuid())
+  playerId       String
+  discipline     Discipline
+  category       Category
+  points         Int           @default(0)
+  rankPosition   Int?
+  average        Float?
+  handicapTarget Int?          @default(15)
+  updatedAt      DateTime      @updatedAt
+  player         PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, discipline, category])
+}
+
+model RankingSnapshot {
+  id           String        @id @default(uuid())
+  playerId     String
+  discipline   Discipline
+  category     Category
+  points       Int
+  rankPosition Int
+  average      Float?
+  powerScore   Float?
+  snapshotDate DateTime      @default(now())
+  player       PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, snapshotDate])
+}
+
+model FinanceRecord {
+  id          String    @id @default(uuid())
+  tenantId    String?
+  playerId    String?
+  amount      Float
+  type        String
+  category    String?
+  status      String    @default("PENDING")
+  description String?
+  dueDate     DateTime?
+  paidAt      DateTime?
+  createdAt   DateTime  @default(now())
+  club        Club?     @relation(fields: [tenantId], references: [id])
+}
+
+model TransparencyDocument {
+  id         String   @id @default(uuid())
+  title      String
+  type       String
+  url        String
+  uploadDate DateTime @default(now())
+  year       Int
+}
+
+model TournamentRegistration {
+  id                 String             @id @default(uuid())
+  tournamentId       String
+  playerId           String
+  registeredAt       DateTime           @default(now())
+  paid               Boolean            @default(false)
+  paymentStatus      String             @default("PENDING")
+  amountPaid         Float?
+  paymentRef         String?
+  paidAt             DateTime?
+  validatorId        String?
+  isWaitingList      Boolean            @default(false)
+  priority           Int                @default(0)
+  registeredPoints   Int                @default(0)
+  registeredAverage  Float              @default(0)
+  registeredCategory String             @default("PROMO")
+  registeredHandicap Int?               @default(30)
+  registeredRank     Int?
+  status             RegistrationStatus @default(PENDING)
+  preferredTurn      TournamentTurn?    @default(T1)
+  groupId            String?
+  groupOrder         Int?               @default(0)
+  group              TournamentGroup?   @relation(fields: [groupId], references: [id])
+  player             PlayerProfile      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  tournament         Tournament         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  validator          User?              @relation("PaymentValidator", fields: [validatorId], references: [id])
+  turnAvailability   String[]           @default([])
+
+  @@unique([tournamentId, playerId])
+}
+
+model TournamentAssignment {
+  id           String     @id @default(uuid())
+  tournamentId String
+  userId       String
+  assignedAt   DateTime   @default(now())
+  permissions  String     @default("READ")
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, userId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  targetId  String?
+  userId    String
+  details   String?
+  createdAt DateTime @default(now())
+  user      User     @relation("AuditLogs", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WorkflowRequest {
+  id          String                @id @default(uuid())
+  type        WorkflowRequestType
+  status      WorkflowRequestStatus @default(PENDING)
+  details     String?
+  requesterId String
+  clubId      String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  club        Club?                 @relation(fields: [clubId], references: [id])
+  requester   User                  @relation("UserRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+}
+
+model Membership {
+  id               String           @id @default(uuid())
+  userId           String
+  type             MembershipType   @default(ANNUAL)
+  status           MembershipStatus @default(PENDING)
+  amount           Float            @default(0)
+  lastAmount       Float?
+  validUntil       DateTime
+  lastPaymentDate  DateTime?
+  paymentReference String?
+  validatedAt      DateTime?
+  receiptUrl       String?
+  validatedById    String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  user             User             @relation("UserMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  validator        User?            @relation("MembershipValidator", fields: [validatedById], references: [id])
+}
+
+model TournamentEnrollment {
+  id               String                  @id @default(uuid())
+  userId           String
+  tournamentId     String
+  paymentStatus    EnrollmentPaymentStatus @default(PENDING)
+  paymentReference String?
+  validatedAt      DateTime?
+  receiptUrl       String?
+  validatedById    String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  tournament       Tournament              @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user             User                    @relation("UserEnrollments", fields: [userId], references: [id], onDelete: Cascade)
+  validator        User?                   @relation("EnrollmentValidator", fields: [validatedById], references: [id])
+
+  @@unique([userId, tournamentId])
+}
+
 enum UserRole {
   USER
   PLAYER
@@ -27,6 +442,7 @@ enum TournamentScope {
 
 enum Discipline {
   THREE_BAND
+  THREE_BAND_ANNUAL
   POOL_CHILENO
   POOL_8
   POOL_9
@@ -49,8 +465,9 @@ enum Category {
   SENIOR
   FEMALE
   PROMO
+  INTERMEDIATE
+  BEGINNER
 }
-
 
 enum TournamentStatus {
   DRAFT
@@ -118,415 +535,9 @@ enum ClubBoardRole {
   DELEGADO_DEPORTIVO
 }
 
-
-model User {
-  id                 String                 @id @default(uuid())
-  name               String?
-  email              String                 @unique
-  passwordHash       String?
-  role               UserRole               @default(USER)
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
-  managedClubId      String?
-  managedClub        Club?                  @relation("ClubDelegates", fields: [managedClubId], references: [id])
-  playerProfile      PlayerProfile?
-  createdTournaments Tournament[]             @relation("TournamentCreator")
-  assignments        TournamentAssignment[]
-  validatedPayments  TournamentRegistration[] @relation("PaymentValidator")
-  matchesRefereed    Match[]                  @relation("MatchReferee")
-  auditLogs          AuditLog[]               @relation("AuditLogs")
-  workflowReqs       WorkflowRequest[]        @relation("UserRequests")
-  memberships        Membership[]             @relation("UserMemberships")
-  enrollments        TournamentEnrollment[]   @relation("UserEnrollments")
-  validatedEnrollments TournamentEnrollment[] @relation("EnrollmentValidator")
-  validatedMemberships Membership[]           @relation("MembershipValidator")
-  waitingList         WaitingList[]
-  boardRoles          ClubMember[]           @relation("UserBoardRoles")
+enum TournamentTurn {
+  T1
+  T2
+  T3
+  TOTAL
 }
-
-model Club {
-  id               String          @id @default(uuid())
-  slug             String          @unique
-  name             String
-  address          String?
-  city             String?
-  legalStatus      String?
-  legalExpiryDate  DateTime?
-  isValidated      Boolean         @default(false)
-  logoUrl          String?
-  brandColor       String?         @default("#0f2040")
-  accentColor      String?         @default("#10b981")
-  monthlyPlayerFee Float           @default(0)
-  
-  // NUEVOS CAMPOS FEDERATIVOS
-  foundedDate      DateTime?
-  certificateUrl   String?
-  membershipStatus ClubMembershipStatus @default(VIGENTE)
-  infrastructure   Json?           // { "tables": [{ "type": "Gran Match", "count": 2 }] }
-  
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  
-  delegates        User[]          @relation("ClubDelegates")
-  boardMembers     ClubMember[]    // Relación con Directiva
-  financeRecords   FinanceRecord[]
-  players          PlayerProfile[]
-  hostedTournaments Tournament[]   @relation("TournamentHost")
-  venueTournaments  Tournament[]   @relation("TournamentVenue")
-  workflowReqs     WorkflowRequest[]
-}
-
-model ClubMember {
-  id        String        @id @default(uuid())
-  clubId    String
-  name      String        // Nombre del dirigente
-  role      ClubBoardRole
-  email     String?       // Contacto opcional
-  phone     String?
-  userId    String?       // Opcional, si tiene cuenta en el sistema
-  isValidated Boolean     @default(false) // NUEVO: Estado de validación ante la federación
-  
-  club      Club          @relation(fields: [clubId], references: [id], onDelete: Cascade)
-  user      User?         @relation("UserBoardRoles", fields: [userId], references: [id])
-}
-
-model PlayerProfile {
-  id               String                   @id @default(uuid())
-  userId           String?                  @unique
-  tenantId         String?
-  slug             String                   @unique
-  publicSlug       String                   @unique @default(dbgenerated("gen_random_uuid()"))
-  rut              String?                  @unique
-  firstName        String?
-  lastName         String?
-  email            String?
-  federationId     String?                  @unique
-  photoUrl         String?
-  birthDate        DateTime?
-  gender           String?
-  balance          Float                    @default(0)
-  averageBase      Float?                   @default(0) // Promedio histórico/inicial
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
-  matchAway        Match[]                  @relation("AwayPlayer")
-  matchHome        Match[]                  @relation("HomePlayer")
-  matchWinner      Match[]                  @relation("WinnerPlayer")
-  club             Club?                    @relation(fields: [tenantId], references: [id])
-  user             User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rankings         Ranking[]
-  rankSnapshots    RankingSnapshot[]
-  registrations    TournamentRegistration[]
-  transferRequests TransferRequest[]
-}
-
-model Tournament {
-  id            String                   @id @default(uuid())
-  name          String
-  description   String?
-  bannerUrl     String?
-  startDate     DateTime
-  endDate       DateTime?
-  location      String?
-  discipline    Discipline
-  modality      String?
-  category      Category
-  status        TournamentStatus         @default(DRAFT)
-  scope         TournamentScope          @default(INTERNAL)
-  venue         String?                  // Texto libre para sede
-  venueClubId   String?                  // Vinculación opcional a club
-  venueLogoUrl  String?                  // Logo específico para la sede/torneo
-  officializationStatus OfficializationStatus @default(NONE)
-  tenantId      String?
-  createdById   String?
-  createdAt     DateTime                 @default(now())
-  updatedAt     DateTime                 @updatedAt
-  matches       Match[]
-  groups        TournamentGroup[]
-  hostClub      Club?                    @relation("TournamentHost", fields: [tenantId], references: [id])
-  venueClub     Club?                    @relation("TournamentVenue", fields: [venueClubId], references: [id])
-  creator       User?                    @relation("TournamentCreator", fields: [createdById], references: [id])
-  photos        TournamentPhoto[]
-  registrations TournamentRegistration[]
-  assignments   TournamentAssignment[]
-  enrollments   TournamentEnrollment[]
-  phases        TournamentPhase[]
-  waitingList   WaitingList[]
-  
-  // INFRAESTRUCTURA Y CAPACIDAD
-  maxTables       Int                    @default(8)
-  playersPerTable Int                    @default(4)
-  
-  // CONTROL DE TIEMPO Y HANDICAP (3 BANDAS)
-  hasTimeLimit        Boolean            @default(false)
-  secondsPerShot      Int                @default(40)
-  extensionsPerPlayer Int                @default(2)
-  
-  config          Json?                  // { waitlist: 16, groups: { size: 3, advance: 2 }, innings: 30, etc }
-}
-
-model TournamentPhase {
-  id                   String     @id @default(uuid())
-  tournamentId         String
-  name                 String     // e.g. "GRUPOS", "PLAYOFFS", "FINALES"
-  order                Int        @default(1)
-  hasEqualizingInning  Boolean    @default(true) // Contra Salida
-  inningLimit          Int?       @default(30)   // Límite de Entradas
-  matches              Match[]
-  
-  tournament           Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-}
-
-model WaitingList {
-  id           String     @id @default(uuid())
-  tournamentId String
-  userId       String
-  joinedAt     DateTime   @default(now())
-  priority     Int        @default(0)
-  
-  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-
-
-model TournamentPhoto {
-  id           String     @id @default(uuid())
-  url          String
-  caption      String?
-  tournamentId String
-  createdAt    DateTime   @default(now())
-  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-}
-
-model Match {
-  id           String         @id @default(uuid())
-  tournamentId String
-  groupId      String?
-  phaseId      String?
-  round        Int
-  matchOrder   Int            @default(0)
-  tableNumber  String?
-  matchTime    DateTime?
-  matchDistance Int?
-  refereeName  String?        // Nombre del árbitro (texto libre para planillas en papel)
-  
-  // JUGADORES (Hándicap compatible)
-  homePlayerId String?        // Permite TBD
-  awayPlayerId String?
-  homeTarget   Int?           // Carambolas objetivo (Handicap)
-  awayTarget   Int?
-  
-  winnerId     String?
-  homeScore    Int?           @default(0)
-  awayScore    Int?           @default(0)
-  homeInnings  Int?           @default(0)
-  awayInnings  Int?           @default(0)
-  homeHighRun  Int?           @default(0)
-  awayHighRun  Int?           @default(0)
-  
-  isWO         Boolean        @default(false)
-  hasEqualizingInning Boolean? // Override por partido si aplica
-  
-  createdAt    DateTime       @default(now())
-  awayPlayer   PlayerProfile? @relation("AwayPlayer", fields: [awayPlayerId], references: [id])
-  homePlayer   PlayerProfile? @relation("HomePlayer", fields: [homePlayerId], references: [id])
-  tournament   Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  group        TournamentGroup? @relation(fields: [groupId], references: [id])
-  phase        TournamentPhase? @relation(fields: [phaseId], references: [id])
-  winner       PlayerProfile? @relation("WinnerPlayer", fields: [winnerId], references: [id])
-  refereeId    String?
-  referee      User?          @relation("MatchReferee", fields: [refereeId], references: [id])
-}
-
-
-model TournamentGroup {
-  id            String     @id @default(uuid())
-  tournamentId  String
-  name          String
-  order         Int        @default(0) // Nuevo: Para ordenamiento numérico
-  tieBreakType  String     @default("PGP")
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  
-  tournament    Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  matches       Match[]
-  registrations TournamentRegistration[]
-}
-
-model TransferRequest {
-  id          String        @id @default(uuid())
-  playerId    String
-  fromClubId  String
-  toClubId    String
-  status      String        @default("PENDING")
-  requestedAt DateTime      @default(now())
-  resolvedAt  DateTime?
-  player      PlayerProfile @relation(fields: [playerId], references: [id])
-}
-
-model Ranking {
-  id           String        @id @default(uuid())
-  playerId     String
-  discipline   Discipline
-  category     Category
-  points       Int           @default(0)
-  rankPosition Int?
-  average      Float?
-  handicapTarget Int?        @default(15) // Meta base para el motor hándicap
-  updatedAt    DateTime      @updatedAt
-  player       PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
-
-  @@unique([playerId, discipline, category])
-}
-
-model RankingSnapshot {
-  id           String        @id @default(uuid())
-  playerId     String
-  discipline   Discipline
-  category     Category
-  points       Int
-  rankPosition Int
-  average      Float?
-  powerScore   Float?
-  snapshotDate DateTime      @default(now())
-  player       PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
-
-  @@index([playerId, snapshotDate])
-}
-
-
-model FinanceRecord {
-  id          String    @id @default(uuid())
-  tenantId    String?
-  playerId    String?
-  amount      Float
-  type        String
-  category    String?
-  status      String    @default("PENDING")
-  description String?
-  dueDate     DateTime?
-  paidAt      DateTime?
-  createdAt   DateTime  @default(now())
-  club        Club?     @relation(fields: [tenantId], references: [id])
-}
-
-model TransparencyDocument {
-  id         String   @id @default(uuid())
-  title      String
-  type       String
-  url        String
-  uploadDate DateTime @default(now())
-  year       Int
-}
-
-model TournamentRegistration {
-  id            String             @id @default(uuid())
-  tournamentId  String
-  playerId      String
-  registeredAt  DateTime           @default(now())
-  paid          Boolean            @default(false)
-  paymentStatus String             @default("PENDING")
-  amountPaid    Float?
-  paymentRef    String?
-  paidAt        DateTime?
-  validatorId   String?
-  
-  // ESTADO Y COLA
-  isWaitingList Boolean            @default(false)
-  priority      Int                @default(0) // Para orden de la cola
-  
-  registeredPoints Int             @default(0)
-  registeredAverage Float           @default(0)
-  registeredCategory String          @default("PROMO")
-  registeredHandicap Int?            @default(30)
-  registeredRank   Int?
-  status        RegistrationStatus @default(PENDING)
-
-  // Asignación a grupo de fase grupal
-  groupId       String?
-  groupOrder    Int?               @default(0) // Nuevo: Orden manual dentro del grupo
-  group         TournamentGroup? @relation(fields: [groupId], references: [id])
-
-  player        PlayerProfile      @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  tournament    Tournament         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  validator     User?              @relation("PaymentValidator", fields: [validatorId], references: [id])
-
-  @@unique([tournamentId, playerId])
-}
-
-model TournamentAssignment {
-  id           String     @id @default(uuid())
-  tournamentId String
-  userId       String
-  assignedAt   DateTime   @default(now())
-  permissions  String     @default("READ")
-
-  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([tournamentId, userId])
-}
-
-model AuditLog {
-  id        String   @id @default(uuid())
-  action    String
-  targetId  String?
-  userId    String
-  details   String?
-  createdAt DateTime @default(now())
-  user      User     @relation("AuditLogs", fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model WorkflowRequest {
-  id           String               @id @default(uuid())
-  type         WorkflowRequestType
-  status       WorkflowRequestStatus @default(PENDING)
-  details      String?
-  requesterId  String
-  clubId       String?
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
-
-  requester    User                 @relation("UserRequests", fields: [requesterId], references: [id], onDelete: Cascade)
-  club         Club?                @relation(fields: [clubId], references: [id])
-}
-
-model Membership {
-  id               String           @id @default(uuid())
-  userId           String
-  type             MembershipType   @default(ANNUAL)
-  status           MembershipStatus @default(PENDING)
-  amount           Float            @default(0)
-  lastAmount       Float?           // Nuevo campo solicitado por el motor de finanzas
-  validUntil       DateTime
-  lastPaymentDate  DateTime?
-  paymentReference String?
-  validatedAt      DateTime?
-  receiptUrl       String?
-  validatedById    String?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-
-  user             User             @relation("UserMemberships", fields: [userId], references: [id], onDelete: Cascade)
-  validator        User?            @relation("MembershipValidator", fields: [validatedById], references: [id])
-}
-
-model TournamentEnrollment {
-  id               String                  @id @default(uuid())
-  userId           String
-  tournamentId     String
-  paymentStatus    EnrollmentPaymentStatus @default(PENDING)
-  paymentReference String?
-  validatedAt      DateTime?
-  receiptUrl       String?
-  validatedById    String?
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
-
-  user             User                    @relation("UserEnrollments", fields: [userId], references: [id], onDelete: Cascade)
-  tournament       Tournament              @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  validator        User?                   @relation("EnrollmentValidator", fields: [validatedById], references: [id])
-
-  @@unique([userId, tournamentId])
-}
-

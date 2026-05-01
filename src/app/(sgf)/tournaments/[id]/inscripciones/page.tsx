@@ -4,6 +4,8 @@ import { ArrowLeft, Users, Trophy, MapPin } from "lucide-react";
 import Link from "next/link";
 import { InscritosListClient } from "@/components/tournaments/InscritosListClient";
 import { auth } from "@/auth";
+import TournamentPhaseNavigator from "@/components/tournament/TournamentPhaseNavigator";
+import { calculatePhaseStates } from "@/lib/tournament/phase-manager";
 
 export default async function TournamentRegistrationsPage({ params }: { params: Promise<{ id: string }> }) {
     const session = await auth();
@@ -12,15 +14,33 @@ export default async function TournamentRegistrationsPage({ params }: { params: 
     const resolvedParams = await params;
     const tournamentId = resolvedParams.id;
 
-    // Obtener torneo
+    // Obtener torneo con partidos y grupos para el navegador de fases
     const tournament = await prisma.tournament.findUnique({
         where: { id: tournamentId },
         include: {
             hostClub: true,
+            matches: {
+                select: {
+                    id: true,
+                    round: true,
+                    winnerId: true,
+                    isWO: true,
+                    groupId: true,
+                }
+            },
+            groups: {
+                select: { id: true }
+            }
         }
     });
 
     if (!tournament) return notFound();
+
+    // Calcular estado de todas las fases
+    const phaseStates = calculatePhaseStates(
+        tournament.matches as any,
+        tournament.groups.length > 0
+    );
 
     // Obtener inscritos con promedio de ranking
     const registrations = await prisma.tournamentRegistration.findMany({
@@ -59,6 +79,7 @@ export default async function TournamentRegistrationsPage({ params }: { params: 
         amountPaid: r.amountPaid,
         paymentRef: r.paymentRef,
         registeredPoints: r.registeredPoints,
+        preferredTurn: r.preferredTurn || "T1",
         rankingAverage: r.player.rankings?.[0]?.average ?? null,
         player: {
             user: r.player.user,
@@ -71,7 +92,7 @@ export default async function TournamentRegistrationsPage({ params }: { params: 
     }));
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-700 max-w-5xl mx-auto">
+        <div className="space-y-8 animate-in fade-in duration-700 max-w-5xl mx-auto pb-20">
             {/* Nav */}
             <div className="flex items-center gap-4">
                 <Link
@@ -88,6 +109,14 @@ export default async function TournamentRegistrationsPage({ params }: { params: 
                         Gestión de llave y participantes
                     </p>
                 </div>
+            </div>
+
+            {/* Banner de Navegación de Fases */}
+            <div className="animate-in slide-in-from-top duration-1000">
+                <TournamentPhaseNavigator
+                    tournamentId={tournamentId}
+                    phases={phaseStates as any}
+                />
             </div>
 
             {/* Header del Torneo */}
@@ -134,6 +163,8 @@ export default async function TournamentRegistrationsPage({ params }: { params: 
                     registrations={inscritosData} 
                     tournamentId={tournamentId} 
                     allClubs={allClubs} 
+                    hasGroups={tournament.groups.length > 0}
+                    registrationFee={tournament.registrationFee || 30000}
                 />
             </div>
         </div>

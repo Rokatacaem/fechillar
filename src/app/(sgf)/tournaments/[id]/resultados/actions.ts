@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { calculateStandings } from "@/lib/billiards/ranking-engine";
 import { Discipline, Category } from "@prisma/client";
+import { generateBracketWithAdjustment } from "@/lib/billiards/bracket-automation";
 
 // ─────────────────────────────────────────────────────────
 // GENERACIÓN DE CRUCES ROUND ROBIN
@@ -87,25 +88,27 @@ export async function generateMatchesByGroup(tournamentId: string) {
                     }
                 }
             },
-            matches: { select: { id: true } }
+            matches: { select: { id: true, groupId: true } }
         }
     });
 
     if (!tournament) return { success: false, error: "Torneo no encontrado" };
-    if (tournament.matches.length > 0) {
-        return { success: false, error: `Ya existen partidas. Elimínalas primero para regenerar.` };
-    }
-
+    
     if (tournament.groups.length === 0) {
         return { success: false, error: "No se han configurado grupos para este torneo." };
     }
+
+    const existingGroupIds = new Set(tournament.matches.map(m => m.groupId).filter(Boolean));
 
     const allMatches: any[] = [];
     const config = tournament.config as any;
     const inningLimit = config?.inningsPerPhase ?? 30;
 
-    // Generar partidas para cada grupo
+    // Generar partidas para cada grupo que no tenga partidas
     tournament.groups.forEach((group) => {
+        // Saltar si el grupo ya tiene partidas
+        if (existingGroupIds.has(group.id)) return;
+
         const players = group.registrations.map(r => r.playerId);
         if (players.length < 2) return;
 
@@ -131,6 +134,7 @@ export async function generateMatchesByGroup(tournamentId: string) {
     await prisma.match.createMany({ data: allMatches });
 
     revalidatePath(`/tournaments/${tournamentId}/resultados`);
+    revalidatePath(`/tournaments/${tournamentId}/gestion`);
     return { success: true, matchesGenerated: allMatches.length };
 }
 
@@ -147,6 +151,8 @@ export interface MatchResultInput {
     awayHighRun: number;
     winnerId: string | null; // playerId del ganador, o null para empate
     refereeName?: string | null; // Nombre del árbitro (texto libre)
+    isWO?: boolean;
+    tossWinnerId?: string | null;
 }
 
 /**
@@ -168,6 +174,8 @@ export async function saveMatchResult(matchId: string, data: MatchResultInput) {
                 awayHighRun: data.awayHighRun,
                 winnerId: data.winnerId,
                 refereeName: data.refereeName,
+                isWO: data.isWO ?? false,
+                tossWinnerId: data.tossWinnerId,
             }
         });
 
@@ -183,28 +191,17 @@ export async function saveMatchResult(matchId: string, data: MatchResultInput) {
 // CERRAR TORNEO Y COMMIT DE RANKINGS
 // ─────────────────────────────────────────────────────────
 
-/**
- * Tabla oficial de puntos por posición final (Fechillar SGF).
- * Mínimo de 5 puntos SOLO si el jugador disputó al menos 1 partida.
- * Si no jugó ningún partido: 0 puntos.
- */
 const POSITION_POINTS: [number, number][] = [
-    //  [hasta_posición_inclusiva, puntos]
     [1,  60],
     [2,  50],
-    [4,  40],   // posición 3 y 4
-    [8,  30],   // posición 5 a 8
-    [12, 20],   // posición 9 a 12
-    [32, 10],   // posición 13 a 32
-    [Infinity, 5], // posición 33+ (solo si jugó al menos 1 partida)
+    [4,  40],
+    [8,  30],
+    [12, 20],
+    [32, 10],
+    [Infinity, 5],
 ];
 
-/**
- * @param pos - Posición final (1-based)
- * @param matchesPlayed - Cantidad de partidas jugadas por el jugador
- */
 const getPositionPoints = (pos: number, matchesPlayed: number): number => {
-    // Regla: si no jugó ninguna partida, no recibe puntos (ni el mínimo)
     if (matchesPlayed === 0) return 0;
     for (const [until, pts] of POSITION_POINTS) {
         if (pos <= until) return pts;
@@ -212,14 +209,6 @@ const getPositionPoints = (pos: number, matchesPlayed: number): number => {
     return 5;
 };
 
-/**
- * Cierra el torneo, calcula la clasificación final y persiste los
- * puntos en el Ranking Nacional (solo si scope=NATIONAL y homologado o forzado).
- * Genera un RankingSnapshot por jugador (foto histórica inmutable).
- * 
- * @param forceNational - Si true, sube puntos aunque el torneo no esté APPROVED.
- *                        Útil para torneos retroactivos validados manualmente.
- */
 export async function commitTournamentRanking(tournamentId: string, forceNational = false) {
     const session = await auth();
     const allowedRoles = ["SUPERADMIN", "FEDERATION_ADMIN"];
@@ -249,19 +238,16 @@ export async function commitTournamentRanking(tournamentId: string, forceNationa
     const playerIds = tournament.registrations.map(r => r.playerId);
     if (playerIds.length === 0) return { success: false, error: "No hay jugadores inscritos" };
 
-    // Calcular clasificación usando el motor de rankings existente
     const standings = calculateStandings(matches, playerIds);
 
-    // Precalcular partidas jugadas por jugador
     const matchesPlayedMap: Record<string, number> = {};
     playerIds.forEach(id => { matchesPlayedMap[id] = 0; });
     matches.forEach(m => {
-        if (m.homeScore === null && m.awayScore === null) return; // sin resultado
+        if (m.homeScore === null && m.awayScore === null) return;
         if (m.homePlayerId && matchesPlayedMap[m.homePlayerId] !== undefined) matchesPlayedMap[m.homePlayerId]++;
         if (m.awayPlayerId && matchesPlayedMap[m.awayPlayerId] !== undefined) matchesPlayedMap[m.awayPlayerId]++;
     });
 
-    // ¿Aplica ranking nacional?
     const isNational = tournament.scope === "NATIONAL";
     const isApproved = tournament.officializationStatus === "APPROVED";
     const applyNational = isNational && (isApproved || forceNational);
@@ -277,7 +263,6 @@ export async function commitTournamentRanking(tournamentId: string, forceNationa
             const generalAverage = stat.generalAverage;
 
             if (applyNational) {
-                // Upsert en Ranking: acumular puntos y recalcular promedio ponderado
                 const existing = await tx.ranking.findFirst({
                     where: {
                         playerId: stat.playerId,
@@ -287,7 +272,6 @@ export async function commitTournamentRanking(tournamentId: string, forceNationa
                 });
 
                 if (existing) {
-                    // Promedio ponderado: mezcla el histórico con el nuevo torneo
                     const newAvg = existing.average
                         ? (existing.average * 0.7 + generalAverage * 0.3)
                         : generalAverage;
@@ -311,11 +295,9 @@ export async function commitTournamentRanking(tournamentId: string, forceNationa
                         }
                     });
                 }
-
                 rankingsUpdated++;
             }
 
-            // Snapshot histórico SIEMPRE (independiente de si es nacional)
             const currentRanking = await tx.ranking.findFirst({
                 where: {
                     playerId: stat.playerId,
@@ -337,7 +319,6 @@ export async function commitTournamentRanking(tournamentId: string, forceNationa
             });
         }
 
-        // Marcar torneo como FINISHED
         await tx.tournament.update({
             where: { id: tournamentId },
             data: { status: "FINISHED" }
@@ -362,6 +343,89 @@ export async function commitTournamentRanking(tournamentId: string, forceNationa
         applyNational,
         message: applyNational
             ? `Torneo cerrado. ${rankingsUpdated} rankings nacionales actualizados.`
-            : `Torneo cerrado (clasificación interna). Para subir al Ranking Nacional, homologa el torneo primero.`
+            : `Torneo cerrado (clasificación interna).`
     };
+}
+
+// ─────────────────────────────────────────────────────────
+// GENERACIÓN DE LLAVES (ELIMINATORIAS)
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Genera la fase de eliminación directa (llaves) basada en los resultados
+ * de la fase de grupos. Aplica la Fase de Ajuste si es necesario.
+ */
+export async function generateKnockoutPhaseAction(tournamentId: string) {
+    const session = await auth();
+    if (!session) return { success: false, error: "No autorizado" };
+
+    try {
+        const tournament = await prisma.tournament.findUnique({
+            where: { id: tournamentId },
+            include: {
+                matches: {
+                    where: { groupId: { not: null } }
+                },
+                registrations: {
+                    where: { status: "APPROVED" },
+                    include: { player: true }
+                }
+            }
+        });
+
+        if (!tournament) return { success: false, error: "Torneo no encontrado" };
+
+        const playerIds = tournament.registrations.map(r => r.playerId);
+        const standings = calculateStandings(tournament.matches, playerIds);
+
+        const playerResults = standings.map(s => ({
+            playerId: s.playerId,
+            groupId: "TOTAL",
+            matchesPlayed: 0, 
+            won: 0,
+            drawn: 0,
+            lost: 0,
+            points: s.matchPoints,
+            totalScorePonderado: 0,
+            totalInnings: s.totalInnings,
+            pgp: s.generalAverage,
+            pm: 0,
+            pp: s.particularAverage,
+            pg: s.generalAverage,
+            sm: s.highRun
+        }));
+
+        const bracketSize = playerIds.length <= 8 ? 8 : 16;
+        const bracket = generateBracketWithAdjustment(tournamentId, playerResults, bracketSize);
+
+        await prisma.match.deleteMany({
+            where: {
+                tournamentId,
+                groupId: null,
+                round: { gt: 1 }
+            }
+        });
+
+        await prisma.match.createMany({
+            data: bracket.matches.map(m => ({
+                id: m.id,
+                tournamentId,
+                homePlayerId: m.homePlayerId,
+                awayPlayerId: m.awayPlayerId,
+                round: m.round,
+                matchOrder: m.position + 1,
+                matchDistance: (tournament.config as any)?.inningsPerPhase ?? 30,
+                status: m.status as any,
+                winnerId: m.winnerId,
+            }))
+        });
+
+        revalidatePath(`/tournaments/${tournamentId}/llaves`);
+        revalidatePath(`/tournaments/${tournamentId}/resultados`);
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error generating bracket:", error);
+        return { success: false, error: error.message };
+    }
 }

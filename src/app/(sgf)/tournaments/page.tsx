@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { Trophy, Plus, MapPin, Calendar, Users, Pencil } from "lucide-react";
+import { Trophy, Plus, MapPin, Calendar, Users, Pencil, FileText } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import { DeleteTournamentButton } from "@/components/admin/DeleteTournamentButton";
@@ -149,6 +149,12 @@ export default async function TournamentsListPage() {
                                 <div className="flex items-center gap-2 pointer-events-auto">
                                     {isAdmin && tournament.status !== "FINISHED" && (
                                         <>
+                                            <Link 
+                                                href={`/tournaments/${tournament.id}/documentos`}
+                                                className="px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-[9px] font-black uppercase text-indigo-400 hover:bg-indigo-500/20 transition-colors flex items-center gap-1.5"
+                                            >
+                                                <FileText className="w-3 h-3" /> Documentos
+                                            </Link>
                                             <Link 
                                                 href={`/tournaments/${tournament.id}/inscripciones`}
                                                 className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-[9px] font-black uppercase text-emerald-400 hover:bg-emerald-500/20 transition-colors flex items-center gap-1.5"

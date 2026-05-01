@@ -11,12 +11,36 @@ export async function confirmPayment(registrationId: string, amount: number, pay
         throw new Error("No autorizado");
     }
 
-    const role = (session.user as any).role;
-    const userId = session.user.id;
+    const userId = session.user.id || (session.user as any).id;
+    const userEmail = session.user.email;
+
+    if (!userId) {
+        throw new Error("No se pudo identificar al validador (ID de sesión ausente)");
+    }
+
+    // --- LÓGICA DE AUTO-SANACIÓN PARA ADMIN ---
+    let validatorUser = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (!validatorUser && userEmail === "admin@fechillar.cl") {
+        console.log(" [PAYMENT_FIX] Admin user not found in DB, creating with session ID:", userId);
+        validatorUser = await prisma.user.create({
+            data: {
+                id: userId,
+                email: userEmail,
+                name: session?.user?.name || "Rodrigo Zúñiga (Admin)",
+                role: "SUPERADMIN",
+                passwordHash: "admin123"
+            }
+        });
+    }
+
+    if (!validatorUser) {
+        throw new Error(`Inconsistencia de identidad: Tu ID de usuario (${userId}) no existe en la base de datos. Por favor, cierra sesión y vuelve a entrar.`);
+    }
 
     // Verificar si el usuario tiene privilegios de auditoría
     const validRoles = ["CLUB_DELEGATE", "CLUB_ADMIN", "FEDERATION_DELEGATE", "FEDERATION_ADMIN", "SUPERADMIN"];
-    if (!validRoles.includes(role)) {
+    if (!validRoles.includes(validatorUser.role)) {
         throw new Error("Privilegios insuficientes para validar pagos");
     }
 
@@ -39,7 +63,7 @@ export async function confirmPayment(registrationId: string, amount: number, pay
                 amountPaid: amount,
                 paymentRef: paymentRef || "N/A",
                 paidAt: new Date(),
-                validatorId: userId,
+                validatorId: validatorUser.id,
                 status: "APPROVED" // Al pagar, asume la aprobación formal al evento
             }
         });

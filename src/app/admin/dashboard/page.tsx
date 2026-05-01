@@ -66,10 +66,10 @@ export default async function SuperAdminWarRoom() {
                                     <span className="text-slate-400 text-sm">Clubes Firmados</span>
                                     <span className="text-3xl font-black text-emerald-400">{clubCount}</span>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-slate-400 text-sm">Torneos Registrados</span>
-                                    <span className="text-3xl font-black text-indigo-400">{tournamentCount}</span>
-                                </div>
+                                <a href="/tournaments" className="flex justify-between items-center group">
+                                    <span className="text-slate-400 text-sm group-hover:text-indigo-400 transition-colors">Torneos Registrados</span>
+                                    <span className="text-3xl font-black text-indigo-400 group-hover:scale-110 transition-transform">{tournamentCount}</span>
+                                </a>
                                 <div className="flex justify-between items-center pt-3 border-t border-slate-800">
                                     <span className="text-amber-400 text-sm font-bold">Trámites Pendientes</span>
                                     <span className={`text-2xl font-black ${stuckRequestsCount > 0 ? 'text-amber-400' : 'text-slate-600'}`}>{stuckRequestsCount}</span>
@@ -83,6 +83,9 @@ export default async function SuperAdminWarRoom() {
                             <div className="space-y-3">
                                 <a href="/admin/census" className="block w-full bg-slate-950 border border-slate-800 text-slate-300 py-3 rounded-xl font-bold text-sm text-center hover:border-indigo-500 hover:text-white transition-all">
                                     Padrón Nacional →
+                                </a>
+                                <a href="/tournaments" className="block w-full bg-slate-950 border border-slate-800 text-indigo-400 py-3 rounded-xl font-black text-sm text-center hover:bg-indigo-500 hover:text-white transition-all">
+                                    Gestión de Torneos →
                                 </a>
                                 <a href="/tournaments/nuevo" className="block w-full bg-slate-950 border border-slate-800 text-slate-300 py-3 rounded-xl font-bold text-sm text-center hover:border-emerald-500 hover:text-white transition-all">
                                     Nuevo Torneo →

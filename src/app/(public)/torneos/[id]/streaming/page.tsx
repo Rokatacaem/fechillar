@@ -70,6 +70,7 @@ export default function TournamentStreamingPage() {
                 groups={data.groups}
                 matches={data.matches}
                 topPerformers={data.topPerformers}
+                allStandings={(data as any).allStandings}
                 rotationInterval={45000} 
                 clubLogo={hostClub?.logoUrl}
             />

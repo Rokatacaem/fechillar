@@ -5,6 +5,34 @@ import { auth } from "@/auth";
 import { evaluateMatchWinner } from "@/lib/billiards/match-engine";
 
 /**
+ * Obtiene el ranking efectivo para un jugador según el tipo de torneo
+ * Prioriza Ranking Anual para torneos sin handicap
+ */
+function getEffectiveRanking(registration: any) {
+  const player = registration.player;
+  
+  // Priorizar Ranking Anual si existe
+  const annualRanking = player.rankings?.find((r: any) => r.discipline === 'THREE_BAND_ANNUAL');
+  if (annualRanking && annualRanking.points > 0) {
+    return {
+      points: annualRanking.points || 0,
+      average: annualRanking.average || 0,
+      source: 'ANNUAL',
+      rankPosition: annualRanking.rankPosition || 999
+    };
+  }
+  
+  // Fallback a Ranking Nacional
+  const nationalRanking = player.rankings?.find((r: any) => r.discipline === 'THREE_BAND');
+  return {
+    points: nationalRanking?.points || 0,
+    average: nationalRanking?.average || 0,
+    source: 'NATIONAL',
+    rankPosition: nationalRanking?.rankPosition || 999
+  };
+}
+
+/**
  * Genera el orden de siembra protegida (Butterfly) para un tamaño de bracket dado.
  */
 function getButterflySeeds(size: number): number[] {
@@ -41,8 +69,8 @@ export async function generateBrackets(tournamentId: string) {
 
         // Obtener jugadores aptos: APROBADOS o PAGADOS
         const registrations = await prisma.tournamentRegistration.findMany({
-            where: { 
-                tournamentId, 
+            where: {
+                tournamentId,
                 OR: [
                     { status: "APPROVED" },
                     { paymentStatus: "PAID" }
@@ -67,7 +95,7 @@ export async function generateBrackets(tournamentId: string) {
         }
 
         const numPlayers = registrations.length;
-        
+
         // Calcular potencia de 2 más cercana hacia arriba
         let bracketSize = 1;
         while (bracketSize < numPlayers) {
@@ -83,7 +111,7 @@ export async function generateBrackets(tournamentId: string) {
             const seedHome = seeds[i * 2];
             const seedAway = seeds[i * 2 + 1];
 
-            const homeReg = registrations[seedHome - 1]; 
+            const homeReg = registrations[seedHome - 1];
             const awayReg = registrations[seedAway - 1];
 
             // Obtener metas de hándicap (default 15 si no hay ranking específico)
@@ -116,10 +144,10 @@ export async function generateBrackets(tournamentId: string) {
 }
 
 export async function submitMatchResult(
-    matchId: string, 
-    homeScore: number, 
-    awayScore: number, 
-    homeInnings: number = 0, 
+    matchId: string,
+    homeScore: number,
+    awayScore: number,
+    homeInnings: number = 0,
     awayInnings: number = 0
 ) {
     const session = await auth();
@@ -128,7 +156,7 @@ export async function submitMatchResult(
     }
 
     try {
-        const match = await prisma.match.findUnique({ 
+        const match = await prisma.match.findUnique({
             where: { id: matchId },
             include: { phase: true }
         });
@@ -262,7 +290,7 @@ export async function submitMatchResult(
 }
 
 /**
- * Genera 8 grupos de 4 jugadores usando Snake Seeding y asigna mesas iniciales.
+ * Genera 18 grupos de 3 jugadores con Snake Seeding por tercios y respeto a turnos.
  */
 export async function generateGroups(tournamentId: string) {
     const session = await auth();
@@ -281,10 +309,10 @@ export async function generateGroups(tournamentId: string) {
         await prisma.tournamentGroup.deleteMany({ where: { tournamentId } });
         await prisma.match.deleteMany({ where: { tournamentId } });
 
-        // Obtener 32 jugadores válidos
-        const registrations = await prisma.tournamentRegistration.findMany({
-            where: { 
-                tournamentId, 
+        // Obtener jugadores válidos
+        const registrationsRaw = await prisma.tournamentRegistration.findMany({
+            where: {
+                tournamentId,
                 OR: [
                     { status: "APPROVED" },
                     { paymentStatus: "PAID" }
@@ -294,65 +322,289 @@ export async function generateGroups(tournamentId: string) {
             include: {
                 player: {
                     include: {
-                        rankings: { where: { discipline: tournament.discipline } }
+                        rankings: { 
+                            where: { 
+                                discipline: { 
+                                    in: ['THREE_BAND_ANNUAL', 'THREE_BAND']
+                                } 
+                            } 
+                        }
                     }
                 }
-            },
-            orderBy: { registeredPoints: 'desc' },
-            take: 32
+            }
         });
 
-        if (registrations.length < 32) {
-            throw new Error(`Se requieren 32 jugadores (hay ${registrations.length}).`);
+        if (registrationsRaw.length < 3) {
+            throw new Error(`Se requieren al menos 3 jugadores (hay ${registrationsRaw.length}).`);
         }
 
-        // Snake Seeding : 8 grupos de 4
-        const groups: any[][] = Array.from({ length: 8 }, () => []);
-        let forward = true;
-        let groupIdx = 0;
+        // Agregar ranking efectivo a cada registration
+        const registrationsWithRanking = registrationsRaw.map(reg => ({
+            ...reg,
+            effectiveRanking: getEffectiveRanking(reg)
+        }));
 
-        for (let i = 0; i < 32; i++) {
-            groups[groupIdx].push(registrations[i]);
+        // Ordenar por ranking efectivo (puntos > promedio > posición)
+        const registrations = registrationsWithRanking.sort((a, b) => {
+            if (b.effectiveRanking.points !== a.effectiveRanking.points) return b.effectiveRanking.points - a.effectiveRanking.points;
+            if (b.effectiveRanking.average !== a.effectiveRanking.average) return b.effectiveRanking.average - a.effectiveRanking.average;
+            return a.effectiveRanking.rankPosition - b.effectiveRanking.rankPosition;
+        });
+
+        // 1. LIMITAR A 54 JUGADORES (18 GRUPOS DE 3)
+        let mainDraw = registrations.slice(0, 54);
+        let overflow = registrations.slice(54);
+
+        // EXCEPCIÓN MANUAL SOLICITADA: Edwin Castillo entra, Víctor Saavedra sale
+        const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        
+        const victorIdx = mainDraw.findIndex(r => {
+            const full = normalize(`${r.player.firstName} ${r.player.lastName}`);
+            return full.includes('victor') && full.includes('saavedra');
+        });
+        
+        const edwinIdx = registrations.findIndex(r => {
+            const full = normalize(`${r.player.firstName} ${r.player.lastName}`);
+            return full.includes('edwin') && full.includes('castillo');
+        });
+
+        if (victorIdx !== -1 && edwinIdx !== -1 && edwinIdx >= 54) {
+            const victor = mainDraw[victorIdx];
+            const edwin = registrations[edwinIdx];
             
-            if (forward) {
-                if (groupIdx === 7) forward = false;
-                else groupIdx++;
+            // Intercambiar
+            mainDraw[victorIdx] = edwin;
+            
+            // Re-calcular overflow excluyendo a Edwin (que ya entró) e incluyendo a Víctor
+            const others = registrations.filter(r => r.id !== victor.id && r.id !== edwin.id);
+            overflow = [victor, ...others.slice(53)]; // 54 - 1 ya asignados
+        }
+
+        if (overflow.length > 0) {
+            await prisma.tournamentRegistration.updateMany({
+                where: { id: { in: overflow.map(r => r.id) } },
+                data: { isWaitingList: true, status: 'PENDING' }
+            });
+        }
+        
+        // Asegurar que los del mainDraw NO estén en lista de espera
+        await prisma.tournamentRegistration.updateMany({
+            where: { id: { in: mainDraw.map(r => r.id) } },
+            data: { isWaitingList: false, status: 'APPROVED' }
+        });
+
+        // Distribución robusta en 3 turnos de 18 jugadores cada uno
+        const t1: any[] = [];
+        const t2: any[] = [];
+        const t3: any[] = [];
+        const wildcards: any[] = []; // Jugadores con disponibilidad TOTAL
+        const extra: any[] = []; // Excedentes de turnos fijos
+
+        mainDraw.forEach(r => {
+            const turn = r.preferredTurn || 'T1'; // Fallback a T1 si es nulo
+
+            if (turn === 'TOTAL') {
+                wildcards.push(r);
+            } else if (turn === 'T1') {
+                if (t1.length < 18) t1.push(r);
+                else extra.push(r);
+            } else if (turn === 'T2') {
+                if (t2.length < 18) t2.push(r);
+                else extra.push(r);
+            } else if (turn === 'T3') {
+                if (t3.length < 18) t3.push(r);
+                else extra.push(r);
             } else {
-                if (groupIdx === 0) forward = true;
-                else groupIdx--;
+                extra.push(r);
+            }
+        });
+
+        // 1. Llenar huecos con Wildcards (TOTAL)
+        wildcards.forEach(r => {
+            const currentTurnos = [t1, t2, t3];
+            const minTurno = currentTurnos.reduce((min, t) => t.length < min.length ? t : min);
+            if (minTurno.length < 18) {
+                minTurno.push(r);
+            } else {
+                extra.push(r);
+            }
+        });
+
+        // 2. Llenar huecos restantes con extra (excedentes de turnos fijos que no cabían en su preferido)
+        extra.forEach(r => {
+            const currentTurnos = [t1, t2, t3];
+            const minTurno = currentTurnos.reduce((min, t) => t.length < min.length ? t : min);
+            minTurno.push(r);
+        });
+
+        const turnos = [t1, t2, t3];
+
+        // FUNCIÓN AUXILIAR: Snake Seeding por tercios
+        function snakeSeedByThirds(players: any[], numGroups: number) {
+            const groupSize = 3;
+            const groups: any[][] = Array.from({ length: numGroups }, () => []);
+            
+            // Dividir en tercios
+            const thirdSize = Math.ceil(players.length / 3);
+            const tercio1 = players.slice(0, thirdSize);
+            const tercio2 = players.slice(thirdSize, thirdSize * 2);
+            const tercio3 = players.slice(thirdSize * 2);
+
+            // Asignar tercio 1 (cabezas de serie) - Snake
+            let forward = true;
+            let groupIdx = 0;
+            tercio1.forEach((player) => {
+                groups[groupIdx].push(player);
+                if (forward) {
+                    if (groupIdx === numGroups - 1) forward = false;
+                    else groupIdx++;
+                } else {
+                    if (groupIdx === 0) forward = true;
+                    else groupIdx--;
+                }
+            });
+
+            // Asignar tercio 2 - Snake inverso
+            forward = false;
+            groupIdx = numGroups - 1;
+            tercio2.forEach((player) => {
+                groups[groupIdx].push(player);
+                if (forward) {
+                    if (groupIdx === numGroups - 1) forward = false;
+                    else groupIdx++;
+                } else {
+                    if (groupIdx === 0) forward = true;
+                    else groupIdx--;
+                }
+            });
+
+            // Asignar tercio 3 - Snake normal
+            forward = true;
+            groupIdx = 0;
+            tercio3.forEach((player) => {
+                groups[groupIdx].push(player);
+                if (forward) {
+                    if (groupIdx === numGroups - 1) forward = false;
+                    else groupIdx++;
+                } else {
+                    if (groupIdx === 0) forward = true;
+                    else groupIdx--;
+                }
+            });
+
+            return groups;
+        }
+
+        // Generar grupos por turno con Snake Seeding
+        const groupPromises = [];
+        let groupCounter = 0;
+
+        for (let turnoIdx = 0; turnoIdx < 3; turnoIdx++) {
+            const turnoPlayers = turnos[turnoIdx];
+            const numGroups = 6; // 6 grupos por turno
+            
+            // Definir horario según turno
+            const schedules = ["10:00 hrs", "13:00 hrs", "18:00 hrs"];
+            const currentSchedule = schedules[turnoIdx];
+
+            // Aplicar Snake Seeding por tercios
+            const turnoGroups = snakeSeedByThirds(turnoPlayers, numGroups);
+
+            for (let g = 0; g < numGroups; g++) {
+                const groupName = String.fromCharCode(65 + groupCounter);
+                const groupPlayers = turnoGroups[g];
+
+                // Crear grupo con horario
+                const groupPromise = prisma.tournamentGroup.create({
+                    data: {
+                        tournamentId,
+                        name: `GRUPO ${groupName} (${currentSchedule})`,
+                        order: groupCounter + 1,
+                        tieBreakType: 'PGP'
+                    }
+                }).then(async (dbGroup) => {
+                    // Actualizar registros
+                    await Promise.all(
+                        groupPlayers.map((player, idx) =>
+                            prisma.tournamentRegistration.update({
+                                where: { id: player.id },
+                                data: { 
+                                    groupId: dbGroup.id,
+                                    groupOrder: idx + 1
+                                }
+                            })
+                        )
+                    );
+
+                    // Crear partidos Round Robin
+                    if (groupPlayers.length >= 2) {
+                        const matches = [];
+                        const p1 = groupPlayers[0];
+                        const p2 = groupPlayers[1];
+                        const p3 = groupPlayers[2];
+
+                        if (p3) {
+                            matches.push({
+                                tournamentId,
+                                groupId: dbGroup.id,
+                                round: 1,
+                                matchOrder: 1,
+                                homePlayerId: p1.playerId,
+                                awayPlayerId: p3.playerId,
+                                homeTarget: 25,
+                                awayTarget: 25,
+                                matchDistance: 25
+                            });
+                        }
+
+                        matches.push({
+                            tournamentId,
+                            groupId: dbGroup.id,
+                            round: 1,
+                            matchOrder: 2,
+                            homePlayerId: p1.playerId,
+                            awayPlayerId: p2.playerId,
+                            homeTarget: 25,
+                            awayTarget: 25,
+                            matchDistance: 25
+                        });
+
+                        if (p3) {
+                            matches.push({
+                                tournamentId,
+                                groupId: dbGroup.id,
+                                round: 1,
+                                matchOrder: 3,
+                                homePlayerId: p3.playerId,
+                                awayPlayerId: p2.playerId,
+                                homeTarget: 25,
+                                awayTarget: 25,
+                                matchDistance: 25
+                            });
+                        }
+
+                        await prisma.match.createMany({ data: matches });
+                    }
+                });
+
+                groupPromises.push(groupPromise);
+                groupCounter++;
             }
         }
 
-        // Crear Grupos y Partidos iniciales en DB
-        for (let i = 0; i < 8; i++) {
-            const groupName = `GRUPO ${String.fromCharCode(65 + i)}`;
-            const dbGroup = await prisma.tournamentGroup.create({
-                data: {
-                    tournamentId,
-                    name: groupName
-                }
-            });
+        await Promise.all(groupPromises);
 
-            // Creamos solo el primer match de cada grupo para la simulación inicial (Table 1-8)
-            const p1 = groups[i][0];
-            const p2 = groups[i][3]; // Simplificado: 1 vs 4 en el snake
-
-            await prisma.match.create({
-                data: {
-                    tournamentId,
-                    groupId: dbGroup.id,
-                    round: 1,
-                    matchOrder: 1,
-                    tableNumber: (i + 1).toString(),
-                    homePlayerId: p1.playerId,
-                    awayPlayerId: p2.playerId,
-                    homeTarget: p1.player.rankings[0]?.handicapTarget ?? 15,
-                    awayTarget: p2.player.rankings[0]?.handicapTarget ?? 15
-                }
-            });
-        }
-
-        return { success: true, groupsGenerated: 8, playersDistributed: 32 };
+        return { 
+            success: true, 
+            groupsGenerated: 18,
+            playersDistributed: mainDraw.length,
+            waitingListMoved: overflow.length,
+            distribution: {
+                T1: turnos[0].length,
+                T2: turnos[1].length,
+                T3: turnos[2].length
+            }
+        };
 
     } catch (error: any) {
         console.error("Error generating groups:", error);
@@ -366,6 +618,11 @@ import { revalidatePath } from "next/cache";
  * Genera el cuadro de eliminación directa (Playoffs) a partir de los resultados
  * de la fase de grupos. 
  * Regla estándar: Clasifican los 2 mejores de cada grupo.
+ */
+/**
+ * Genera el cuadro de eliminación directa (Playoffs) a partir de los resultados
+ * de la fase de grupos y la fase de ajuste.
+ * Objetivo: Cuadro de 32 (16vos de Final).
  */
 export async function generatePlayoffsFromGroups(tournamentId: string) {
     const session = await auth();
@@ -387,52 +644,60 @@ export async function generatePlayoffsFromGroups(tournamentId: string) {
         });
 
         if (!tournament) throw new Error("Torneo no encontrado");
-        if (tournament.groups.length === 0) throw new Error("No hay grupos configurados para este torneo.");
 
-        // 1. Calcular clasificados por grupo
-        const winners: any[] = []; // Los que quedaron 1º
-        const runnersUp: any[] = []; // Los que quedaron 2º
-
+        // 1. Obtener clasificados directos de grupos (Top 28)
+        const allClassified: any[] = [];
         for (const group of tournament.groups) {
             const playerIds = group.registrations.map(r => r.playerId);
             const standings = calculateStandings(group.matches, playerIds);
-            
-            if (standings.length >= 1) winners.push(standings[0]);
-            if (standings.length >= 2) runnersUp.push(standings[1]);
+            if (standings.length >= 1) allClassified.push(standings[0]);
+            if (standings.length >= 2) allClassified.push(standings[1]);
         }
 
-        // 2. Ordenar ganadores entre sí y segundos entre sí para sembrar
-        // Esto premia al mejor 1º contra el "peor" 2º (si el bracket lo permite)
-        const sortedWinners = winners.sort((a, b) => {
+        // Ordenar todos para sacar el corte de 28
+        const sortedAll = allClassified.sort((a, b) => {
             if (b.matchPoints !== a.matchPoints) return b.matchPoints - a.matchPoints;
-            return b.generalAverage - a.generalAverage;
+            if (b.generalAverage !== a.generalAverage) return b.generalAverage - a.generalAverage;
+            return b.totalCaroms - a.totalCaroms;
         });
 
-        const sortedRunnersUp = runnersUp.sort((a, b) => {
-            if (b.matchPoints !== a.matchPoints) return b.matchPoints - a.matchPoints;
-            return b.generalAverage - a.generalAverage;
-        });
+        const top28 = sortedAll.slice(0, 28);
 
-        // Lista final de siembra: [1st_1, 1st_2, ..., 1st_8, 2nd_1, 2nd_2, ..., 2nd_8]
-        const qualifiedPlayers = [...sortedWinners, ...sortedRunnersUp];
-
-        if (qualifiedPlayers.length < 2) {
-            throw new Error("No hay suficientes jugadores clasificados para generar un cuadro.");
-        }
-
-        const numPlayers = qualifiedPlayers.length;
-        
-        // Calcular potencia de 2 (ej: 16 si hay 8 grupos x 2 clasificados)
-        let bracketSize = 1;
-        while (bracketSize < numPlayers) {
-            bracketSize *= 2;
-        }
-
-        // 3. Eliminar llaves previas QUE NO SEAN DE GRUPOS
-        await prisma.match.deleteMany({
+        // 2. Obtener ganadores de la Fase de Ajuste (Barrage)
+        const adjustmentMatches = await prisma.match.findMany({
             where: { 
+                tournamentId, 
+                groupId: null,
+                round: 0 // Usamos round 0 para ajuste
+            }
+        });
+
+        const adjustmentWinners = adjustmentMatches
+            .filter(m => m.winnerId !== null)
+            .map(m => ({ playerId: m.winnerId, isAdjustmentWinner: true }));
+
+        if (adjustmentWinners.length < adjustmentMatches.length && adjustmentMatches.length > 0) {
+            throw new Error("Aún hay partidos de ajuste pendientes.");
+        }
+
+        // 3. Combinar para formar los 32
+        const final32 = [...top28, ...adjustmentWinners];
+
+        if (final32.length < 2) {
+            throw new Error("No hay suficientes jugadores para el cuadro.");
+        }
+
+        // Forzar tamaño de cuadro a 32 (o la potencia de 2 superior a los clasificados)
+        let bracketSize = 32;
+        if (final32.length > 32) bracketSize = 64;
+        else if (final32.length <= 16) bracketSize = 16;
+
+        // 4. Eliminar llaves previas QUE NO SEAN DE GRUPOS NI DE AJUSTE
+        await prisma.match.deleteMany({
+            where: {
                 tournamentId,
-                groupId: null 
+                groupId: null,
+                round: { gt: 0 } // Eliminar rondas 1, 2, 3...
             }
         });
 
@@ -444,8 +709,8 @@ export async function generatePlayoffsFromGroups(tournamentId: string) {
             const seedHome = seeds[i * 2];
             const seedAway = seeds[i * 2 + 1];
 
-            const homeStats = qualifiedPlayers[seedHome - 1]; 
-            const awayStats = qualifiedPlayers[seedAway - 1];
+            const homeStats = final32[seedHome - 1];
+            const awayStats = final32[seedAway - 1];
 
             // Buscar targets de hándicap
             const homeRanking = homeStats ? await prisma.ranking.findFirst({
@@ -457,7 +722,7 @@ export async function generatePlayoffsFromGroups(tournamentId: string) {
 
             matchesToCreate.push({
                 tournamentId,
-                round: 1,
+                round: 1, // Ronda 1 de eliminación directa (16vos)
                 matchOrder: i + 1,
                 homePlayerId: homeStats?.playerId ?? null,
                 awayPlayerId: awayStats?.playerId ?? null,
@@ -474,9 +739,9 @@ export async function generatePlayoffsFromGroups(tournamentId: string) {
 
         revalidatePath(`/tournaments/${tournamentId}/cuadros`);
 
-        return { 
-            success: true, 
-            bracketSize, 
+        return {
+            success: true,
+            bracketSize,
             qualifiedCount: qualifiedPlayers.length,
             message: `Cuadro de ${bracketSize} generado con ${qualifiedPlayers.length} clasificados.`
         };
@@ -484,5 +749,248 @@ export async function generatePlayoffsFromGroups(tournamentId: string) {
     } catch (error: any) {
         console.error("Error generating playoffs:", error);
         return { success: false, error: error.message || "Error al generar eliminatorias." };
+    }
+}
+
+/**
+ * Genera la Fase de Ajuste para puestos 17-32.
+ * Los top 16 pasan directo a 32avos.
+ */
+export async function generateAdjustmentPhase(tournamentId: string) {
+    const session = await auth();
+    if (!session || !session.user) {
+        throw new Error("No autorizado");
+    }
+
+    try {
+        const tournament = await prisma.tournament.findUnique({
+            where: { id: tournamentId },
+            include: {
+                groups: {
+                    include: {
+                        matches: true,
+                        registrations: {
+                            include: {
+                                player: {
+                                    include: {
+                                        rankings: { where: { discipline: 'THREE_BAND' } }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!tournament) throw new Error("Torneo no encontrado");
+        if (tournament.groups.length === 0) throw new Error("No hay grupos configurados.");
+
+        // 1. Calcular clasificados (2 por grupo)
+        const allClassified: any[] = [];
+
+        for (const group of tournament.groups) {
+            const playerIds = group.registrations.map(r => r.playerId);
+            const standings = calculateStandings(group.matches, playerIds);
+
+            // Tomar los 2 primeros
+            if (standings.length >= 1) {
+                allClassified.push({ ...standings[0], groupName: group.name });
+            }
+            if (standings.length >= 2) {
+                allClassified.push({ ...standings[1], groupName: group.name });
+            }
+        }
+
+        if (allClassified.length < 16) {
+            throw new Error(`Se necesitan al menos 16 clasificados (hay ${allClassified.length}).`);
+        }
+
+        // 2. Ordenar clasificados por: Puntos de Partido → PGP → Carambolas
+        const sortedClassified = allClassified.sort((a, b) => {
+            if (b.matchPoints !== a.matchPoints) return b.matchPoints - a.matchPoints;
+            if (b.generalAverage !== a.generalAverage) return b.generalAverage - a.generalAverage;
+            return b.totalCaroms - a.totalCaroms;
+        });
+
+        // 3. Top 28 → DIRECTO (Para cuadro de 32)
+        const directClassified = sortedClassified.slice(0, 28);
+        console.log('✅ Top 28 clasifican DIRECTO a 16avos de Final (Cuadro de 32)');
+
+        // 4. Puestos 29-36 → AJUSTE (4 partidos de repechaje / Barrage)
+        const adjustmentPlayers = sortedClassified.slice(28, 36);
+
+        if (adjustmentPlayers.length < 2) {
+            console.log('⚠️ No hay suficientes jugadores para fase de ajuste');
+            return {
+                success: true,
+                directClassified: directClassified.length,
+                adjustmentMatches: 0,
+                message: 'Solo hay clasificados directos.'
+            };
+        }
+
+        // Crear TournamentPhase para AJUSTE
+        // Eliminamos fases de ajuste previas para este torneo
+        await prisma.tournamentPhase.deleteMany({
+            where: { tournamentId, name: 'AJUSTE' }
+        });
+
+        const adjustmentPhase = await prisma.tournamentPhase.create({
+            data: {
+                tournamentId,
+                name: 'AJUSTE',
+                order: 2,
+                hasEqualizingInning: true,
+                inningLimit: 30
+            }
+        });
+
+        // Generar partidos de ajuste (enfrentamiento 29 vs 36, 30 vs 35, etc.)
+        const matchesToCreate = [];
+        const adjustmentCount = Math.floor(adjustmentPlayers.length / 2);
+
+        for (let i = 0; i < adjustmentCount; i++) {
+            const homePlayer = adjustmentPlayers[i];
+            const awayPlayer = adjustmentPlayers[adjustmentPlayers.length - 1 - i];
+
+            matchesToCreate.push({
+                tournamentId,
+                phaseId: adjustmentPhase.id,
+                round: 0, // Round 0 indica Fase de Ajuste previa al bracket
+                matchOrder: i + 1,
+                homePlayerId: homePlayer.playerId,
+                awayPlayerId: awayPlayer.playerId,
+                homeTarget: 25,
+                awayTarget: 25,
+                matchDistance: 25
+            });
+        }
+
+        await prisma.match.createMany({
+            data: matchesToCreate
+        });
+
+        return {
+            success: true,
+            directClassified: directClassified.length,
+            adjustmentMatches: matchesToCreate.length,
+            message: `${directClassified.length} clasificados directos, ${matchesToCreate.length} partidos de ajuste generados.`
+        };
+
+    } catch (error: any) {
+        console.error("Error generating adjustment phase:", error);
+        return { success: false, error: error.message || "Error al generar fase de ajuste." };
+    }
+}
+
+/**
+ * Función auxiliar: Calcular tabla de posiciones de un grupo
+ */
+function calculateStandings(matches: any[], playerIds: string[]) {
+    const stats: any = {};
+
+    // Inicializar stats
+    playerIds.forEach(pid => {
+        stats[pid] = {
+            playerId: pid,
+            matchPoints: 0,
+            totalCaroms: 0,
+            totalInnings: 0,
+            generalAverage: 0
+        };
+    });
+
+    // Procesar partidos
+    matches.forEach(match => {
+        if (!match.winnerId || !match.homePlayerId || !match.awayPlayerId) return;
+
+        const homeId = match.homePlayerId;
+        const awayId = match.awayPlayerId;
+
+        // Puntos de partido
+        if (match.winnerId === homeId) {
+            stats[homeId].matchPoints += 2;
+        } else if (match.winnerId === awayId) {
+            stats[awayId].matchPoints += 2;
+        } else {
+            // Empate
+            stats[homeId].matchPoints += 1;
+            stats[awayId].matchPoints += 1;
+        }
+
+        // Carambolas y entradas
+        stats[homeId].totalCaroms += match.homeScore || 0;
+        stats[homeId].totalInnings += match.homeInnings || 0;
+        stats[awayId].totalCaroms += match.awayScore || 0;
+        stats[awayId].totalInnings += match.awayInnings || 0;
+    });
+
+    // Calcular promedios
+    Object.values(stats).forEach((s: any) => {
+        s.generalAverage = s.totalInnings > 0 ? s.totalCaroms / s.totalInnings : 0;
+    });
+
+    // Ordenar
+    return Object.values(stats).sort((a: any, b: any) => {
+        if (b.matchPoints !== a.matchPoints) return b.matchPoints - a.matchPoints;
+        if (b.generalAverage !== a.generalAverage) return b.generalAverage - a.generalAverage;
+        return b.totalCaroms - a.totalCaroms;
+    });
+}
+/**
+ * Acción crítica: Cierra la fase de grupos y genera automáticamente la Fase de Ajuste (Barrage).
+ */
+export async function closeGroupPhase(tournamentId: string) {
+    const session = await auth();
+    if (!session || !session.user) {
+        throw new Error("No autorizado");
+    }
+
+    try {
+        const tournament = await prisma.tournament.findUnique({
+            where: { id: tournamentId },
+            include: {
+                groups: {
+                    include: {
+                        matches: true
+                    }
+                }
+            }
+        });
+
+        if (!tournament) throw new Error("Torneo no encontrado");
+
+        // 1. Validar que todos los partidos de grupo estén terminados
+        const allMatches = tournament.groups.flatMap(g => g.matches);
+        const pendingMatches = allMatches.filter(m => m.winnerId === null && !m.isWO);
+        
+        if (pendingMatches.length > 0) {
+            return { 
+                success: false, 
+                error: `Aún quedan ${pendingMatches.length} partidos pendientes en la fase de grupos.` 
+            };
+        }
+
+        // 2. Ejecutar generación de Fase de Ajuste (Barrage)
+        // Esta función ya calcula el ranking y selecciona los 29-36
+        const adjustmentResult = await generateAdjustmentPhase(tournamentId);
+        
+        if (!adjustmentResult.success) {
+            return adjustmentResult;
+        }
+
+        revalidatePath(`/tournaments/${tournamentId}/grupos`);
+        revalidatePath(`/tournaments/${tournamentId}/ajuste`);
+
+        return {
+            success: true,
+            message: "Fase de grupos cerrada con éxito. Fase de Ajuste (Barrage) generada.",
+            details: adjustmentResult.message
+        };
+
+    } catch (error: any) {
+        console.error("Error in closeGroupPhase:", error);
+        return { success: false, error: error.message || "Error al cerrar la fase de grupos." };
     }
 }

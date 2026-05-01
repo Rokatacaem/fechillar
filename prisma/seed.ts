@@ -1,387 +1,1051 @@
-import { PrismaClient } from '@prisma/client'
-const prisma = new PrismaClient()
+import { PrismaClient, Discipline, Category, TournamentStatus, TournamentScope } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 async function main() {
-    console.log("🌱 Iniciando poblamiento de base de datos FECHILLAR 2026...");
+  console.log('🌱 Iniciando seed de Fechillar...');
 
-    // ----------------------------------------------------
-    // 1. CLUBES BASE
-    // ----------------------------------------------------
-    const federation = await prisma.club.upsert({
-        where: { slug: 'federacion' },
-        update: {},
-        create: {
-            name: 'Federación Chilena de Billar',
-            slug: 'federacion',
-            brandColor: '#0f172a',
-            accentColor: '#10b981',
-            isValidated: true,
-        },
+  // ============================================
+  // 1. LIMPIAR BASE DE DATOS (OPCIONAL - SOLO DESARROLLO)
+  // ============================================
+  console.log('🧹 Limpiando base de datos...');
+  await prisma.match.deleteMany();
+  await prisma.tournamentRegistration.deleteMany();
+  await prisma.tournamentGroup.deleteMany();
+  await prisma.tournament.deleteMany();
+  await prisma.ranking.deleteMany();
+  await prisma.playerProfile.deleteMany();
+  await prisma.club.deleteMany();
+  await prisma.prizeTemplate.deleteMany();
+
+  // ============================================
+  // 1.1 CREAR PLANTILLAS DE PREMIOS
+  // ============================================
+  console.log('🏆 Creando plantillas de premios...');
+  await prisma.prizeTemplate.create({
+    data: {
+      id: 'default-8-places',
+      name: 'Estándar 8 lugares',
+      isDefault: true,
+      distribution: [
+        { position: 1, percentage: 35, label: 'Primer Lugar' },
+        { position: 2, percentage: 25, label: 'Segundo Lugar' },
+        { position: 3, percentage: 12, label: 'Tercer Lugar' },
+        { position: 4, percentage: 12, label: 'Cuarto Lugar' },
+        { position: 5, percentage: 4, label: 'Quinto Lugar' },
+        { position: 6, percentage: 4, label: 'Sexto Lugar' },
+        { position: 7, percentage: 4, label: 'Séptimo Lugar' },
+        { position: 8, percentage: 4, label: 'Octavo Lugar' },
+      ],
+    }
+  });
+
+  // ============================================
+  // 2. CREAR CLUBES
+  // ============================================
+  console.log('🏛️ Creando clubes...');
+
+  const clubValparaiso = await prisma.club.create({
+    data: {
+      slug: 'club-valparaiso',
+      name: 'Club Valparaíso',
+      city: 'Valparaíso',
+      brandColor: '#0f2040',
+      accentColor: '#10b981',
+      isValidated: true
+    }
+  });
+
+  const clubSanMiguel = await prisma.club.create({
+    data: {
+      slug: 'club-san-miguel',
+      name: 'Club San Miguel',
+      city: 'Santiago',
+      brandColor: '#0f2040',
+      accentColor: '#10b981',
+      isValidated: true
+    }
+  });
+
+  const clubLaCalera = await prisma.club.create({
+    data: {
+      slug: 'club-la-calera',
+      name: 'Club La Calera',
+      city: 'La Calera',
+      brandColor: '#0f2040',
+      accentColor: '#10b981',
+      isValidated: true
+    }
+  });
+
+  const clubSantiago = await prisma.club.create({
+    data: {
+      slug: 'club-santiago',
+      name: 'Club Santiago',
+      city: 'Santiago',
+      address: 'Av. Libertador Bernardo O\'Higgins 2020',
+      brandColor: '#0f2040',
+      accentColor: '#10b981',
+      isValidated: true
+    }
+  });
+
+  // ============================================
+  // 3. CREAR JUGADORES CON DATOS DEL RANKING
+  // ============================================
+  console.log('👥 Creando jugadores...');
+
+  const players = [
+    // ========================================
+    // CLUB VALPARAÍSO (15 jugadores)
+    // ========================================
+    
+    { 
+      firstName: 'Marco', 
+      lastName: 'Sobarzo', 
+      club: clubValparaiso.id,
+      pointsNational: 676,
+      averageNational: 1.097,
+      rankingNational: 1,
+      handicap: 28,
+      categoryNational: 'MASTER',
+      pointsAnnual: 180,
+      averageAnnual: 1.0,
+      rankingAnnual: 1,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Ulises', 
+      lastName: 'Salinas D.', 
+      club: clubValparaiso.id,
+      pointsNational: 333,
+      averageNational: 0.732,
+      rankingNational: 9,
+      handicap: 26,
+      categoryNational: 'MASTER',
+      pointsAnnual: 65,
+      averageAnnual: 0.709,
+      rankingAnnual: 11,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Carlos', 
+      lastName: 'Guerra', 
+      club: clubValparaiso.id,
+      pointsNational: 437,
+      averageNational: 0.778,
+      rankingNational: 7,
+      handicap: 26,
+      categoryNational: 'MASTER',
+      pointsAnnual: 45,
+      averageAnnual: 0.675,
+      rankingAnnual: 18,
+      categoryAnnual: 'MASTER',
+      turnPreference: 'T1_T2' 
+    },
+    
+    { 
+      firstName: 'Marcelo', 
+      lastName: 'Peña', 
+      club: clubValparaiso.id,
+      pointsNational: 424,
+      averageNational: 0.781,
+      rankingNational: 6,
+      handicap: 26,
+      categoryNational: 'MASTER',
+      pointsAnnual: 80,
+      averageAnnual: 0.725,
+      rankingAnnual: 6,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Jorge', 
+      lastName: 'Castillo', 
+      club: clubValparaiso.id,
+      pointsNational: 518,
+      averageNational: 0.728,
+      rankingNational: 11,
+      handicap: 26,
+      categoryNational: 'MASTER',
+      pointsAnnual: 45,
+      averageAnnual: 0.594,
+      rankingAnnual: 19,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Mario', 
+      lastName: 'Díaz', 
+      club: clubValparaiso.id,
+      pointsNational: 319,
+      averageNational: 0.51,
+      rankingNational: 35,
+      handicap: 22,
+      categoryNational: 'MASTER',
+      pointsAnnual: 60,
+      averageAnnual: 0.523,
+      rankingAnnual: 13,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Manuel', 
+      lastName: 'Pulgar', 
+      club: clubValparaiso.id,
+      pointsNational: 178,
+      averageNational: 0.451,
+      rankingNational: 38,
+      handicap: 22,
+      categoryNational: 'MASTER',
+      pointsAnnual: 20,
+      averageAnnual: 0.465,
+      rankingAnnual: 31,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Cristian', 
+      lastName: 'Rioja', 
+      club: clubValparaiso.id,
+      pointsNational: 119,
+      averageNational: 0.37,
+      rankingNational: 42,
+      handicap: 20,
+      categoryNational: 'MASTER',
+      pointsAnnual: 15,
+      averageAnnual: 0.25,
+      rankingAnnual: 36,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Luis', 
+      lastName: 'Bustos', 
+      club: clubValparaiso.id,
+      pointsNational: 318,
+      averageNational: 0.593,
+      rankingNational: 22,
+      handicap: 24,
+      categoryNational: 'MASTER',
+      pointsAnnual: 40,
+      averageAnnual: 0.489,
+      rankingAnnual: 22,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Ricardo', 
+      lastName: 'Ponce', 
+      club: clubValparaiso.id,
+      pointsNational: 379,
+      averageNational: 0.62,
+      rankingNational: 20,
+      handicap: 24,
+      categoryNational: 'MASTER',
+      pointsAnnual: 40,
+      averageAnnual: 0.572,
+      rankingAnnual: 21,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Nelson', 
+      lastName: 'Salas', 
+      club: clubValparaiso.id,
+      pointsNational: 110,
+      averageNational: 0.312,
+      rankingNational: 45,
+      handicap: 20,
+      categoryNational: 'MASTER',
+      pointsAnnual: 20,
+      averageAnnual: 0.256,
+      rankingAnnual: 34,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'José', 
+      lastName: 'Rodríguez', 
+      club: clubValparaiso.id,
+      pointsNational: 129,
+      averageNational: 0.324,
+      rankingNational: 44,
+      handicap: 20,
+      categoryNational: 'MASTER',
+      pointsAnnual: 15,
+      averageAnnual: 0.218,
+      rankingAnnual: 38,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Javier', 
+      lastName: 'Jiménez', 
+      club: clubValparaiso.id,
+      pointsNational: 0,
+      averageNational: 0.3,
+      rankingNational: 999,
+      handicap: 18,
+      categoryNational: 'MASTER',
+      pointsAnnual: null,
+      averageAnnual: null,
+      rankingAnnual: null,
+      categoryAnnual: null,
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Yoiber', 
+      lastName: 'López', 
+      club: clubValparaiso.id,
+      pointsNational: 0,
+      averageNational: 0.3,
+      rankingNational: 999,
+      handicap: 18,
+      categoryNational: 'MASTER',
+      pointsAnnual: null,
+      averageAnnual: null,
+      rankingAnnual: null,
+      categoryAnnual: null,
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Marcos', 
+      lastName: 'Selman', 
+      club: clubValparaiso.id,
+      pointsNational: 0,
+      averageNational: 0.3,
+      rankingNational: 999,
+      handicap: 18,
+      categoryNational: 'MASTER',
+      pointsAnnual: null,
+      averageAnnual: null,
+      rankingAnnual: null,
+      categoryAnnual: null,
+      preferredTurn: null 
+    },
+  
+    // ========================================
+    // CLUB SAN MIGUEL (6 jugadores)
+    // ========================================
+    
+    { 
+      firstName: 'Bladimir', 
+      lastName: 'Arenas', 
+      club: clubSanMiguel.id,
+      pointsNational: 522,
+      averageNational: 0.781,
+      rankingNational: 5,
+      handicap: 26,
+      categoryNational: 'MASTER',
+      pointsAnnual: 80,
+      averageAnnual: 0.676,
+      rankingAnnual: 7,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Carlos', 
+      lastName: 'Olaya', 
+      club: clubSanMiguel.id,
+      pointsNational: 377,
+      averageNational: 0.66,
+      rankingNational: 16,
+      handicap: 24,
+      categoryNational: 'MASTER',
+      pointsAnnual: 70,
+      averageAnnual: 0.575,
+      rankingAnnual: 10,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Pablo', 
+      lastName: 'Chicurel', 
+      club: clubSanMiguel.id,
+      pointsNational: 375,
+      averageNational: 0.651,
+      rankingNational: 17,
+      handicap: 24,
+      categoryNational: 'MASTER',
+      pointsAnnual: 50,
+      averageAnnual: 0.652,
+      rankingAnnual: 16,
+      categoryAnnual: 'MASTER',
+      turnPreference: 'T1' 
+    },
+    
+    { 
+      firstName: 'Alejandro', 
+      lastName: 'Riffo', 
+      club: clubSanMiguel.id,
+      pointsNational: 397,
+      averageNational: 0.739,
+      rankingNational: 90,
+      handicap: 26,
+      categoryNational: 'BEGINNER',
+      pointsAnnual: 40,
+      averageAnnual: 0.764,
+      rankingAnnual: 88,
+      categoryAnnual: 'BEGINNER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Jesús', 
+      lastName: 'Arenas', 
+      club: clubSanMiguel.id,
+      pointsNational: 257,
+      averageNational: 0.502,
+      rankingNational: 64,
+      handicap: 22,
+      categoryNational: 'INTERMEDIATE',
+      pointsAnnual: 15,
+      averageAnnual: 0.512,
+      rankingAnnual: 58,
+      categoryAnnual: 'INTERMEDIATE',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Álvaro', 
+      lastName: 'Serrano', 
+      club: clubSanMiguel.id,
+      pointsNational: 0,
+      averageNational: 0.3,
+      rankingNational: 999,
+      handicap: 18,
+      categoryNational: 'MASTER',
+      pointsAnnual: null,
+      averageAnnual: null,
+      rankingAnnual: null,
+      categoryAnnual: null,
+      preferredTurn: null 
+    },
+  
+    // ========================================
+    // CLUB LA CALERA (12 jugadores)
+    // ========================================
+    
+    { 
+      firstName: 'Luis', 
+      lastName: 'Bahamondes', 
+      club: clubLaCalera.id,
+      pointsNational: 741,
+      averageNational: 1.044,
+      rankingNational: 2,
+      handicap: 28,
+      categoryNational: 'MASTER',
+      pointsAnnual: 150,
+      averageAnnual: 0.896,
+      rankingAnnual: 2,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Cristian', 
+      lastName: 'Rubilar', 
+      club: clubLaCalera.id,
+      pointsNational: 471,
+      averageNational: 0.721,
+      rankingNational: 12,
+      handicap: 26,
+      categoryNational: 'MASTER',
+      pointsAnnual: 60,
+      averageAnnual: 0.721,
+      rankingAnnual: 12,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Juan Carlos', 
+      lastName: 'Toro', 
+      club: clubLaCalera.id,
+      pointsNational: 306,
+      averageNational: 0.654,
+      rankingNational: 52,
+      handicap: 24,
+      categoryNational: 'INTERMEDIATE',
+      pointsAnnual: 50,
+      averageAnnual: 0.684,
+      rankingAnnual: 47,
+      categoryAnnual: 'INTERMEDIATE',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Rodolfo', 
+      lastName: 'Silva', 
+      club: clubLaCalera.id,
+      pointsNational: 245,
+      averageNational: 0.504,
+      rankingNational: 36,
+      handicap: 22,
+      categoryNational: 'MASTER',
+      pointsAnnual: 35,
+      averageAnnual: 0.503,
+      rankingAnnual: 23,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Peter', 
+      lastName: 'Sarmiento', 
+      club: clubLaCalera.id,
+      pointsNational: 306,
+      averageNational: 0.636,
+      rankingNational: 18,
+      handicap: 24,
+      categoryNational: 'MASTER',
+      pointsAnnual: 90,
+      averageAnnual: 0.584,
+      rankingAnnual: 5,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'José', 
+      lastName: 'Salinas', 
+      club: clubLaCalera.id,
+      pointsNational: 92,
+      averageNational: 0.293,
+      rankingNational: 46,
+      handicap: 20,
+      categoryNational: 'MASTER',
+      pointsAnnual: 15,
+      averageAnnual: 0.25,
+      rankingAnnual: 37,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Ariel', 
+      lastName: 'Bernal', 
+      club: clubLaCalera.id,
+      pointsNational: 269,
+      averageNational: 0.531,
+      rankingNational: 29,
+      handicap: 22,
+      categoryNational: 'MASTER',
+      pointsAnnual: 60,
+      averageAnnual: 0.486,
+      rankingAnnual: 14,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Mario', 
+      lastName: 'Cofre', 
+      club: clubLaCalera.id,
+      pointsNational: 447,
+      averageNational: 0.7,
+      rankingNational: 14,
+      handicap: 26,
+      categoryNational: 'MASTER',
+      pointsAnnual: 50,
+      averageAnnual: 0.595,
+      rankingAnnual: 17,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Marco', 
+      lastName: 'Duarte', 
+      club: clubLaCalera.id,
+      pointsNational: 402,
+      averageNational: 0.73,
+      rankingNational: 10,
+      handicap: 26,
+      categoryNational: 'MASTER',
+      pointsAnnual: 10,
+      averageAnnual: 0.695,
+      rankingAnnual: 40,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Pablo', 
+      lastName: 'Plaza', 
+      club: clubLaCalera.id,
+      pointsNational: 57,
+      averageNational: 0.302,
+      rankingNational: 85,
+      handicap: 20,
+      categoryNational: 'INTERMEDIATE',
+      pointsAnnual: 10,
+      averageAnnual: 0.0,
+      rankingAnnual: 71,
+      categoryAnnual: 'INTERMEDIATE',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'José', 
+      lastName: 'Naranjo', 
+      club: clubLaCalera.id,
+      pointsNational: 0,
+      averageNational: 0.3,
+      rankingNational: 999,
+      handicap: 18,
+      categoryNational: 'MASTER',
+      pointsAnnual: null,
+      averageAnnual: null,
+      rankingAnnual: null,
+      categoryAnnual: null,
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Emilio', 
+      lastName: 'Gallardo', 
+      club: clubLaCalera.id,
+      pointsNational: 0,
+      averageNational: 0.0,
+      rankingNational: 146,
+      handicap: 18,
+      categoryNational: 'BEGINNER',
+      pointsAnnual: 5,
+      averageAnnual: 0.0,
+      rankingAnnual: 101,
+      categoryAnnual: 'BEGINNER',
+      preferredTurn: null 
+    },
+  
+    // ========================================
+    // CLUB SANTIAGO (21 jugadores)
+    // ========================================
+    
+    { 
+      firstName: 'Jorge', 
+      lastName: 'Díaz', 
+      club: clubSantiago.id,
+      pointsNational: 465,
+      averageNational: 0.752,
+      rankingNational: 8,
+      handicap: 26,
+      categoryNational: 'MASTER',
+      pointsAnnual: 110,
+      averageAnnual: 0.729,
+      rankingAnnual: 4,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Rodrigo', 
+      lastName: 'Zúñiga', 
+      club: clubSantiago.id,
+      pointsNational: 454,
+      averageNational: 0.677,
+      rankingNational: 15,
+      handicap: 24,
+      categoryNational: 'MASTER',
+      pointsAnnual: 115,
+      averageAnnual: 0.625,
+      rankingAnnual: 3,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Alejandro', 
+      lastName: 'Carvajal', 
+      club: clubSantiago.id,
+      pointsNational: 605,
+      averageNational: 0.957,
+      rankingNational: 3,
+      handicap: 28,
+      categoryNational: 'MASTER',
+      pointsAnnual: 70,
+      averageAnnual: 0.814,
+      rankingAnnual: 9,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Camilo', 
+      lastName: 'Hadad', 
+      club: clubSantiago.id,
+      pointsNational: 289,
+      averageNational: 0.566,
+      rankingNational: 23,
+      handicap: 24,
+      categoryNational: 'MASTER',
+      pointsAnnual: 30,
+      averageAnnual: 0.488,
+      rankingAnnual: 27,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Silvio', 
+      lastName: 'Matus', 
+      club: clubSantiago.id,
+      pointsNational: 421,
+      averageNational: 0.682,
+      rankingNational: 49,
+      handicap: 24,
+      categoryNational: 'INTERMEDIATE',
+      pointsAnnual: 40,
+      averageAnnual: 0.676,
+      rankingAnnual: 48,
+      categoryAnnual: 'INTERMEDIATE',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Leopoldo', 
+      lastName: 'Rojas', 
+      club: clubSantiago.id,
+      pointsNational: 238,
+      averageNational: 0.545,
+      rankingNational: 58,
+      handicap: 22,
+      categoryNational: 'INTERMEDIATE',
+      pointsAnnual: 30,
+      averageAnnual: 0.511,
+      rankingAnnual: 52,
+      categoryAnnual: 'INTERMEDIATE',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Jorge', 
+      lastName: 'Trujillo', 
+      club: clubSantiago.id,
+      pointsNational: 291,
+      averageNational: 0.61,
+      rankingNational: 21,
+      handicap: 24,
+      categoryNational: 'MASTER',
+      pointsAnnual: 35,
+      averageAnnual: 0.446,
+      rankingAnnual: 24,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Rogelio', 
+      lastName: 'Orozco', 
+      club: clubSantiago.id,
+      pointsNational: 252,
+      averageNational: 0.513,
+      rankingNational: 32,
+      handicap: 22,
+      categoryNational: 'MASTER',
+      pointsAnnual: 30,
+      averageAnnual: 0.5,
+      rankingAnnual: 26,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Francisco', 
+      lastName: 'Marshall', 
+      club: clubSantiago.id,
+      pointsNational: 176,
+      averageNational: 0.476,
+      rankingNational: 37,
+      handicap: 22,
+      categoryNational: 'MASTER',
+      pointsAnnual: 20,
+      averageAnnual: 0.409,
+      rankingAnnual: 33,
+      categoryAnnual: 'MASTER',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Carlos', 
+      lastName: 'Sáenz', 
+      club: clubSantiago.id,
+      pointsNational: 185,
+      averageNational: 0.521,
+      rankingNational: 60,
+      handicap: 22,
+      categoryNational: 'INTERMEDIATE',
+      pointsAnnual: 10,
+      averageAnnual: 0.543,
+      rankingAnnual: 66,
+      categoryAnnual: 'INTERMEDIATE',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Fernando', 
+      lastName: 'Ramírez', 
+      club: clubSantiago.id,
+      pointsNational: 124,
+      averageNational: 0.38,
+      rankingNational: 77,
+      handicap: 20,
+      categoryNational: 'INTERMEDIATE',
+      pointsAnnual: null,
+      averageAnnual: null,
+      rankingAnnual: null,
+      categoryAnnual: null,
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Donato', 
+      lastName: 'Rodríguez', 
+      club: clubSantiago.id,
+      pointsNational: 41,
+      averageNational: 0.325,
+      rankingNational: 133,
+      handicap: 20,
+      categoryNational: 'BEGINNER',
+      pointsAnnual: null,
+      averageAnnual: null,
+      rankingAnnual: null,
+      categoryAnnual: null,
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Robinson', 
+      lastName: 'Roa', 
+      club: clubSantiago.id,
+      pointsNational: 166,
+      averageNational: 0.462,
+      rankingNational: 68,
+      handicap: 22,
+      categoryNational: 'INTERMEDIATE',
+      pointsAnnual: 15,
+      averageAnnual: 0.45,
+      rankingAnnual: 60,
+      categoryAnnual: 'INTERMEDIATE',
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Alejandro', 
+      lastName: 'Olguín', 
+      club: clubSantiago.id,
+      pointsNational: 33,
+      averageNational: 0.478,
+      rankingNational: 110,
+      handicap: 22,
+      categoryNational: 'BEGINNER',
+      pointsAnnual: null,
+      averageAnnual: null,
+      rankingAnnual: null,
+      categoryAnnual: null,
+      preferredTurn: null 
+    },
+    
+    { 
+      firstName: 'Arnaldo', 
+      lastName: 'Paredes', 
+      club: clubSantiago.id,
+      pointsNational: 0,
+      averageNational: 0.3,
+      rankingNational: 999,
+      handicap: 18,
+      categoryNational: 'MASTER',
+      pointsAnnual: null,
+      averageAnnual: null,
+      rankingAnnual: null,
+      categoryAnnual: null,
+      preferredTurn: null 
+    },
+    
+    // Resto de jugadores de Santiago...
+    { firstName: 'Carlos', lastName: 'Enrique Olaya', club: clubSantiago.id, pointsNational: 0, averageNational: 0.3, rankingNational: 999, handicap: 18, categoryNational: 'MASTER', pointsAnnual: null, averageAnnual: null, rankingAnnual: null, categoryAnnual: null, turnPreference: null },
+    { firstName: 'Carlos', lastName: 'Illanes', club: clubSantiago.id, pointsNational: 0, averageNational: 0.3, rankingNational: 999, handicap: 18, categoryNational: 'MASTER', pointsAnnual: null, averageAnnual: null, rankingAnnual: null, categoryAnnual: null, turnPreference: null },
+    { firstName: 'Cristian', lastName: 'Pailacura', club: clubSantiago.id, pointsNational: 0, averageNational: 0.3, rankingNational: 999, handicap: 18, categoryNational: 'MASTER', pointsAnnual: null, averageAnnual: null, rankingAnnual: null, categoryAnnual: null, turnPreference: null },
+    { firstName: 'Marcelo', lastName: 'Zambra', club: clubSantiago.id, pointsNational: 619, averageNational: 0.814, rankingNational: 4, handicap: 26, categoryNational: 'MASTER', pointsAnnual: 70, averageAnnual: 0.837, rankingAnnual: 8, categoryAnnual: 'MASTER', turnPreference: null },
+    { firstName: 'Luis', lastName: 'Rubino', club: clubSantiago.id, pointsNational: 347, averageNational: 0.704, rankingNational: 13, handicap: 26, categoryNational: 'MASTER', pointsAnnual: 40, averageAnnual: 0.627, rankingAnnual: 20, categoryAnnual: 'MASTER', turnPreference: null },
+    { firstName: 'Carlos', lastName: 'Johnson', club: clubSantiago.id, pointsNational: 208, averageNational: 0.505, rankingNational: 62, handicap: 22, categoryNational: 'INTERMEDIATE', pointsAnnual: 35, averageAnnual: 0.504, rankingAnnual: 49, categoryAnnual: 'INTERMEDIATE', turnPreference: null }
+  ];
+
+  const createdPlayers = [];
+  for (const p of players) {
+    const player = await prisma.playerProfile.create({
+      data: {
+        slug: `${p.firstName.toLowerCase()}-${p.lastName.toLowerCase().replace(/\s+/g, '-')}`,
+        publicSlug: `${p.firstName.toLowerCase()}-${p.lastName.toLowerCase().replace(/\s+/g, '-')}-${Math.random().toString(36).substring(7)}`,
+        firstName: p.firstName,
+        lastName: p.lastName,
+        tenantId: p.club,
+        averageBase: p.averageNational, // Usar el nacional como base
+        rankings: {
+          create: [
+            // Ranking Nacional (con handicap)
+            {
+              discipline: Discipline.THREE_BAND,
+              category: (p.categoryNational || 'MASTER') as Category,
+              points: p.pointsNational || 0,
+              average: p.averageNational || 0,
+              rankPosition: p.rankingNational || 999,
+              handicapTarget: p.handicap || 15
+            },
+            // Ranking Anual (sin handicap)
+            ...(p.pointsAnnual !== null ? [{
+              discipline: Discipline.THREE_BAND_ANNUAL,
+              category: (p.categoryAnnual || 'MASTER') as Category,
+              points: p.pointsAnnual,
+              average: p.averageAnnual || 0,
+              rankPosition: p.rankingAnnual || 999,
+              handicapTarget: null
+            }] : [])
+          ]
+        }
+      }
+    });
+    createdPlayers.push(player);
+  }
+
+  console.log(`✅ ${createdPlayers.length} jugadores creados`);
+
+  // ============================================
+  // 4. CREAR TORNEO NACIONAL CLUB SANTIAGO
+  // ============================================
+  console.log('🏆 Creando torneo...');
+
+  const tournament = await prisma.tournament.create({
+    data: {
+      name: 'Torneo Nacional Club Santiago Mayo 2026',
+      description: 'Torneo Nacional sin Handicap - 54 jugadores en 18 grupos de 3',
+      startDate: new Date('2026-05-02T09:00:00'),
+      endDate: new Date('2026-05-02T23:00:00'),
+      discipline: 'THREE_BAND',
+      category: 'MASTER',
+      status: 'DRAFT',
+      scope: 'NATIONAL',
+      venue: 'Club de Billar Santiago',
+      location: 'Santiago, Chile',
+      venueClubId: clubSantiago.id,
+      tenantId: clubSantiago.id,
+      maxTables: 6,
+      playersPerTable: 2,
+      hasTimeLimit: false,
+      config: {
+        playerCount: 54,
+        groupCount: 18,
+        playersPerGroup: 3,
+        advancingPerGroup: 2,
+        directToPlayoffs: 16,
+        adjustmentPhase: true,
+        targetCaroms: 25,
+        inningLimit: 35,
+        finalCaroms: 30,
+        finalInningLimit: null, // Sin límite en final
+        tables: 6,
+        turns: 3,
+        turnDuration: 3.5,
+        modality: 'NO_HANDICAP'
+      }
+    }
+  });
+
+  // ============================================
+  // 5. INSCRIBIR JUGADORES AL TORNEO
+  // ============================================
+  console.log('📝 Inscribiendo jugadores al torneo...');
+
+  // Obtener jugadores con rankings para ordenar
+  const playersWithRankings = await prisma.playerProfile.findMany({
+    where: {
+      id: { in: createdPlayers.map(p => p.id) }
+    },
+    include: {
+      rankings: {
+        where: { discipline: 'THREE_BAND' }
+      }
+    }
+  });
+
+  // Ordenar jugadores por puntos para siembra
+  const sortedPlayers = playersWithRankings.sort((a, b) => {
+    const aRanking = a.rankings?.[0];
+    const bRanking = b.rankings?.[0];
+    if (!aRanking) return 1;
+    if (!bRanking) return -1;
+    return (bRanking.points || 0) - (aRanking.points || 0);
+  });
+
+  for (const player of sortedPlayers) {
+    const ranking = await prisma.ranking.findFirst({
+      where: {
+        playerId: player.id,
+        discipline: 'THREE_BAND'
+      }
     });
 
-    const clubsData = [
-        { name: 'Pro Pool', slug: 'pro-pool', color1: '#1e293b', color2: '#f59e0b' },
-        { name: 'Club de Billar Santiago', slug: 'santiago', color1: '#1e293b', color2: '#3b82f6' },
-        { name: 'Club de Billar Ovalle', slug: 'ovalle', color1: '#1e293b', color2: '#ef4444' },
-        { name: 'Club Patagonia', slug: 'patagonia', color1: '#0f172a', color2: '#06b6d4' },
-        { name: 'Club La Calera', slug: 'la-calera', color1: '#171717', color2: '#8b5cf6' },
-        { name: 'Club San Miguel', slug: 'san-miguel', color1: '#1c1917', color2: '#f97316' },
-    ];
+    const playerData = players.find(p => 
+      p.firstName === player.firstName && p.lastName === player.lastName
+    );
 
-    const createdClubs: any = {};
-    for (const data of clubsData) {
-        createdClubs[data.slug] = await prisma.club.upsert({
-            where: { slug: data.slug },
-            update: {},
-            create: {
-                name: data.name,
-                slug: data.slug,
-                brandColor: data.color1,
-                accentColor: data.color2,
-                isValidated: true,
-            }
-        });
-    }
-
-    // ----------------------------------------------------
-    // 2. USUARIOS Y JUGADORES ÉLITE (Top Ranking Buchacas)
-    // ----------------------------------------------------
-    const playersData = [
-        { email: 'fgallegos@propool.cl', name: 'Felipe Gallegos', rut: '15.111.222-3', clubSlug: 'pro-pool', slug: 'felipe-gallegos' },
-        { email: 'acarvajal@santiago.cl', name: 'Alejandro Carvajal', rut: '16.222.333-4', clubSlug: 'santiago', slug: 'alejandro-carvajal' },
-        { email: 'elobo@ovalle.cl', name: 'Enrique Lobo', rut: '14.333.444-5', clubSlug: 'ovalle', slug: 'enrique-lobo' },
-        { email: 'jmartinez@patagonia.cl', name: 'Javier Martínez', rut: '17.444.555-6', clubSlug: 'patagonia', slug: 'javier-martinez' },
-        { email: 'psuarez@sanmiguel.cl', name: 'Pablo Suárez', rut: '18.555.666-7', clubSlug: 'san-miguel', slug: 'pablo-suarez' },
-    ];
-
-    for (const p of playersData) {
-        const user = await prisma.user.upsert({
-            where: { email: p.email },
-            update: {},
-            create: {
-                email: p.email,
-                name: p.name,
-                role: 'PLAYER',
-                passwordHash: 'password123', // Hardcoded auth for testing
-            }
-        });
-
-        await prisma.playerProfile.upsert({
-            where: { userId: user.id },
-            update: { tenantId: createdClubs[p.clubSlug].id }, // Reasignación en caso de recrear
-            create: {
-                userId: user.id,
-                rut: p.rut,
-                slug: p.slug,
-                federationId: `FED-${Math.floor(1000 + Math.random() * 9000)}`,
-                tenantId: createdClubs[p.clubSlug].id,
-                gender: 'M',
-            }
-        });
-    }
-
-    // ─── USUARIOS DE PRUEBA PARA QA DE ROLES ─────────────────────
-
-    // SuperAdmin / Federación Nacional
-    const adminUser = await prisma.user.upsert({
-        where: { email: 'admin@fechillar.cl' },
-        update: { passwordHash: 'admin123', role: 'SUPERADMIN' },
-        create: {
-            email: 'admin@fechillar.cl',
-            name: 'Administrador SGF',
-            role: 'SUPERADMIN',
-            passwordHash: 'admin123'
-        },
+    await prisma.tournamentRegistration.create({
+      data: {
+        tournamentId: tournament.id,
+        playerId: player.id,
+        status: 'APPROVED',
+        paymentStatus: 'PAID',
+        paid: true,
+        registeredPoints: ranking?.points || 0,
+        registeredAverage: ranking?.average || 0,
+        registeredRank: ranking?.rankPosition || 999,
+        registeredCategory: 'MASTER',
+        isWaitingList: false,
+        turnPreference: playerData?.turnPreference || null
+      }
     });
+  }
 
-    // Delegado de Club (Club Santiago)
-    await prisma.user.upsert({
-        where: { email: 'delegado@clubsantiago.cl' },
-        update: { passwordHash: 'club123' },
-        create: {
-            email: 'delegado@clubsantiago.cl',
-            name: 'Delegado Club Santiago',
-            role: 'CLUB_DELEGATE',
-            passwordHash: 'club123'
-        },
-    });
+  console.log('✅ 54 jugadores inscritos');
 
-    // Jugador de prueba (sin perfil de jugador creado — flujo básico)
-    await prisma.user.upsert({
-        where: { email: 'jugador@test.cl' },
-        update: { passwordHash: 'player123' },
-        create: {
-            email: 'jugador@test.cl',
-            name: 'Jugador Test',
-            role: 'PLAYER',
-            passwordHash: 'player123'
-        },
-    });
-
-    // ----------------------------------------------------
-    // 3. TORNEOS NACIONALES (FEDERATION_MANAGED / NATIONAL)
-    // ----------------------------------------------------
-    const nationalDate = new Date();
-    const nationals = [
-        { name: "Open La Calera 2026", desc: "Clasificatorio Norte", club: 'la-calera', m: 1 },
-        { name: "Open San Miguel 2026", desc: "Torneo Metropolitano", club: 'san-miguel', m: 3 },
-        { name: "Open ProPool Masters", desc: "Cierre de Temporada", club: 'pro-pool', m: 5 },
-    ];
-
-    for (const t of nationals) {
-        const startDate = new Date(nationalDate.getFullYear(), nationalDate.getMonth() + t.m, 15);
-        await prisma.tournament.create({
-            data: {
-                name: t.name,
-                description: t.desc,
-                discipline: "POOL_CHILENO",
-                modality: "THREE_BAND",
-                category: "HONOR",
-                status: "OPEN",
-                scope: "NATIONAL",
-                venue: "Club La Calera - Sede Central",
-                tenantId: createdClubs[t.club].id, // El club que es sede del open
-                startDate: startDate,
-                endDate: new Date(startDate.getTime() + (3 * 24 * 60 * 60 * 1000)), // 3 days
-            }
-        });
-    }
-
-    // ----------------------------------------------------
-    // 4. TORNEOS INTERNACIONALES (EXTERNAL_REFERENCE)
-    // ----------------------------------------------------
-    const externals = [
-        { name: "Vendimia Mendoza (Argentina)", desc: "Torneo Sudamericano", m: 2 },
-        { name: "Panamericano Lima (Perú)", desc: "Clasificatorio al Mundial", m: 6 },
-        { name: "Copa Mundo Bogotá (Colombia)", desc: "Circuito UMB", m: 8 },
-    ];
-
-    for (const ext of externals) {
-        const startDate = new Date(nationalDate.getFullYear(), nationalDate.getMonth() + ext.m, 10);
-        await prisma.tournament.create({
-            data: {
-                name: ext.name,
-                description: ext.desc,
-                discipline: "THREE_BAND",
-                modality: "THREE_BAND",
-                category: "MASTER",
-                status: "OPEN",
-                scope: "EXTERNAL_REFERENCE",
-                startDate: startDate,
-                endDate: new Date(startDate.getTime() + (5 * 24 * 60 * 60 * 1000)), // 5 days
-            }
-        });
-    }
-
-    // ----------------------------------------------------
-    // 5. RANKING Y PULL DE INSCRIPCIÓN (PRUEBA UAT)
-    // ----------------------------------------------------
-    const openLaCalera = await prisma.tournament.findFirst({
-        where: { name: "Open La Calera 2026" }
-    });
-
-    if (openLaCalera) {
-        // Encontrar a los 3 mejores
-        const felipe = await prisma.user.findFirst({ where: { email: 'fgallegos@propool.cl' }, include: { playerProfile: true }});
-        const alejandro = await prisma.user.findFirst({ where: { email: 'acarvajal@santiago.cl' }, include: { playerProfile: true }});
-        const enrique = await prisma.user.findFirst({ where: { email: 'elobo@ovalle.cl' }, include: { playerProfile: true }});
-
-        const top3 = [
-            { player: felipe?.playerProfile, points: 1500 },
-            { player: alejandro?.playerProfile, points: 1350 },
-            { player: enrique?.playerProfile, points: 1100 }
-        ];
-
-        for (const t of top3) {
-            if (t.player) {
-                // Crear ranking
-                await prisma.ranking.upsert({
-                    where: {
-                        playerId_discipline_category: {
-                            playerId: t.player.id,
-                            discipline: openLaCalera.discipline,
-                            category: openLaCalera.category
-                        }
-                    },
-                    update: {},
-                    create: {
-                        playerId: t.player.id,
-                        discipline: openLaCalera.discipline,
-                        category: openLaCalera.category,
-                        points: t.points,
-                        rankPosition: top3.indexOf(t) + 1
-                    }
-                });
-
-                const isFelipe = t.player.userId === felipe?.id;
-                
-                // Inscribir al torneo con puntos congelados
-                await prisma.tournamentRegistration.upsert({
-                    where: {
-                        tournamentId_playerId: {
-                            tournamentId: openLaCalera.id,
-                            playerId: t.player.id
-                        }
-                    },
-                    update: {},
-                    create: {
-                        tournamentId: openLaCalera.id,
-                        playerId: t.player.id,
-                        registeredPoints: t.points,
-                        status: isFelipe ? "APPROVED" : "PENDING", // PENDING para los de UAT real, pero para el script... 
-                        paid: isFelipe,
-                        paymentStatus: isFelipe ? "PAID" : "PENDING",
-                        amountPaid: isFelipe ? 15000 : null,
-                        paymentRef: isFelipe ? "REF-INIT-001" : null,
-                        paidAt: isFelipe ? new Date() : null
-                    }
-                });
-            }
-        }
-
-        // ====================================================
-        // 6. GENERACIÓN DEL MATCHMAKING (Ronda 1)
-        // ====================================================
-        // Como el script pide generarlo automático sin usar la UI:
-        const inscriptions = await prisma.tournamentRegistration.findMany({
-            where: { tournamentId: openLaCalera.id }, // Asumimos que la Federación aprueba a los 3
-            orderBy: { registeredPoints: 'desc' }
-        });
-
-        // 3 Jugadores -> Bracket de 4. 2 Partidos.
-        const matchesToInsert = [];
-        const bracketSize = 4;
-        for (let i = 0; i < bracketSize / 2; i++) {
-            const homeIndex = i;
-            const awayIndex = bracketSize - 1 - i;
-            const home = inscriptions[homeIndex];
-            const away = inscriptions[awayIndex];
-
-            matchesToInsert.push({
-                tournamentId: openLaCalera.id,
-                round: 1,
-                matchOrder: i + 1,
-                tableNumber: i === 0 ? "1 (TV)" : "2",
-                homePlayerId: home ? home.playerId : "ERROR",
-                awayPlayerId: away ? away.playerId : null,
-                isWO: !away
-            });
-        }
-        
-        await prisma.match.deleteMany({ where: { tournamentId: openLaCalera.id }});
-        await prisma.match.createMany({ data: matchesToInsert.filter(m => m.homePlayerId !== "ERROR") });
-
-        // ====================================================
-        // 7. SIMULACIÓN DE PROPAGACIÓN (RESULTADOS RONDA 1)
-        // ====================================================
-        const r1Matches = await prisma.match.findMany({ where: { tournamentId: openLaCalera.id, round: 1 }, orderBy: { matchOrder: 'asc' }});
-        
-        // M1: Felipe Gallegos vs BYE (WO)
-        if (r1Matches[0]) {
-            const m1 = r1Matches[0];
-            await prisma.match.update({ where: { id: m1.id }, data: { winnerId: m1.homePlayerId }});
-            // Propagar a Ronda 2
-            await prisma.match.create({
-                data: {
-                    tournamentId: openLaCalera.id,
-                    round: 2,
-                    matchOrder: 1,
-                    tableNumber: "1 (TV)",
-                    homePlayerId: m1.homePlayerId,
-                    awayPlayerId: null // Esperando a Carvajal
-                }
-            });
-        }
-
-        // M2: Carvajal vs Lobo
-        if (r1Matches[1]) {
-            const m2 = r1Matches[1];
-            // Simulamos 15-8 a favor de Carvajal (HomePlayer)
-            await prisma.match.update({
-                where: { id: m2.id },
-                data: {
-                    homeScore: 15,
-                    awayScore: 8,
-                    winnerId: m2.homePlayerId
-                }
-            });
-            // Propagar Carvajal a Ronda 2 hacia el hueco away
-             const nextMatch = await prisma.match.findFirst({
-                 where: { tournamentId: openLaCalera.id, round: 2, matchOrder: 1 }
-             });
-             if (nextMatch) {
-                 await prisma.match.update({
-                     where: { id: nextMatch.id },
-                     data: { awayPlayerId: m2.homePlayerId }
-                 });
-             }
-        }
-        
-        // ====================================================
-        // 8. SIMULACIÓN DE LA GRAN FINAL Y CLAUSURA (RANKINGS)
-        // ====================================================
-        const finalMatch = await prisma.match.findFirst({
-            where: { tournamentId: openLaCalera.id, round: 2, matchOrder: 1 }
-        });
-
-        if (finalMatch && finalMatch.awayPlayerId) {
-            // Gallegos (Home) vs Carvajal (Away)
-            // Gana Gallegos espectacularmente 15-13
-            await prisma.match.update({
-                where: { id: finalMatch.id },
-                data: {
-                    homeScore: 15,
-                    awayScore: 13,
-                    winnerId: finalMatch.homePlayerId
-                }
-            });
-
-            // Motor de Rankings Absolutos (Clausura)
-            await prisma.tournament.update({
-                where: { id: openLaCalera.id },
-                data: { status: "FINISHED" }
-            });
-
-            // Dar Puntos
-            const championId = finalMatch.homePlayerId as string; 
-            const runnerUpId = finalMatch.awayPlayerId as string; 
-
-            const discVal: any = "THREE_BAND";
-            const catVal: any = "MASTER";
-
-            // +60 Gallegos
-            const rankingG = await prisma.ranking.findFirst({ where: { playerId: championId, discipline: discVal, category: catVal }});
-            if (rankingG) {
-                await prisma.ranking.update({ where: { id: rankingG.id }, data: { points: rankingG.points + 60 }});
-            }
-
-            // +40 Carvajal
-            const rankingC = await prisma.ranking.findFirst({ where: { playerId: runnerUpId, discipline: discVal, category: catVal }});
-            if (rankingC) {
-                await prisma.ranking.update({ where: { id: rankingC.id }, data: { points: rankingC.points + 40 }});
-            }
-
-            // Audit
-            await prisma.auditLog.create({
-                data: {
-                    action: "TOURNAMENT_CLOSURE",
-                    targetId: openLaCalera.id,
-                    userId: adminUser.id, // SGF Admin
-                    details: "Torneo Open La Calera clausurado. Campeón asignado: +60 puntos."
-                }
-            });
-        }
-    }
-
-    console.log('✅ Base de datos de SGF poblada con Jugadores Élite, Ecosistema de Cuadros y Semillas Propagadas.');
+  // ============================================
+  // RESUMEN FINAL
+  // ============================================
+  console.log('\n🎉 SEED COMPLETADO EXITOSAMENTE\n');
+  console.log('📊 Resumen:');
+  console.log(`   • 4 Clubes creados`);
+  console.log(`   • 54 Jugadores creados`);
+  console.log(`   • 1 Torneo configurado`);
+  console.log(`   • 54 Inscripciones aprobadas`);
+  console.log('\n🚀 Próximos pasos:');
+  console.log('   1. Ejecutar: npm run dev');
+  console.log('   2. Ir a: http://localhost:3000/tournaments');
+  console.log('   3. Abrir el torneo y usar "Generar Grupos"');
 }
 
-
 main()
-    .catch((e) => {
-        console.error(e)
-        process.exit(1)
-    })
-    .finally(async () => {
-        await prisma.$disconnect()
-    });
+  .catch((e) => {
+    console.error('❌ Error en seed:', e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

@@ -182,14 +182,19 @@ export async function deletePlayer(playerId: string) {
             data: { 
                 rut: `del-${ts}`,
                 email: `del-${ts}@fechillar.cl`,
-                slug: `del-${ts}-${Math.random().toString(36).substring(2,6)}`
+                slug: `del-${ts}-${Math.random().toString(36).substring(2,6)}`,
+                firstName: "ELIMINADO",
+                lastName: `(Ref ${ts})`
             }
         });
         
         if (player.userId) {
             await prisma.user.update({
                 where: { id: player.userId },
-                data: { email: `del-${ts}@fechillar.cl` }
+                data: { 
+                    email: `del-${ts}@fechillar.cl`,
+                    name: "USUARIO ELIMINADO"
+                }
             });
         }
     } catch (e) {
@@ -197,36 +202,66 @@ export async function deletePlayer(playerId: string) {
     }
 
     try {
+        const adminId = (session.user as any).id;
+        const adminEmail = (session.user as any).email;
+        const adminRole = (session.user as any).role;
+
+        // Sincronización de sesión administrativa (Self-Healing)
+        // Asegura que el usuario que borra existe en la DB local para la AuditLog
+        const dbAdmin = await prisma.user.upsert({
+            where: { id: adminId },
+            update: { email: adminEmail, role: adminRole },
+            create: {
+                id: adminId,
+                email: adminEmail,
+                name: (session.user as any).name || "Admin SGF",
+                role: adminRole,
+                passwordHash: "external-auth"
+            },
+            select: { id: true }
+        });
+
         await prisma.$transaction(async (tx) => {
-            // Auditoría antes de borrar
+            // 1. Auditoría antes de borrar (usando ID verificado en DB)
             await tx.auditLog.create({
                 data: {
                     action: "PLAYER_DELETE",
-                    userId: (session.user as any).id,
+                    userId: dbAdmin.id,
                     targetId: playerId,
                     details: `Eliminación total del perfil de ${player.user?.name || player.firstName + ' ' + player.lastName}`
                 }
             });
 
-            // Limpiar dependencias directas del PlayerProfile
+            // 2. Limpiar dependencias directas del PlayerProfile (cascada manual)
             await tx.match.updateMany({ where: { homePlayerId: playerId }, data: { homePlayerId: null } });
             await tx.match.updateMany({ where: { awayPlayerId: playerId }, data: { awayPlayerId: null } });
             await tx.match.updateMany({ where: { winnerId: playerId }, data: { winnerId: null } });
             await tx.transferRequest.deleteMany({ where: { playerId: playerId } });
+            await tx.financeRecord.updateMany({ where: { playerId: playerId }, data: { playerId: null } });
+            await tx.ranking.deleteMany({ where: { playerId: playerId } });
+            await tx.rankingSnapshot.deleteMany({ where: { playerId: playerId } });
+            await tx.tournamentRegistration.deleteMany({ where: { playerId: playerId } });
 
-            // Borrar explícitamente el perfil primero para evitar problemas si falta el Cascade
+            // 3. Borrar el perfil principal
             await tx.playerProfile.delete({
                 where: { id: playerId }
             });
 
+            // 4. Limpiar y borrar el Usuario asociado
             if (player.userId) {
-                // Limpiar dependencias directas del User
+                // Desvincular de roles y validaciones
                 await tx.clubMember.updateMany({ where: { userId: player.userId }, data: { userId: null } });
                 await tx.tournament.updateMany({ where: { createdById: player.userId }, data: { createdById: null } });
                 await tx.tournamentRegistration.updateMany({ where: { validatorId: player.userId }, data: { validatorId: null } });
                 await tx.match.updateMany({ where: { refereeId: player.userId }, data: { refereeId: null } });
-                await tx.tournamentEnrollment.updateMany({ where: { validatorId: player.userId }, data: { validatorId: null } });
+                await tx.tournamentEnrollment.updateMany({ where: { validatedById: player.userId }, data: { validatedById: null } });
                 await tx.membership.updateMany({ where: { validatedById: player.userId }, data: { validatedById: null } });
+                
+                // Borrar registros de membresía y solicitudes del usuario
+                await tx.membership.deleteMany({ where: { userId: player.userId } });
+                await tx.waitingList.deleteMany({ where: { userId: player.userId } });
+                await tx.tournamentEnrollment.deleteMany({ where: { userId: player.userId } });
+                await tx.tournamentAssignment.deleteMany({ where: { userId: player.userId } });
 
                 await tx.user.delete({
                     where: { id: player.userId }
@@ -236,9 +271,9 @@ export async function deletePlayer(playerId: string) {
 
         revalidatePath("/federacion/padron");
         return { success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error deleting player:", error);
-        throw new Error("Error al procesar la baja del jugador.");
+        throw new Error(`Error al procesar la baja: ${error.message || "Error de integridad"}`);
     }
 }
 

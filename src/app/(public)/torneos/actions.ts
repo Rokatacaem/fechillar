@@ -38,18 +38,24 @@ export async function getPublicTournamentData(tournamentId: string) {
             orderBy: [{ round: 'asc' }, { matchOrder: 'asc' }]
         });
 
-        // 3. Top Performers (Cálculo rápido para la vista de TV)
-        // Obtenemos todos los jugadores del torneo con sus estadísticas acumuladas
-        const allStandings = groupsWithStandings.flatMap(g => g.standings);
+        // 3. Ranking General (Todos los jugadores ordenados por criterios federados)
+        const allStandings = groupsWithStandings
+            .flatMap(g => g.standings)
+            .sort((a, b) => {
+                if (b.points !== a.points) return b.points - a.points;
+                if (b.average !== a.average) return b.average - a.average;
+                return b.highRun - a.highRun;
+            });
         
-        const topByAvg = [...allStandings].sort((a, b) => b.average - a.average).slice(0, 3);
-        const topByHighRun = [...allStandings].sort((a, b) => b.highRun - a.highRun).slice(0, 3);
+        const topByAvg = [...allStandings].sort((a, b) => b.average - a.average).slice(0, 5);
+        const topByHighRun = [...allStandings].sort((a, b) => b.highRun - a.highRun).slice(0, 5);
 
         return {
             success: true,
             tournament,
             groups: groupsWithStandings,
             matches,
+            allStandings, // Ranking 1-54
             topPerformers: {
                 byAverage: topByAvg,
                 byHighRun: topByHighRun

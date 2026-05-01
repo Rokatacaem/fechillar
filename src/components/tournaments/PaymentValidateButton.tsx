@@ -5,7 +5,7 @@ import { Check, Loader2 } from "lucide-react";
 import { confirmPayment } from "@/app/(sgf)/tournaments/inscripciones/payment-actions";
 import { useRouter } from "next/navigation";
 
-export function PaymentValidateButton({ registrationId }: { registrationId: string }) {
+export function PaymentValidateButton({ registrationId, amount = 30000 }: { registrationId: string, amount?: number }) {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
@@ -15,8 +15,7 @@ export function PaymentValidateButton({ registrationId }: { registrationId: stri
 
         setLoading(true);
         try {
-            // Simulamos monto fijo de 15000 CLP para esta etapa
-            const res = await confirmPayment(registrationId, 15000, ref);
+            const res = await confirmPayment(registrationId, amount, ref);
             if (res.success) {
                 router.refresh();
             } else {

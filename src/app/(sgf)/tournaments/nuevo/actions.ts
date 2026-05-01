@@ -11,6 +11,12 @@ export async function getAllClubs() {
     });
 }
 
+export async function getPrizeTemplates() {
+    return await prisma.prizeTemplate.findMany({
+        orderBy: { name: "asc" }
+    });
+}
+
 export async function createTournament(prevState: any, formData: FormData) {
     const session = await auth();
     
@@ -72,6 +78,39 @@ export async function createTournament(prevState: any, formData: FormData) {
     const venueClubId = formData.get("venueClubId") as string;
     const venueAddress = formData.get("venueAddress") as string;
 
+    // Campos de Documentos
+    const registrationFee = parseInt(formData.get("registrationFee") as string) || 30000;
+    const bankAccountName = formData.get("bankAccountName") as string;
+    const bankAccountRut = formData.get("bankAccountRut") as string;
+    const bankName = formData.get("bankName") as string;
+    const bankAccountType = formData.get("bankAccountType") as string;
+    const bankAccountNumber = formData.get("bankAccountNumber") as string;
+    const bankAccountEmail = formData.get("bankAccountEmail") as string;
+    
+    const distanceGroups = parseInt(formData.get("distanceGroups") as string) || 25;
+    const distancePlayoffs = parseInt(formData.get("distancePlayoffs") as string) || 25;
+    const distanceFinal = parseInt(formData.get("distanceFinal") as string) || 30;
+    const finalUnlimitedInnings = formData.get("finalUnlimitedInnings") === "on";
+    
+    const scheduleDay1Start = formData.get("scheduleDay1Start") as string;
+    const scheduleDay2Start = formData.get("scheduleDay2Start") as string;
+    
+    const registrationContact = formData.get("registrationContact") as string;
+    const registrationPhone = formData.get("registrationPhone") as string;
+    
+    const prizeDistributionRaw = formData.get("prizeDistribution") as string;
+    let prizeDistribution = null;
+    try {
+        prizeDistribution = prizeDistributionRaw ? JSON.parse(prizeDistributionRaw) : null;
+    } catch (e) {
+        console.error("Failed to parse prize distribution:", e);
+    }
+
+    const registrationDeadlineRaw = formData.get("registrationDeadline") as string;
+    const groupsPublishDateRaw = formData.get("groupsPublishDate") as string;
+    const registrationDeadline = registrationDeadlineRaw ? new Date(registrationDeadlineRaw) : null;
+    const groupsPublishDate = groupsPublishDateRaw ? new Date(groupsPublishDateRaw) : null;
+
     // Configuración dinámica base
     const configRaw = formData.get("config") as string;
     let baseConfig = {};
@@ -102,15 +141,38 @@ export async function createTournament(prevState: any, formData: FormData) {
     const hasTimeLimit = timeControlMode === "SHOT_CLOCK" || timeControlMode === "MATCH_TOTAL";
     const secondsPerShot = parseInt(formData.get("secondsPerShot") as string) || 40;
     const extensionsPerPlayer = parseInt(formData.get("extensionsPerPlayer") as string) || 2;
-    const bracketSize = parseInt(formData.get("bracketSize") as string) || 16;
+    
+    // Nueva Lógica de Estructura Técnica
+    const playoffBracketSize = parseInt(formData.get("playoffBracketSize") as string) || 16;
+    const groupFormat = formData.get("groupFormat") as string;
+    const playersPerGroup = groupFormat === "RR_3" ? 3 : 4;
+    const totalGroups = Math.floor(capacity / playersPerGroup);
+    const totalClasificados = totalGroups * qualifiedPerGroup;
+    
+    const diferencia = totalClasificados - playoffBracketSize;
+    let requiresAdjustment = false;
+    let adjustmentPhaseConfig = null;
+
+    if (diferencia > 0) {
+        requiresAdjustment = true;
+        const playoffPlayers = diferencia * 2;
+        const directos = totalClasificados - playoffPlayers;
+        adjustmentPhaseConfig = {
+            directos,
+            playoffPlayers,
+            partidos: diferencia,
+            ganadores: diferencia,
+            puestosPlayoff: `${directos + 1}-${totalClasificados}`
+        };
+    }
 
     const config = {
         ...baseConfig,
         maxPlayers: capacity,
         waitingListLimit,
-        groupFormat: formData.get("groupFormat"),
+        groupFormat,
         qualifiedPerGroup,
-        bracketSize,
+        bracketSize: playoffBracketSize,
         inningsPerPhase,
         timeControl: {
             mode: timeControlMode,
@@ -171,7 +233,33 @@ export async function createTournament(prevState: any, formData: FormData) {
                     secondsPerShot: Number(secondsPerShot) || 40,
                     extensionsPerPlayer: Number(extensionsPerPlayer) || 2,
                     config: config || {},
-                    officializationStatus: "NONE"
+                    officializationStatus: "NONE",
+
+                    // NUEVOS CAMPOS DE DOCUMENTOS
+                    registrationFee,
+                    prizeDistribution,
+                    bankAccountName,
+                    bankAccountRut,
+                    bankName,
+                    bankAccountType,
+                    bankAccountNumber,
+                    bankAccountEmail,
+                    groupFormat: formData.get("groupFormat") as string,
+                    maxCapacity: capacity, // Usamos capacity como maxCapacity por ahora
+                    distanceGroups,
+                    distancePlayoffs,
+                    distanceFinal,
+                    finalUnlimitedInnings,
+                    scheduleDay1Start,
+                    scheduleDay2Start,
+                    registrationContact,
+                    registrationPhone,
+                    registrationDeadline,
+                    groupsPublishDate,
+                    playoffBracketSize,
+                    requiresAdjustment,
+                    adjustmentPhaseConfig: adjustmentPhaseConfig || {},
+                    tournamentStructure: description // Mapeamos description a tournamentStructure
                 }
             });
 

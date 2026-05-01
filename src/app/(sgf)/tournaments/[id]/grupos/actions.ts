@@ -6,8 +6,27 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 
 // ─────────────────────────────────────────────────────────
-// GENERACIÓN DE GRUPOS (SQL directo para bypasear Prisma Client)
+// GENERACIÓN Y RESETEO DE GRUPOS
 // ─────────────────────────────────────────────────────────
+
+export async function resetGroups(tournamentId: string) {
+    const session = await auth();
+    const role = (session?.user as any)?.role;
+    if (!["SUPERADMIN", "FEDERATION_ADMIN"].includes(role)) {
+        return { success: false, error: "No autorizado" };
+    }
+
+    try {
+        await prisma.$executeRaw`UPDATE "TournamentRegistration" SET "groupId" = NULL WHERE "tournamentId" = ${tournamentId}`;
+        await prisma.tournamentGroup.deleteMany({ where: { tournamentId } });
+        
+        revalidatePath(`/tournaments/${tournamentId}/grupos`);
+        revalidatePath(`/tournaments/${tournamentId}/inscripciones`);
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
 
 export async function generateGroups(tournamentId: string) {
     const session = await auth();
@@ -23,12 +42,17 @@ export async function generateGroups(tournamentId: string) {
         });
         if (!tournament) return { success: false, error: "Torneo no encontrado" };
 
-        const config = tournament.config as any;
-        const groupSize: number = config?.groups?.size ?? 4;
-
-        // Leer inscritos con SQL directo (evita el tipo Prisma desactualizado)
-        const registrations = await prisma.$queryRaw<{ id: string; registered_points: number }[]>`
-            SELECT id, "registeredPoints" as registered_points
+        // 1. Leer todos los inscritos con playerId en 1 query
+        const registrations = await prisma.$queryRaw<{
+            id: string;
+            registered_points: number;
+            preferred_turn: string | null;
+            player_id: string;
+        }[]>`
+            SELECT id,
+                   "registeredPoints" AS registered_points,
+                   "preferredTurn"    AS preferred_turn,
+                   "playerId"         AS player_id
             FROM "TournamentRegistration"
             WHERE "tournamentId" = ${tournamentId}
               AND status IN ('APPROVED', 'PENDING')
@@ -40,53 +64,132 @@ export async function generateGroups(tournamentId: string) {
             return { success: false, error: `Se necesitan al menos 2 jugadores. Encontrados: ${total}` };
         }
 
-        const numGroups = Math.ceil(total / groupSize);
-        console.log(`[generateGroups] ${total} jugadores → ${numGroups} grupos de ~${groupSize}`);
+        // 2. Segmentar por turno
+        const t1 = registrations.filter(r => r.preferred_turn === 'T1');
+        const t2 = registrations.filter(r => r.preferred_turn === 'T2');
+        const t3 = registrations.filter(r => r.preferred_turn === 'T3');
+        const flex = registrations.filter(r => !['T1', 'T2', 'T3'].includes(r.preferred_turn || ''));
 
-        // Limpiar groupId existentes (SQL directo)
-        await prisma.$executeRaw`
-            UPDATE "TournamentRegistration"
-            SET "groupId" = NULL
-            WHERE "tournamentId" = ${tournamentId}
-        `;
+        console.log(`[generateGroups] T1:${t1.length}, T2:${t2.length}, T3:${t3.length}, Flex:${flex.length}`);
 
-        // Eliminar grupos anteriores
-        await prisma.tournamentGroup.deleteMany({ where: { tournamentId } });
-
-        // Crear grupos con Prisma
-        const createdGroups: { id: string }[] = [];
-        for (let i = 0; i < numGroups; i++) {
-            const g = await prisma.tournamentGroup.create({
-                data: {
-                    tournamentId,
-                    name: `${i + 1}`,
-                    order: i + 1, // Asignar orden numérico
-                    tieBreakType: "PGP"
-                },
-                select: { id: true }
-            });
-            createdGroups.push(g);
+        // 3. Rellenar turnos con comodines hasta 18
+        const blocks = [
+            { name: 'T1', label: '10:00 hrs', players: t1 },
+            { name: 'T2', label: '13:00 hrs', players: t2 },
+            { name: 'T3', label: '18:00 hrs', players: t3 },
+        ];
+        let flexIdx = 0;
+        for (const b of blocks) {
+            while (b.players.length < 18 && flexIdx < flex.length) {
+                b.players.push(flex[flexIdx++]);
+            }
         }
 
-        // Distribución serpentina + asignación SQL directa
-        for (let idx = 0; idx < registrations.length; idx++) {
-            const row = Math.floor(idx / numGroups);
-            const col = row % 2 === 0
-                ? idx % numGroups
-                : numGroups - 1 - (idx % numGroups);
-            const groupId = createdGroups[col].id;
-            const regId = registrations[idx].id;
+        // 4. Limpiar datos anteriores (3 queries)
+        await prisma.$executeRaw`
+            UPDATE "TournamentRegistration" SET "groupId" = NULL WHERE "tournamentId" = ${tournamentId}
+        `;
+        await prisma.match.deleteMany({ where: { tournamentId } });
+        await prisma.tournamentGroup.deleteMany({ where: { tournamentId } });
 
-            await prisma.$executeRaw`
+        // 5. Calcular distribución Snake Seeding en memoria
+        const GROUPS_PER_BLOCK = 6;
+        const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+        type GroupDef = { letter: string; label: string; players: typeof registrations };
+        const groupDefs: GroupDef[] = [];
+
+        for (const block of blocks) {
+            const sorted = [...block.players].sort((a, b) => b.registered_points - a.registered_points);
+            const slots: typeof registrations[] = Array.from({ length: GROUPS_PER_BLOCK }, () => []);
+
+            sorted.forEach((p, idx) => {
+                const row = Math.floor(idx / GROUPS_PER_BLOCK);
+                const col = row % 2 === 0
+                    ? idx % GROUPS_PER_BLOCK
+                    : GROUPS_PER_BLOCK - 1 - (idx % GROUPS_PER_BLOCK);
+                slots[col].push(p);
+            });
+
+            slots.forEach(players => {
+                groupDefs.push({
+                    letter: LETTERS[groupDefs.length] ?? String(groupDefs.length + 1),
+                    label: block.label,
+                    players,
+                });
+            });
+        }
+
+        // 6. Crear todos los grupos en paralelo (solo metadatos, sin dependencias)
+        const createdGroups = await Promise.all(
+            groupDefs.map((def, i) =>
+                prisma.tournamentGroup.create({
+                    data: {
+                        tournamentId,
+                        name: `GRUPO ${def.letter} (${def.label})`,
+                        order: i + 1,
+                        tieBreakType: 'PGP'
+                    },
+                    select: { id: true }
+                })
+            )
+        );
+
+        // 7. Asignar jugadores con 1 sola query SQL masiva (CASE/WHEN)
+        //    Evita los 54 UPDATEs individuales anteriores
+        const assignments = groupDefs.flatMap((def, gi) =>
+            def.players.map((p, pi) => ({ regId: p.id, groupId: createdGroups[gi].id, order: pi + 1 }))
+        );
+
+        if (assignments.length > 0) {
+            const caseGroup  = assignments.map(a => `WHEN '${a.regId}' THEN '${a.groupId}'`).join(' ');
+            const caseOrder  = assignments.map(a => `WHEN '${a.regId}' THEN ${a.order}`).join(' ');
+            const inClause   = assignments.map(a => `'${a.regId}'`).join(', ');
+
+            await prisma.$executeRawUnsafe(`
                 UPDATE "TournamentRegistration"
-                SET "groupId" = ${groupId},
-                    "groupOrder" = ${row + 1}
-                WHERE id = ${regId}
-            `;
+                SET "groupId"    = CASE id ${caseGroup} END,
+                    "groupOrder" = CASE id ${caseOrder} END
+                WHERE id IN (${inClause})
+            `);
+        }
+
+        // 8. Crear todos los partidos Round Robin con 1 solo INSERT masivo
+        const matchData: Prisma.MatchCreateManyInput[] = [];
+
+        groupDefs.forEach((def, gi) => {
+            const groupId = createdGroups[gi].id;
+            const [p1, p2, p3] = def.players;
+            if (!p1 || !p2) return;
+
+            if (p3) {
+                matchData.push({ tournamentId, groupId, round: 1, matchOrder: 1,
+                    homePlayerId: p1.player_id, awayPlayerId: p3.player_id,
+                    homeTarget: 25, awayTarget: 25, matchDistance: 25 });
+            }
+            matchData.push({ tournamentId, groupId, round: 1, matchOrder: 2,
+                homePlayerId: p1.player_id, awayPlayerId: p2.player_id,
+                homeTarget: 25, awayTarget: 25, matchDistance: 25 });
+            if (p3) {
+                matchData.push({ tournamentId, groupId, round: 1, matchOrder: 3,
+                    homePlayerId: p3.player_id, awayPlayerId: p2.player_id,
+                    homeTarget: 25, awayTarget: 25, matchDistance: 25 });
+            }
+        });
+
+        if (matchData.length > 0) {
+            await prisma.match.createMany({ data: matchData });
         }
 
         revalidatePath(`/tournaments/${tournamentId}/grupos`);
-        return { success: true, numGroups, total };
+        revalidatePath(`/tournaments/${tournamentId}/inscripciones`);
+
+        return {
+            success: true,
+            numGroups: groupDefs.length,
+            total,
+            matchesCreated: matchData.length
+        };
 
     } catch (err: any) {
         console.error("[generateGroups] Error:", err);
@@ -241,6 +344,8 @@ export async function getGroupsWithPlayers(tournamentId: string) {
             r."groupId"             AS group_id,
             r."groupOrder"          AS group_order,
             r."registeredPoints"    AS registered_points,
+            r."registeredAverage"   AS registered_avg,
+            r."preferredTurn"       AS pref_turn,
             p.id                    AS player_id,
             p."firstName"           AS first_name,
             p."lastName"            AS last_name,
@@ -250,19 +355,36 @@ export async function getGroupsWithPlayers(tournamentId: string) {
             c."name"                AS club_name,
             rk."average"            AS avg
         FROM "TournamentRegistration" r
+        JOIN "Tournament" t ON t.id = r."tournamentId"
         JOIN "PlayerProfile" p ON p.id = r."playerId"
         LEFT JOIN "User" u ON u.id = p."userId"
         LEFT JOIN "Club" c ON c.id = p."tenantId"
-        LEFT JOIN "Ranking" rk ON rk."playerId" = p.id
+        LEFT JOIN "Ranking" rk ON rk.id = (
+            SELECT id FROM "Ranking" 
+            WHERE "playerId" = p.id 
+            AND discipline = t.discipline 
+            LIMIT 1
+        )
         WHERE r."tournamentId" = ${tournamentId}
           AND r.status IN ('APPROVED', 'PENDING')
         ORDER BY r."groupId" ASC, r."groupOrder" ASC, r."registeredPoints" DESC, r."registeredAt" ASC
     `;
 
+    // Asegurar unicidad por reg_id (brute force fix para keys duplicadas)
+    const uniqueRegsMap = new Map();
+    for (const r of allRegs) {
+        if (!uniqueRegsMap.has(r.reg_id)) {
+            uniqueRegsMap.set(r.reg_id, r);
+        }
+    }
+    const uniqueRegs = Array.from(uniqueRegsMap.values());
+
     // Normalizar y agrupar
-    const normalize = (row: typeof allRegs[0]) => ({
+    const normalize = (row: typeof uniqueRegs[0]) => ({
         id: row.reg_id,
         registeredPoints: row.registered_points,
+        registeredAverage: row.registered_avg,
+        preferredTurn: row.pref_turn,
         player: {
             id: row.player_id,
             firstName: row.first_name,
@@ -278,12 +400,12 @@ export async function getGroupsWithPlayers(tournamentId: string) {
 
     const groupsWithRegs = groups.map(g => ({
         ...g,
-        registrations: allRegs
+        registrations: uniqueRegs
             .filter(r => r.group_id === g.id)
             .map(normalize)
     }));
 
-    const unassigned = allRegs
+    const unassigned = uniqueRegs
         .filter(r => r.group_id === null)
         .map(normalize);
 

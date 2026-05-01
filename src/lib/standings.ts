@@ -67,13 +67,16 @@ export async function getGroupStandings(groupId: string): Promise<GroupStanding[
         home.played++;
         away.played++;
 
-        home.carambolas += match.homeScore || 0;
-        away.carambolas += match.awayScore || 0;
-        home.innings += match.homeInnings || 0;
-        away.innings += match.awayInnings || 0;
-
-        home.highRun = Math.max(home.highRun, match.homeHighRun || 0);
-        away.highRun = Math.max(away.highRun, match.awayHighRun || 0);
+        // Protección de Promedio en WO: No sumar carambolas ni entradas
+        if (!match.isWO) {
+            home.carambolas += match.homeScore || 0;
+            away.carambolas += match.awayScore || 0;
+            home.innings += match.homeInnings || 0;
+            away.innings += match.awayInnings || 0;
+            
+            home.highRun = Math.max(home.highRun, match.homeHighRun || 0);
+            away.highRun = Math.max(away.highRun, match.awayHighRun || 0);
+        }
 
         if (match.winnerId === match.homePlayerId) {
             home.won++;
@@ -83,7 +86,7 @@ export async function getGroupStandings(groupId: string): Promise<GroupStanding[
             away.won++;
             away.points += 2;
             home.lost++;
-        } else {
+        } else if (match.winnerId === null && match.homeScore === match.awayScore) {
             home.drawn++;
             away.drawn++;
             home.points += 1;
@@ -97,9 +100,22 @@ export async function getGroupStandings(groupId: string): Promise<GroupStanding[
         average: s.innings > 0 ? parseFloat((s.carambolas / s.innings).toFixed(3)) : 0
     }));
 
-    // Ordenamiento Federado: Puntos -> AVG -> High Run
+    // Ordenamiento Federado: Puntos -> Duelo Directo (Primer Partido) -> AVG -> High Run
     return results.sort((a, b) => {
         if (b.points !== a.points) return b.points - a.points;
+        
+        // Desempate por Duelo Directo (Prioridad 1 en el Nacional)
+        // Buscamos el primer partido entre ellos en este grupo
+        const headToHead = group.matches.find(m => 
+            (m.homePlayerId === a.playerId && m.awayPlayerId === b.playerId) ||
+            (m.homePlayerId === b.playerId && m.awayPlayerId === a.playerId)
+        );
+
+        if (headToHead && headToHead.winnerId) {
+            if (headToHead.winnerId === a.playerId) return -1;
+            if (headToHead.winnerId === b.playerId) return 1;
+        }
+
         if (b.average !== a.average) return b.average - a.average;
         return b.highRun - a.highRun;
     });

@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   turbopack: {},
-  // Fuerza la transpilación de librerías con incompatibilidad en React 19
-  // react-chartjs-2 usa imports de useRef que no resuelven correctamente en ESM
+  // @react-pdf/renderer usa canvas y APIs de Node — no bundlear para el cliente
+  serverExternalPackages: ['@react-pdf/renderer'],
   transpilePackages: ["react-chartjs-2", "chart.js"],
   webpack: (config, { dev, isServer }) => {
     if (dev && !isServer) {

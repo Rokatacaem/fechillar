@@ -1,0 +1,362 @@
+[
+  {
+    "position": 1,
+    "player": "Luis Bahamondes",
+    "handicap": 28.0,
+    "carom": 140,
+    "innings": 145,
+    "average": 0.9655172413793104,
+    "weighted": 0.9655172413793104,
+    "points": 14
+  },
+  {
+    "position": 2,
+    "player": "Juan Carlos Toro",
+    "handicap": 24.0,
+    "carom": 115,
+    "innings": 164,
+    "average": 0.7012195121951219,
+    "weighted": 0.8204268292682926,
+    "points": 12
+  },
+  {
+    "position": 3,
+    "player": "Carlos Guerra",
+    "handicap": 26.0,
+    "carom": 111,
+    "innings": 162,
+    "average": 0.6851851851851852,
+    "weighted": 0.7400000000000001,
+    "points": 10
+  },
+  {
+    "position": 4,
+    "player": "Rodolfo Silva",
+    "handicap": 22.0,
+    "carom": 83,
+    "innings": 167,
+    "average": 0.49700598802395207,
+    "weighted": 0.6311976047904191,
+    "points": 10
+  },
+  {
+    "position": 5,
+    "player": "Marco Sobarzo",
+    "handicap": 28.0,
+    "carom": 107,
+    "innings": 108,
+    "average": 0.9907407407407407,
+    "weighted": 0.9907407407407407,
+    "points": 8
+  },
+  {
+    "position": 6,
+    "player": "Marcos Garay",
+    "handicap": 20.0,
+    "carom": 68,
+    "innings": 129,
+    "average": 0.5271317829457365,
+    "weighted": 0.737984496124031,
+    "points": 8
+  },
+  {
+    "position": 7,
+    "player": "Francisco Guajardo",
+    "handicap": 18.0,
+    "carom": 57,
+    "innings": 132,
+    "average": 0.4318181818181818,
+    "weighted": 0.6736363636363637,
+    "points": 8
+  },
+  {
+    "position": 8,
+    "player": "Mario Díaz",
+    "handicap": 22.0,
+    "carom": 86,
+    "innings": 166,
+    "average": 0.5180722891566265,
+    "weighted": 0.6579518072289157,
+    "points": 6
+  },
+  {
+    "position": 9,
+    "player": "Cristian Rubilar",
+    "handicap": 26.0,
+    "carom": 64,
+    "innings": 88,
+    "average": 0.7272727272727273,
+    "weighted": 0.7854545454545455,
+    "points": 6
+  },
+  {
+    "position": 10,
+    "player": "Jorge Castillo",
+    "handicap": 26.0,
+    "carom": 66,
+    "innings": 134,
+    "average": 0.4925373134328358,
+    "weighted": 0.5319402985074627,
+    "points": 6
+  },
+  {
+    "position": 11,
+    "player": "Murillo Julio",
+    "handicap": 18.0,
+    "carom": 57,
+    "innings": 130,
+    "average": 0.43846153846153846,
+    "weighted": 0.684,
+    "points": 4
+  },
+  {
+    "position": 12,
+    "player": "Carlos Olaya",
+    "handicap": 24.0,
+    "carom": 63,
+    "innings": 108,
+    "average": 0.5833333333333334,
+    "weighted": 0.6825,
+    "points": 4
+  },
+  {
+    "position": 13,
+    "player": "Luis Rubino",
+    "handicap": 26.0,
+    "carom": 84,
+    "innings": 135,
+    "average": 0.6222222222222222,
+    "weighted": 0.672,
+    "points": 4
+  },
+  {
+    "position": 14,
+    "player": "Sarmiento Peter",
+    "handicap": 24.0,
+    "carom": 66,
+    "innings": 126,
+    "average": 0.5238095238095238,
+    "weighted": 0.6128571428571429,
+    "points": 4
+  },
+  {
+    "position": 15,
+    "player": "Yeries Chahuan",
+    "handicap": 22.0,
+    "carom": 44,
+    "innings": 105,
+    "average": 0.41904761904761906,
+    "weighted": 0.5321904761904762,
+    "points": 4
+  },
+  {
+    "position": 16,
+    "player": "Aldo Rojas",
+    "handicap": 20.0,
+    "carom": 49,
+    "innings": 140,
+    "average": 0.35,
+    "weighted": 0.48999999999999994,
+    "points": 4
+  },
+  {
+    "position": 17,
+    "player": "Cristian Rioja",
+    "handicap": 20.0,
+    "carom": 32,
+    "innings": 105,
+    "average": 0.3047619047619048,
+    "weighted": 0.4266666666666667,
+    "points": 4
+  },
+  {
+    "position": 18,
+    "player": "Marshall Francisco",
+    "handicap": 22.0,
+    "carom": 52,
+    "innings": 89,
+    "average": 0.5842696629213483,
+    "weighted": 0.7420224719101124,
+    "points": 2
+  },
+  {
+    "position": 19,
+    "player": "Rigoberto Oyarzun",
+    "handicap": 22.0,
+    "carom": 36,
+    "innings": 69,
+    "average": 0.5217391304347826,
+    "weighted": 0.662608695652174,
+    "points": 2
+  },
+  {
+    "position": 20,
+    "player": "Ostos Juan Carlos",
+    "handicap": 24.0,
+    "carom": 37,
+    "innings": 68,
+    "average": 0.5441176470588235,
+    "weighted": 0.6366176470588234,
+    "points": 2
+  },
+  {
+    "position": 21,
+    "player": "Briceño Heliberto",
+    "handicap": 22.0,
+    "carom": 46,
+    "innings": 99,
+    "average": 0.46464646464646464,
+    "weighted": 0.5901010101010101,
+    "points": 2
+  },
+  {
+    "position": 22,
+    "player": "Pulgar Manuel",
+    "handicap": 22.0,
+    "carom": 45,
+    "innings": 99,
+    "average": 0.45454545454545453,
+    "weighted": 0.5772727272727273,
+    "points": 2
+  },
+  {
+    "position": 23,
+    "player": "Fernando Ramírez",
+    "handicap": 20.0,
+    "carom": 36,
+    "innings": 97,
+    "average": 0.3711340206185567,
+    "weighted": 0.5195876288659794,
+    "points": 2
+  },
+  {
+    "position": 24,
+    "player": "Jorge Trujillo",
+    "handicap": 24.0,
+    "carom": 43,
+    "innings": 99,
+    "average": 0.43434343434343436,
+    "weighted": 0.5081818181818182,
+    "points": 2
+  },
+  {
+    "position": 25,
+    "player": "Rojas Orlando",
+    "handicap": 20.0,
+    "carom": 34,
+    "innings": 95,
+    "average": 0.35789473684210527,
+    "weighted": 0.5010526315789473,
+    "points": 2
+  },
+  {
+    "position": 26,
+    "player": "Torres Hernan",
+    "handicap": 18.0,
+    "carom": 13,
+    "innings": 70,
+    "average": 0.18571428571428572,
+    "weighted": 0.28971428571428576,
+    "points": 2
+  },
+  {
+    "position": 27,
+    "player": "Salas Nelson",
+    "handicap": 20.0,
+    "carom": 28,
+    "innings": 70,
+    "average": 0.4,
+    "weighted": 0.5599999999999999,
+    "points": 0
+  },
+  {
+    "position": 28,
+    "player": "Flores Patricio",
+    "handicap": 22.0,
+    "carom": 26,
+    "innings": 60,
+    "average": 0.43333333333333335,
+    "weighted": 0.5503333333333333,
+    "points": 0
+  },
+  {
+    "position": 29,
+    "player": "Pablo Plaza",
+    "handicap": 20.0,
+    "carom": 27,
+    "innings": 70,
+    "average": 0.38571428571428573,
+    "weighted": 0.54,
+    "points": 0
+  },
+  {
+    "position": 30,
+    "player": "José Salinas",
+    "handicap": 20.0,
+    "carom": 24,
+    "innings": 64,
+    "average": 0.375,
+    "weighted": 0.5249999999999999,
+    "points": 0
+  },
+  {
+    "position": 31,
+    "player": "Tobar Cesar",
+    "handicap": 22.0,
+    "carom": 20,
+    "innings": 63,
+    "average": 0.31746031746031744,
+    "weighted": 0.4031746031746032,
+    "points": 0
+  },
+  {
+    "position": 32,
+    "player": "Luis Alfaro",
+    "handicap": 22.0,
+    "carom": 20,
+    "innings": 70,
+    "average": 0.2857142857142857,
+    "weighted": 0.3628571428571428,
+    "points": 0
+  },
+  {
+    "position": 33,
+    "player": "Mancilla Rodrigo",
+    "handicap": 20.0,
+    "carom": 17,
+    "innings": 70,
+    "average": 0.24285714285714285,
+    "weighted": 0.33999999999999997,
+    "points": 0
+  },
+  {
+    "position": 34,
+    "player": "MANUEL GOMEZ",
+    "handicap": 20.0,
+    "carom": 16,
+    "innings": 70,
+    "average": 0.22857142857142856,
+    "weighted": 0.31999999999999995,
+    "points": 0
+  },
+  {
+    "position": 35,
+    "player": "Ponce Ricardo",
+    "handicap": 24.0,
+    "carom": 17,
+    "innings": 70,
+    "average": 0.24285714285714285,
+    "weighted": 0.28414285714285714,
+    "points": 0
+  },
+  {
+    "position": 36,
+    "player": "Álvaro Serrano",
+    "handicap": 24.0,
+    "carom": 0,
+    "innings": 0,
+    "average": 0.0,
+    "weighted": 0.0,
+    "points": 0
+  }
+]

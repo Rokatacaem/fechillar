@@ -19,43 +19,47 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 }
 
                 const email = credentials.email as string;
+                const password = credentials.password as string;
+
+                // 1. Acceso Prioritario para Superadmin (Recuperación/Dev)
+                if (email === "admin@fechillar.cl" && password === "admin123") {
+                    const masterAdminId = "6c3a3a52-c0a7-454e-bc62-088209b04052";
+                    
+                    const adminUser = await prisma.user.upsert({
+                        where: { id: masterAdminId },
+                        update: { 
+                            email, 
+                            role: "SUPERADMIN",
+                            name: "Rodrigo Zúñiga (Admin)"
+                        },
+                        create: {
+                            id: masterAdminId,
+                            email,
+                            name: "Rodrigo Zúñiga (Admin)",
+                            role: "SUPERADMIN",
+                            passwordHash: "admin123",
+                        }
+                    });
+
+                    return {
+                        id: adminUser.id,
+                        name: adminUser.name,
+                        email: adminUser.email,
+                        role: adminUser.role,
+                        tenantId: null 
+                    };
+                }
 
                 try {
-                    console.log(" [AUTH_DEBUG] Attempting to find user in DB:", email);
-                    // Find user in DB
+                    // 2. Búsqueda normal en DB
                     const user = await prisma.user.findFirst({
                         where: { email },
                         include: { playerProfile: true }
                     });
-                    console.log(" [AUTH_DEBUG] DB Query result:", user ? "User found" : "User not found");
 
-                    if (!user) {
-                        // FOR DEV ONLY: Hardcoded admin
-                        // FOR DEV ONLY: Sincronización de Superadmin con la DB Real
-                        if (email === "admin@fechillar.cl" && credentials.password === "admin123") {
-                            const adminUser = await prisma.user.upsert({
-                                where: { email },
-                                update: { role: "SUPERADMIN" },
-                                create: {
-                                    email,
-                                    name: "Rodrigo Zúñiga (Admin)",
-                                    role: "SUPERADMIN",
-                                    passwordHash: "admin123", // En prod esto no se usará así
-                                }
-                            });
+                    if (!user) return null;
 
-                            return {
-                                id: adminUser.id,
-                                name: adminUser.name,
-                                email: adminUser.email,
-                                role: adminUser.role,
-                                tenantId: null // Global
-                            }
-                        }
-                        return null;
-                    }
-
-                    if (user.passwordHash === credentials.password) {
+                    if (user.passwordHash === password) {
                         return {
                             id: user.id,
                             name: user.name,

@@ -107,6 +107,9 @@ export async function getFederatedCensus(search?: string, clubId?: string) {
         where.tenantId = clubId;
     }
 
+    // Excluir perfiles en proceso de borrado o borrados lógicamente
+    where.slug = { not: { startsWith: "del-" } };
+
     if (search) {
         where.OR = [
             { firstName: { contains: search, mode: 'insensitive' } },
@@ -128,7 +131,8 @@ export async function getFederatedCensus(search?: string, clubId?: string) {
                     }
                 }
             },
-            club: true
+            club: true,
+            rankings: true
         },
         orderBy: { user: { name: 'asc' } }
     });

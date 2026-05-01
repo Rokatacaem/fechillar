@@ -261,6 +261,9 @@ export async function createClub(data: {
  * Actualiza los detalles federativos.
  */
 export async function updateClubFederativeDetails(clubId: string, data: {
+    name?: string;
+    address?: string;
+    city?: string;
     foundedDate?: string;
     membershipStatus?: ClubMembershipStatus;
     certificateUrl?: string;
@@ -273,6 +276,9 @@ export async function updateClubFederativeDetails(clubId: string, data: {
         await prisma.club.update({
             where: { id: clubId },
             data: {
+                name: data.name,
+                address: data.address,
+                city: data.city,
                 foundedDate: data.foundedDate ? new Date(data.foundedDate) : undefined,
                 membershipStatus: data.membershipStatus,
                 certificateUrl: data.certificateUrl,

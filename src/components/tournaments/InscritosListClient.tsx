@@ -5,7 +5,7 @@ import { Search, X, UserPlus, CheckCircle, Clock, Loader2, Library, ChevronRight
 import { PaymentValidateButton } from "@/components/tournaments/PaymentValidateButton";
 import { RemoveRegistrationButton } from "@/components/tournaments/RemoveRegistrationButton";
 import { searchPlayers, getPlayersByClub } from "@/app/(sgf)/players/actions";
-import { registerPlayer, registerPlayersBulk } from "@/app/(sgf)/tournaments/inscripciones/actions";
+import { registerPlayer, registerPlayersBulk, updatePlayerAvailability } from "@/app/(sgf)/tournaments/inscripciones/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -16,6 +16,7 @@ interface InscritoData {
     amountPaid: number | null;
     paymentRef: string | null;
     registeredPoints: number;
+    preferredTurn: string;
     rankingAverage: number | null;
     player: {
         user: { name: string } | null;
@@ -38,9 +39,17 @@ interface InscritosListClientProps {
     registrations: InscritoData[];
     tournamentId: string;
     allClubs: { id: string, name: string }[];
+    hasGroups?: boolean;
+    registrationFee?: number;
 }
 
-export function InscritosListClient({ registrations, tournamentId, allClubs }: InscritosListClientProps) {
+export function InscritosListClient({ 
+    registrations, 
+    tournamentId, 
+    allClubs, 
+    hasGroups = false,
+    registrationFee = 30000 
+}: InscritosListClientProps) {
     const router = useRouter();
     const [query, setQuery] = useState("");
     const [selectedClubs, setSelectedClubs] = useState<string[]>([]);
@@ -50,6 +59,7 @@ export function InscritosListClient({ registrations, tournamentId, allClubs }: I
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
     const [searching, setSearching] = useState(false);
     const [addingId, setAddingId] = useState<string | null>(null);
+    const [selectedTurn, setSelectedTurn] = useState("T1");
 
     // Modo Masivo (Bulk)
     const [selectedClubId, setSelectedClubId] = useState("");
@@ -146,7 +156,7 @@ export function InscritosListClient({ registrations, tournamentId, allClubs }: I
     const handleAdd = async (playerId: string) => {
         setAddingId(playerId);
         try {
-            const res = await registerPlayer(tournamentId, playerId);
+            const res = await registerPlayer(tournamentId, playerId, selectedTurn);
             if (res.success) {
                 toast.success("Jugador inscrito correctamente");
                 setQuery("");
@@ -249,6 +259,31 @@ export function InscritosListClient({ registrations, tournamentId, allClubs }: I
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         )}
+
+                        {/* Selector de Turno Obligatorio */}
+                        <div className="mt-3 flex items-center gap-3 bg-slate-900/40 p-3 rounded-xl border border-white/5">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <Clock className="w-3.5 h-3.5 text-amber-500" /> Turno para inscripción:
+                            </span>
+                            <div className="flex bg-slate-950 rounded-lg p-1 border border-white/5 gap-1">
+                                {[
+                                    { id: "T1", label: "T1: 10-13h", color: "text-blue-400" },
+                                    { id: "T2", label: "T2: 13-18h", color: "text-amber-400" },
+                                    { id: "T3", label: "T3: 18-21h", color: "text-emerald-400" },
+                                    { id: "TOTAL", label: "TOTAL (Wildcard)", color: "text-purple-400" }
+                                ].map(t => (
+                                    <button
+                                        key={t.id}
+                                        onClick={() => setSelectedTurn(t.id)}
+                                        className={["px-3 py-1 rounded-md text-[9px] font-black transition-all", 
+                                            selectedTurn === t.id ? "bg-white/10 text-white" : "text-slate-600 hover:text-slate-400"
+                                        ].join(" ")}
+                                    >
+                                        {t.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
 
                         {/* Dropdown resultados modo ADD - Mejorado para no entorpecer visualización */}
                         {searchResults.length > 0 && (
@@ -444,6 +479,39 @@ export function InscritosListClient({ registrations, tournamentId, allClubs }: I
                                 </div>
 
                                 <div className="flex items-center gap-5">
+                                    {/* Turno - Edición en Línea */}
+                                    <div className="hidden lg:flex flex-col items-end gap-1 min-w-[100px] border-r border-white/5 pr-5">
+                                        <select
+                                            value={reg.preferredTurn || "T1"}
+                                            disabled={hasGroups}
+                                            title={hasGroups ? "No se puede cambiar el turno con grupos ya generados. Elimine los grupos para editar." : ""}
+                                            onChange={async (e) => {
+                                                const newTurn = e.target.value;
+                                                const res = await updatePlayerAvailability(reg.id, newTurn);
+                                                if (res.success) {
+                                                    toast.success("Turno actualizado");
+                                                    router.refresh();
+                                                } else {
+                                                    toast.error(res.error || "Error al actualizar turno");
+                                                }
+                                            }}
+                                            className={["bg-transparent border-0 text-[10px] font-black uppercase tracking-widest focus:ring-0 cursor-pointer text-right disabled:opacity-30 disabled:cursor-not-allowed",
+                                                reg.preferredTurn === "T1" ? "text-blue-400" :
+                                                reg.preferredTurn === "T2" ? "text-amber-400" :
+                                                reg.preferredTurn === "T3" ? "text-emerald-400" :
+                                                "text-purple-400"
+                                            ].join(" ")}
+                                        >
+                                            <option value="T1" className="bg-slate-900 text-blue-400">T1: 10:00 - 13:00</option>
+                                            <option value="T2" className="bg-slate-900 text-amber-400">T2: 13:00 - 18:00</option>
+                                            <option value="T3" className="bg-slate-900 text-emerald-400">T3: 18:00 - 21:00</option>
+                                            <option value="TOTAL" className="bg-slate-900 text-purple-400">DISPONIBILIDAD TOTAL</option>
+                                        </select>
+                                        <p className="text-[9px] uppercase tracking-widest text-slate-600">
+                                            {hasGroups ? "GRUPO FIJO" : "Disponibilidad"}
+                                        </p>
+                                    </div>
+
                                     {/* Pago */}
                                     <div className="text-right border-r border-white/5 pr-5 hidden md:block min-w-[100px]">
                                         {reg.paymentStatus === "PAID" ? (
@@ -458,7 +526,10 @@ export function InscritosListClient({ registrations, tournamentId, allClubs }: I
                                         ) : (
                                             <div className="flex flex-col items-end gap-1">
                                                 <p className="text-yellow-500 font-bold text-[10px] uppercase tracking-widest">PENDIENTE</p>
-                                                <PaymentValidateButton registrationId={reg.id} />
+                                                <PaymentValidateButton 
+                                                    registrationId={reg.id} 
+                                                    amount={registrationFee}
+                                                />
                                             </div>
                                         )}
                                     </div>

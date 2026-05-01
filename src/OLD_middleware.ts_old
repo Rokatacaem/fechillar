@@ -1,0 +1,14 @@
+import { NextResponse } from 'next/server';
+
+/**
+ * MIDDLEWARE DE EMERGENCIA (BYPASS)
+ * Esta versión no importa NextAuth para evitar bloqueos en el arranque inicial
+ * de versiones experimentales de Next.js (v16).
+ */
+export function middleware(req) {
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+};

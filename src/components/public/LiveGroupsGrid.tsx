@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Trophy, Activity, Target, Zap } from "lucide-react";
+import { TournamentQR } from "./TournamentQR";
 
 interface Standing {
     playerId: string;
@@ -114,7 +115,17 @@ export function LiveGroupsGrid({ groups }: { groups: Group[] }) {
     );
 }
 
-export function LiveStandingsHeader({ title, lastUpdate, clubLogo }: { title: string, lastUpdate?: string, clubLogo?: string | null }) {
+export function LiveStandingsHeader({ 
+    title, 
+    lastUpdate, 
+    clubLogo,
+    tournamentId 
+}: { 
+    title: string, 
+    lastUpdate?: string, 
+    clubLogo?: string | null,
+    tournamentId?: string
+}) {
     return (
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-6 gap-6 relative z-50">
             <div className="flex items-center gap-6">
@@ -140,15 +151,27 @@ export function LiveStandingsHeader({ title, lastUpdate, clubLogo }: { title: st
                 </div>
             </div>
             
-            <div className="flex items-center gap-3 bg-slate-900/50 border border-white/5 p-4 py-3 rounded-2xl">
-                 <div className="relative">
-                    <Activity className="w-5 h-5 text-[var(--color-accent)]" />
-                    <span className="absolute top-0 right-0 w-2 h-2 bg-[var(--color-accent)] rounded-full animate-ping" />
-                 </div>
-                 <div>
-                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none mb-1">Live Status</p>
-                    <p className="text-xs font-black text-white uppercase tracking-tighter">Sincronizado {lastUpdate}</p>
-                 </div>
+            <div className="flex items-center gap-6">
+                <div className="hidden lg:block">
+                    {tournamentId && (
+                        <TournamentQR 
+                            tournamentId={tournamentId} 
+                            tournamentName={title} 
+                            showLabel={false}
+                            size={70} 
+                        />
+                    )}
+                </div>
+                <div className="flex items-center gap-3 bg-slate-900/50 border border-white/5 p-4 py-3 rounded-2xl">
+                    <div className="relative">
+                        <Activity className="w-5 h-5 text-[var(--color-accent)]" />
+                        <span className="absolute top-0 right-0 w-2 h-2 bg-[var(--color-accent)] rounded-full animate-ping" />
+                    </div>
+                    <div>
+                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none mb-1">Live Status</p>
+                        <p className="text-xs font-black text-white uppercase tracking-tighter">Sincronizado {lastUpdate}</p>
+                    </div>
+                </div>
             </div>
         </div>
     );
