@@ -64,7 +64,7 @@ export default async function AdminClubsList() {
                                     }`}>
                                         {club.isValidated ? 'Validado' : 'Pendiente'}
                                     </span>
-                                    <DeleteClubButton clubId={club.id} clubName={club.name} />
+                                    <DeleteClubButton clubId={club.id} clubName={club.name} playerCount={club._count.players} />
                                 </div>
                             </div>
 
