@@ -153,7 +153,7 @@ export function TournamentForm({ canCreateNational }: TournamentFormProps) {
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nombre de la Competencia</label>
                         <input 
                             name="name" 
-                            defaultValue={state?.fields?.name || ""}
+                            defaultValue={(state?.fields?.name as string) || ""}
                             placeholder="Ej. Campeonato Nacional Apertura 2026" 
                             className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:ring-1 focus:ring-emerald-500/50 transition-all font-bold" 
                             required 
