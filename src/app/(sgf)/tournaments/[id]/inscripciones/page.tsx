@@ -73,7 +73,7 @@ export default async function TournamentRegistrationsPage({ params }: { params: 
     // Normalizar para el componente cliente
     const inscritosData = registrations.map(r => ({
         id: r.id,
-        playerId: r.playerId, // Añadir playerId para validaciones en cliente
+        playerId: r.playerId,
         status: r.status,
         paymentStatus: r.paymentStatus,
         amountPaid: r.amountPaid,
@@ -82,7 +82,7 @@ export default async function TournamentRegistrationsPage({ params }: { params: 
         preferredTurn: r.preferredTurn || "T1",
         rankingAverage: r.player.rankings?.[0]?.average ?? null,
         player: {
-            user: r.player.user,
+            user: r.player.user ? { name: r.player.user.name || "Sin nombre" } : null,
             firstName: r.player.firstName,
             lastName: r.player.lastName,
             rut: r.player.rut,
