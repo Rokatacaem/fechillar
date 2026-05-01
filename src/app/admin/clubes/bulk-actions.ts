@@ -317,7 +317,7 @@ export async function claimPlayerProfile(playerId: string, email: string) {
 export async function bulkActivateAllPlayers() {
     const session = await auth();
     const allowedRoles = ["SUPERADMIN", "FEDERATION_ADMIN"];
-    if (!session || !allowedRoles.includes((session.user as any)?.role)) {
+    if (!session?.user?.id || !allowedRoles.includes((session?.user as any)?.role)) {
         return { success: false, error: "No autorizado. Se requiere rol SUPERADMIN o FEDERATION_ADMIN." };
     }
 

@@ -11,7 +11,7 @@ export default async function LoginPage() {
     const session = await auth();
 
     if (session?.user) {
-        const role = (session.user as any).role as string;
+        const role = (session?.user as any)?.role as string;
 
         if (role === "SUPERADMIN" || role === "FEDERATION_ADMIN" || role === "ADMIN") {
             redirect("/admin/dashboard");

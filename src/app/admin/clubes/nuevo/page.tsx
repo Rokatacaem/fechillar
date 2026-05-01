@@ -6,7 +6,7 @@ import Link from "next/link";
 
 export default async function NewClubPage() {
     const session = await auth();
-    if (!session || !["SUPERADMIN", "FEDERATION_ADMIN"].includes((session.user as any).role)) {
+    if (!session?.user?.id || !["SUPERADMIN", "FEDERATION_ADMIN"].includes((session?.user as any)?.role)) {
         redirect("/dashboard");
     }
 

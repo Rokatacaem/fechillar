@@ -11,7 +11,7 @@ export async function executeEnvironmentPurge() {
     const userEmail = session?.user?.email?.toLowerCase();
     const adminEmail = "admin@fechillar.cl".toLowerCase();
 
-    if (!session || !session.user || userEmail !== adminEmail) {
+    if (!session?.user?.id || userEmail !== adminEmail) {
         return { success: false, error: "Autorización denegada. Solo el Administrador Maestro puede purificar el entorno." };
     }
 

@@ -90,7 +90,7 @@ export default async function PadronNacionalPage({
 
   const rawPlayers = await getFederatedCensus();
   const players = sortPlayers(rawPlayers, sort, dir);
-  const isSuperAdmin = (session.user as any).role === 'SUPERADMIN';
+  const isSuperAdmin = (session?.user as any)?.role === 'SUPERADMIN';
 
   // Estadísticas derivadas
   const totalAfiliados = players.length;

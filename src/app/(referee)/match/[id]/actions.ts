@@ -8,7 +8,7 @@ export async function syncMatchState(matchId: string, payload: any) {
         throw new Error("Unauthorized Access: Session invalid.");
     }
     
-    const userId = session.user.id || "system";
+    const userId = session?.user?.id as string || "system";
     
     try {
         // Ejecución en paralelo: Audit Log + Update de Estado

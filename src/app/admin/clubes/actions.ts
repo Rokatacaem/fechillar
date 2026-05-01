@@ -16,7 +16,7 @@ export async function uploadClubCertificate(formData: FormData) {
         throw new Error("No autorizado o sesión expirada.");
     }
 
-    if (!["SUPERADMIN", "FEDERATION_ADMIN"].includes((session.user as any).role)) {
+    if (!["SUPERADMIN", "FEDERATION_ADMIN"].includes((session?.user as any)?.role)) {
         throw new Error("Privilegios insuficientes.");
     }
 
@@ -29,12 +29,12 @@ export async function uploadClubCertificate(formData: FormData) {
     try {
         // Asegurar que el usuario de la sesión existe en la DB para la auditoría
         const dbUser = await prisma.user.upsert({
-            where: { email: session.user.email as string },
+            where: { email: session?.user?.email as string as string },
             update: {},
             create: {
-                email: session.user.email as string,
-                name: session.user.name || "Admin SGF",
-                role: (session.user as any).role || UserRole.SUPERADMIN
+                email: session?.user?.email as string as string,
+                name: session?.user?.name || "Desconocido" || "Admin SGF",
+                role: (session?.user as any)?.role || UserRole.SUPERADMIN
             },
             select: { id: true }
         });
@@ -92,7 +92,7 @@ export async function uploadClubCertificate(formData: FormData) {
             await tx.auditLog.create({
                 data: {
                     action: `[CERT_SYNC_ATOMIC] Certificate and official board synchronized`,
-                    details: `Admin ${session.user.name} synced board members from certificate.`,
+                    details: `Admin ${session?.user?.name || "Desconocido"} synced board members from certificate.`,
                     userId: dbUser.id,
                     targetId: clubId
                 }
@@ -157,7 +157,7 @@ export async function uploadClubLogo(formData: FormData) {
  */
 export async function assignDelegateToClub(userId: string, clubId: string) {
     const session = await auth();
-    if (!session || !["SUPERADMIN", "FEDERATION_ADMIN"].includes((session.user as any).role)) {
+    if (!session || !["SUPERADMIN", "FEDERATION_ADMIN"].includes((session?.user as any)?.role)) {
         throw new Error("No autorizado.");
     }
 
@@ -182,7 +182,7 @@ export async function assignDelegateToClub(userId: string, clubId: string) {
  */
 export async function revokeDelegate(userId: string, clubId: string) {
     const session = await auth();
-    if (!session || !["SUPERADMIN", "FEDERATION_ADMIN"].includes((session.user as any).role)) {
+    if (!session || !["SUPERADMIN", "FEDERATION_ADMIN"].includes((session?.user as any)?.role)) {
         throw new Error("No autorizado.");
     }
 
@@ -218,12 +218,12 @@ export async function createClub(data: {
 
     try {
         const dbUser = await prisma.user.upsert({
-            where: { email: session.user.email as string },
+            where: { email: session?.user?.email as string as string },
             update: {},
             create: {
-                email: session.user.email as string,
-                name: session.user.name || "Admin SGF",
-                role: (session.user as any).role || UserRole.SUPERADMIN
+                email: session?.user?.email as string as string,
+                name: session?.user?.name || "Desconocido" || "Admin SGF",
+                role: (session?.user as any)?.role || UserRole.SUPERADMIN
             },
             select: { id: true }
         });
@@ -448,8 +448,8 @@ export async function upsertPlayerInClub(clubId: string, formData: FormData) {
     const session = await auth();
     if (!session?.user?.email) throw new Error("No autorizado.");
 
-    const userRole = (session.user as any).role;
-    const isDelegateOfThisClub = userRole === "CLUB_DELEGATE" && (session.user as any).managedClubId === clubId;
+    const userRole = (session?.user as any)?.role;
+    const isDelegateOfThisClub = userRole === "CLUB_DELEGATE" && (session?.user as any)?.managedClubId === clubId;
     const isAdmin = ["SUPERADMIN", "FEDERATION_ADMIN"].includes(userRole);
 
     if (!isAdmin && !isDelegateOfThisClub) {
@@ -477,11 +477,11 @@ export async function upsertPlayerInClub(clubId: string, formData: FormData) {
 
         // Asegurar que el actor existe para auditoría
         const dbAdmin = await prisma.user.upsert({
-            where: { email: session.user.email as string },
+            where: { email: session?.user?.email as string as string },
             update: {},
             create: {
-                email: session.user.email as string,
-                name: session.user.name || "Admin",
+                email: session?.user?.email as string as string,
+                name: session?.user?.name || "Desconocido" || "Admin",
                 role: userRole
             }
         });

@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 export async function registerPlayer(tournamentId: string, playerId: string, preferredTurn: string = "T1") {
     const session = await auth();
     
-    if (!session || !session.user) {
+    if (!session?.user?.id) {
         throw new Error("No autorizado");
     }
 
@@ -118,10 +118,10 @@ export async function updatePlayerAvailability(registrationId: string, preferred
  */
 export async function removePlayerFromTournament(registrationId: string) {
     const session = await auth();
-    if (!session) return { success: false, error: "No autorizado" };
+    if (!session?.user) return { success: false, error: "No autorizado" };
 
     const allowedRoles = ["SUPERADMIN", "FEDERATION_ADMIN", "CLUB_DELEGATE", "CLUB_ADMIN"];
-    if (!allowedRoles.includes((session.user as any)?.role)) {
+    if (!allowedRoles.includes((session?.user as any)?.role)) {
         return { success: false, error: "Sin permisos suficientes" };
     }
 
@@ -170,7 +170,7 @@ export async function removePlayerFromTournament(registrationId: string) {
  */
 export async function registerPlayersBulk(tournamentId: string, playerIds: string[]) {
     const session = await auth();
-    if (!session || !session.user) throw new Error("No autorizado");
+    if (!session?.user?.id) throw new Error("No autorizado");
 
     if (!playerIds || playerIds.length === 0) return { success: true, addedCount: 0 };
 

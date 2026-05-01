@@ -10,7 +10,7 @@ export default async function NewPlayerPage() {
     const session = await auth();
     
     // Solo Federativos y SuperAdmins pueden registrar directamente en el Padrón Nacional
-    if (!session || !["SUPERADMIN", "FEDERATION_ADMIN"].includes((session.user as any).role)) {
+    if (!session?.user?.id || !["SUPERADMIN", "FEDERATION_ADMIN"].includes((session?.user as any)?.role)) {
         redirect("/federacion/padron");
     }
 

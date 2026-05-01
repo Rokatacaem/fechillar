@@ -8,7 +8,7 @@ import { auth } from "@/auth";
  */
 export async function GET(request: Request) {
     const session = await auth();
-    if (!session || !["SUPERADMIN", "FEDERATION_ADMIN"].includes((session.user as any).role)) {
+    if (!session?.user?.id || !["SUPERADMIN", "FEDERATION_ADMIN"].includes((session?.user as any)?.role)) {
         return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 

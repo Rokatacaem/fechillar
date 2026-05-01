@@ -8,9 +8,9 @@ const prisma = new PrismaClient();
 
 export async function overrideMatchScore(matchId: string, actionPayload: any) {
     const session = await auth();
-    if (!session || !session.user) throw new Error("No autorizado");
+    if (!session?.user?.id) throw new Error("No autorizado");
 
-    const role = (session.user as any).role;
+    const role = (session?.user as any)?.role;
     if (role !== "ADMIN" && role !== "SUPERADMIN" && role !== "FEDERATION_ADMIN") {
         throw new Error("Privilegios insuficientes para anulación por Switcher");
     }
@@ -25,7 +25,7 @@ export async function overrideMatchScore(matchId: string, actionPayload: any) {
         data: {
             action: `override_${type}_${playerTarget}`,
             targetId: matchId,
-            userId: session.user.id!,
+            userId: session?.user?.id as string,
             details: JSON.stringify({
                 event: "[STREAM_OVERRIDE]",
                 context: "Intervención Operador de Cámaras Local (Control Maestro)",

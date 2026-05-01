@@ -212,7 +212,7 @@ const getPositionPoints = (pos: number, matchesPlayed: number): number => {
 export async function commitTournamentRanking(tournamentId: string, forceNational = false) {
     const session = await auth();
     const allowedRoles = ["SUPERADMIN", "FEDERATION_ADMIN"];
-    if (!session || !allowedRoles.includes((session.user as any)?.role)) {
+    if (!session?.user || !allowedRoles.includes((session?.user as any)?.role)) {
         return { success: false, error: "No autorizado" };
     }
 

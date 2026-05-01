@@ -11,7 +11,7 @@ import { auth } from "@/auth";
  */
 export async function updatePlayerPhoto(playerId: string, formData: FormData) {
     const session = await auth();
-    if (!session || !["SUPERADMIN", "FEDERATION_ADMIN", "ADMIN"].includes((session.user as any).role)) {
+    if (!session?.user?.id || !["SUPERADMIN", "FEDERATION_ADMIN", "ADMIN"].includes((session?.user as any)?.role)) {
         throw new Error("No autorizado");
     }
 
@@ -37,7 +37,7 @@ export async function updatePlayerPhoto(playerId: string, formData: FormData) {
         await prisma.auditLog.create({
             data: {
                 action: "PLAYER_PHOTO_UPDATE",
-                userId: (session.user as any).id,
+                userId: session?.user?.id as string,
                 targetId: playerId,
                 details: `Actualización de retrato oficial para ${player.user?.name || "ID: " + playerId}`
             }
@@ -62,11 +62,11 @@ export async function updatePlayerPhoto(playerId: string, formData: FormData) {
  */
 export async function updatePlayer(playerId: string, formData: FormData) {
     const session = await auth();
-    if (!session) throw new Error("No autenticado");
+    if (!session?.user?.id) throw new Error("No autenticado");
     
-    const userRole = (session.user as any).role;
+    const userRole = (session?.user as any)?.role;
     const isSuper = ["SUPERADMIN", "FEDERATION_ADMIN"].includes(userRole);
-    const managedClubId = (session.user as any).managedClubId;
+    const managedClubId = (session?.user as any)?.managedClubId;
 
     const name = (formData.get("name") as string)?.trim() || "";
     const email = (formData.get("email") as string)?.trim() || "";
@@ -156,11 +156,11 @@ export async function updatePlayer(playerId: string, formData: FormData) {
  */
 export async function deletePlayer(playerId: string) {
     const session = await auth();
-    if (!session) throw new Error("No autenticado");
+    if (!session?.user?.id) throw new Error("No autenticado");
 
-    const userRole = (session.user as any).role;
+    const userRole = (session?.user as any)?.role;
     const isSuper = ["SUPERADMIN", "FEDERATION_ADMIN"].includes(userRole);
-    const managedClubId = (session.user as any).managedClubId;
+    const managedClubId = (session?.user as any)?.managedClubId;
 
     const player = await prisma.playerProfile.findUnique({
         where: { id: playerId },
@@ -202,9 +202,9 @@ export async function deletePlayer(playerId: string) {
     }
 
     try {
-        const adminId = (session.user as any).id;
-        const adminEmail = (session.user as any).email;
-        const adminRole = (session.user as any).role;
+        const adminId = session?.user?.id as string;
+        const adminEmail = session?.user?.email as string;
+        const adminRole = (session?.user as any)?.role;
 
         // Sincronización de sesión administrativa (Self-Healing)
         // Asegura que el usuario que borra existe en la DB local para la AuditLog
@@ -214,7 +214,7 @@ export async function deletePlayer(playerId: string) {
             create: {
                 id: adminId,
                 email: adminEmail,
-                name: (session.user as any).name || "Admin SGF",
+                name: session?.user?.name || "Admin SGF",
                 role: adminRole,
                 passwordHash: "external-auth"
             },

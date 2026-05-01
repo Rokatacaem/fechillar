@@ -7,12 +7,12 @@ import { revalidatePath } from "next/cache";
 export async function confirmPayment(registrationId: string, amount: number, paymentRef: string) {
     const session = await auth();
     
-    if (!session || !session.user) {
+    if (!session?.user?.id) {
         throw new Error("No autorizado");
     }
 
-    const userId = session.user.id || (session.user as any).id;
-    const userEmail = session.user.email;
+    const userId = session?.user?.id as string || (session?.user as any)?.id;
+    const userEmail = session?.user?.email as string;
 
     if (!userId) {
         throw new Error("No se pudo identificar al validador (ID de sesión ausente)");
@@ -27,7 +27,7 @@ export async function confirmPayment(registrationId: string, amount: number, pay
             data: {
                 id: userId,
                 email: userEmail,
-                name: session?.user?.name || "Rodrigo Zúñiga (Admin)",
+                name: session?.user?.name || "Desconocido" || "Rodrigo Zúñiga (Admin)",
                 role: "SUPERADMIN",
                 passwordHash: "admin123"
             }

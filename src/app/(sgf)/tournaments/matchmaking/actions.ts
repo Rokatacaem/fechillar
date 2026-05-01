@@ -50,7 +50,7 @@ function getButterflySeeds(size: number): number[] {
 
 export async function generateBrackets(tournamentId: string) {
     const session = await auth();
-    if (!session || !session.user) {
+    if (!session?.user?.id) {
         throw new Error("No autorizado");
     }
 
@@ -151,7 +151,7 @@ export async function submitMatchResult(
     awayInnings: number = 0
 ) {
     const session = await auth();
-    if (!session || !session.user) {
+    if (!session?.user?.id) {
         throw new Error("No autorizado");
     }
 
@@ -294,7 +294,7 @@ export async function submitMatchResult(
  */
 export async function generateGroups(tournamentId: string) {
     const session = await auth();
-    if (!session || !session.user) {
+    if (!session?.user?.id) {
         throw new Error("No autorizado");
     }
 
@@ -626,7 +626,7 @@ import { revalidatePath } from "next/cache";
  */
 export async function generatePlayoffsFromGroups(tournamentId: string) {
     const session = await auth();
-    if (!session || !session.user) {
+    if (!session?.user?.id) {
         throw new Error("No autorizado");
     }
 
@@ -758,7 +758,7 @@ export async function generatePlayoffsFromGroups(tournamentId: string) {
  */
 export async function generateAdjustmentPhase(tournamentId: string) {
     const session = await auth();
-    if (!session || !session.user) {
+    if (!session?.user?.id) {
         throw new Error("No autorizado");
     }
 
@@ -943,7 +943,7 @@ function calculateStandings(matches: any[], playerIds: string[]) {
  */
 export async function closeGroupPhase(tournamentId: string) {
     const session = await auth();
-    if (!session || !session.user) {
+    if (!session?.user?.id) {
         throw new Error("No autorizado");
     }
 

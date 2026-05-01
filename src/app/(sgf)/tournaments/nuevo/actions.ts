@@ -20,13 +20,13 @@ export async function getPrizeTemplates() {
 export async function createTournament(prevState: any, formData: FormData) {
     const session = await auth();
     
-    if (!session || !session.user) {
+    if (!session?.user?.id as string) {
         throw new Error("No autorizado");
     }
 
-    const role = (session.user as any).role;
-    const tenantId = (session.user as any).tenantId;
-    const userId = (session.user as any).id; 
+    const role = (session?.user as any)?.role;
+    const tenantId = (session?.user as any)?.tenantId;
+    const userId = (session?.user as any)?.id; 
 
     if (!userId) {
         return { 
@@ -40,14 +40,14 @@ export async function createTournament(prevState: any, formData: FormData) {
     let finalUserId = userId;
     try {
         const dbUser = await prisma.user.findUnique({ where: { id: userId } });
-        if (!dbUser && (role === "SUPERADMIN" || (session.user as any).email === "admin@fechillar.cl")) {
+        if (!dbUser && (role === "SUPERADMIN" || (session?.user as any)?.email === "admin@fechillar.cl")) {
             const admin = await prisma.user.upsert({
-                where: { email: (session.user as any).email },
+                where: { email: (session?.user as any)?.email },
                 update: { role: "SUPERADMIN" },
                 create: {
                     id: userId,
-                    email: (session.user as any).email,
-                    name: (session.user as any).name || "Admin Auto-Provisioned",
+                    email: (session?.user as any)?.email,
+                    name: (session?.user as any)?.name || "Admin Auto-Provisioned",
                     role: "SUPERADMIN",
                     passwordHash: "admin123"
                 }

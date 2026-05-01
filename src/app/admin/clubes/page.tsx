@@ -8,7 +8,7 @@ import { DeleteClubButton } from "@/components/admin/DeleteClubButton";
 
 export default async function AdminClubsList() {
     const session = await auth();
-    if (!session || !["SUPERADMIN", "FEDERATION_ADMIN"].includes((session.user as any).role)) {
+    if (!session?.user?.id || !["SUPERADMIN", "FEDERATION_ADMIN"].includes((session?.user as any)?.role)) {
         redirect('/login');
     }
 

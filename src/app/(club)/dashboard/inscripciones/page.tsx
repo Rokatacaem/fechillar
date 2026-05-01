@@ -11,7 +11,7 @@ export default async function DelegateInscriptionsPage() {
     if (!session?.user) redirect("/login");
 
     const user = await prisma.user.findUnique({
-        where: { id: session.user.id }
+        where: { id: session?.user?.id as string }
     });
 
     if (!user?.managedClubId) {

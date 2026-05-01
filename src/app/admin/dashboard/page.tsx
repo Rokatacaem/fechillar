@@ -7,10 +7,10 @@ import { Toaster } from "sonner";
 
 export default async function SuperAdminWarRoom() {
     const session = await auth();
-    if (!session || !session.user) redirect('/login');
+    if (!session?.user?.id) redirect('/login');
     
-    const role = (session.user as any).role as string;
-    const name = session.user.name ?? "Operador";
+    const role = (session?.user as any)?.role as string;
+    const name = session?.user?.name || "Operador";
     if (role !== "SUPERADMIN" && role !== "FEDERATION_ADMIN") redirect('/dashboard');
 
     // QUERIES MÍNIMAS — Objetivo: <1s total para no agotar el pool prisma_migration

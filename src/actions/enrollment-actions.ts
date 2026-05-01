@@ -58,11 +58,11 @@ export async function validateManualPayment(
                 data: {
                     action: `manual_payment_validation_${type.toLowerCase()}`,
                     targetId: targetId,
-                    userId: session?.user?.id as string as string,
+                    userId: session?.user?.id as string,
                     details: JSON.stringify({
                         reference,
                         timestamp: new Date().toISOString(),
-                        validatorName: session.user.name
+                        validatorName: session?.user?.name || "Administrador"
                     })
                 }
             });

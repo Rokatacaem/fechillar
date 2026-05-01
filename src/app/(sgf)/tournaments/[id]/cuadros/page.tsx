@@ -218,7 +218,7 @@ export default async function TournamentBracketsPage({ params }: { params: Promi
                                         <div className="p-3 bg-black/20 flex items-center justify-between px-5">
                                             <div className="flex gap-2">
                                                 {/* Botón de Swap para SuperAdmin (Placeholder UI) */}
-                                                {session.user.role === 'SUPERADMIN' && !match.winnerId && (
+                                                {(session?.user as any)?.role === 'SUPERADMIN' && !match.winnerId && (
                                                     <button className="p-2 rounded-lg bg-slate-800 text-slate-500 hover:text-amber-500 hover:bg-amber-500/10 transition-all" title="Reemplazo Táctico">
                                                         <ShieldAlert className="w-4 h-4" />
                                                     </button>

@@ -9,7 +9,7 @@ export default async function NewTournamentPage() {
     const session = await auth();
     if (!session) redirect("/login");
 
-    const role = (session.user as any).role || "USER";
+    const role = (session?.user as any)?.role || "USER";
     const canCreateNational = ["FEDERATION_DELEGATE", "FEDERATION_ADMIN", "SUPERADMIN"].includes(role);
 
     return (

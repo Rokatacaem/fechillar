@@ -10,7 +10,7 @@ import { CATEGORY_TARGETS } from "@/lib/billiards/constants";
 
 export async function createPlayer(formData: FormData) {
     const session = await auth();
-    if (!session || !["SUPERADMIN", "FEDERATION_ADMIN"].includes((session.user as any).role)) {
+    if (!session || !["SUPERADMIN", "FEDERATION_ADMIN"].includes((session?.user as any)?.role)) {
         throw new Error("No autorizado");
     }
 
@@ -44,12 +44,12 @@ export async function createPlayer(formData: FormData) {
     try {
         // Resiliencia: Asegurar que el actor (admin) existe en la DB para la auditoría
         const dbAdmin = await prisma.user.upsert({
-            where: { email: session.user.email as string },
+            where: { email: session?.user?.email as string as string },
             update: {},
             create: {
-                email: session.user.email as string,
-                name: session.user.name || "Admin",
-                role: (session.user as any).role
+                email: session?.user?.email as string as string,
+                name: session?.user?.name || "Desconocido" || "Admin",
+                role: (session?.user as any)?.role
             }
         });
 

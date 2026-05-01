@@ -58,16 +58,16 @@ export function UserIdentityWidget() {
     const { data: session } = useSession();
     if (!session?.user) return null;
 
-    const role = (session.user as any).role || "USER";
+    const role = (session?.user as any)?.role || "USER";
     const label = ROLE_LABELS[role] ?? role;
 
     return (
         <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2">
             <div className="w-8 h-8 rounded-full bg-emerald-900 border border-emerald-600 flex items-center justify-center text-emerald-300 font-black text-sm">
-                {session.user.name?.charAt(0).toUpperCase() || "?"}
+                {session?.user?.name?.charAt(0).toUpperCase() || "?"}
             </div>
             <div className="text-left">
-                <div className="text-white font-bold text-sm leading-tight">{session.user.name}</div>
+                <div className="text-white font-bold text-sm leading-tight">{session?.user?.name}</div>
                 <div className="text-emerald-400 text-[10px] uppercase font-bold tracking-wider">{label}</div>
             </div>
             <div className="border-l border-slate-700 ml-1 pl-3">

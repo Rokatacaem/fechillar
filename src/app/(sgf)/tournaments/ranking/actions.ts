@@ -20,13 +20,13 @@ export async function updatePlayerRanking(
 ) {
   const session = await auth();
   
-  if (!session || !session.user) {
+  if (!session?.user?.id) {
     throw new Error("No autorizado");
   }
 
   // Verificar permisos (solo SUPERADMIN o FEDERATION_ADMIN)
   const allowedRoles = ['SUPERADMIN', 'FEDERATION_ADMIN'];
-  if (!allowedRoles.includes(session.user.role || '')) {
+  if (!allowedRoles.includes((session?.user as any)?.role || '')) {
     throw new Error("No tienes permisos para editar rankings");
   }
 
@@ -105,12 +105,12 @@ export async function bulkUpdateRankings(
 ) {
   const session = await auth();
   
-  if (!session || !session.user) {
+  if (!session?.user?.id) {
     throw new Error("No autorizado");
   }
 
   const allowedRoles = ['SUPERADMIN', 'FEDERATION_ADMIN'];
-  if (!allowedRoles.includes(session.user.role || '')) {
+  if (!allowedRoles.includes((session?.user as any)?.role || '')) {
     throw new Error("No tienes permisos para editar rankings");
   }
 

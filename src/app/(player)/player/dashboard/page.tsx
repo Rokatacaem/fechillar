@@ -8,7 +8,7 @@ export default async function PlayerIntranet() {
     const session = await auth();
     if (!session || !session.user) redirect('/login');
 
-    const userId = session.user.id;
+    const userId = session?.user?.id as string;
 
     // Extraer trámites del jugador
     const requests = await prisma.workflowRequest.findMany({
