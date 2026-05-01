@@ -40,6 +40,11 @@
     "backup_sgf",
     "scratch",
     "temp",
-    "old"
+    "old",
+    "seed.ts",
+    "test-torneos.ts",
+    "actions.ts",
+    "lib-prisma.ts",
+    "torneos-page.tsx"
   ]
 }
