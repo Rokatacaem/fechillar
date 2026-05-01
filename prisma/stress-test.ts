@@ -42,7 +42,7 @@ async function main() {
             await prisma.ranking.create({
                 data: {
                     playerId: player.id,
-                    discipline: "POOL",
+                    discipline: "POOL_8",
                     category: "HONOR",
                     points: Math.floor(Math.random() * 500) + 100
                 }
@@ -63,7 +63,7 @@ async function main() {
         data: {
             name: "Gran Abierto AutoLink 32",
             description: "Stress Test Oficial de Rendimiento - Cuadro 32",
-            discipline: "POOL",
+            discipline: "POOL_8",
             modality: "NINE_BALL",
             category: "HONOR",
             status: "IN_PROGRESS", // Ya en progreso
