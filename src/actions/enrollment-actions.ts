@@ -22,7 +22,7 @@ export async function validateManualPayment(
 
 
     const caller = await prisma.user.findUnique({
-        where: { id: session.user.id }
+        where: { id: session?.user?.id as string }
     });
 
     if (!caller || !["SUPERADMIN", "FEDERATION_ADMIN", "CLUB_DELEGATE", "CLUB_ADMIN"].includes(caller.role)) {
@@ -38,7 +38,7 @@ export async function validateManualPayment(
                         status: MembershipStatus.PAID,
                         paymentReference: reference,
                         validatedAt: new Date(),
-                        validatedById: session.user.id
+                        validatedById: session?.user?.id as string
                     }
                 });
             } else {
@@ -48,7 +48,7 @@ export async function validateManualPayment(
                         paymentStatus: EnrollmentPaymentStatus.PAID,
                         paymentReference: reference,
                         validatedAt: new Date(),
-                        validatedById: session.user.id
+                        validatedById: session?.user?.id as string
                     }
                 });
             }
@@ -58,7 +58,7 @@ export async function validateManualPayment(
                 data: {
                     action: `manual_payment_validation_${type.toLowerCase()}`,
                     targetId: targetId,
-                    userId: session.user.id as string,
+                    userId: session?.user?.id as string as string,
                     details: JSON.stringify({
                         reference,
                         timestamp: new Date().toISOString(),
@@ -111,7 +111,7 @@ export async function enrollInTournament(playerId: string, tournamentId: string)
  */
 export async function forceEnrollmentOverride(enrollmentId: string) {
     const session = await auth();
-    if (!session?.user?.id || (session.user as any).role !== "SUPERADMIN") {
+    if (!session?.user?.id || (session?.user as any)?.role !== "SUPERADMIN") {
         throw new Error("Acción reservada para SuperAdmin.");
     }
 
@@ -120,7 +120,7 @@ export async function forceEnrollmentOverride(enrollmentId: string) {
         data: {
             paymentStatus: EnrollmentPaymentStatus.PAID,
             validatedAt: new Date(),
-            validatedById: session.user.id,
+            validatedById: session?.user?.id as string,
             paymentReference: "SUPERADMIN_OVERRIDE"
         }
     });

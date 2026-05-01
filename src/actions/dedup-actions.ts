@@ -143,7 +143,7 @@ export async function mergePlayerProfiles(keepId: string, deleteId: string) {
             await tx.auditLog.create({
                 data: {
                     action: "PLAYER_MERGE",
-                    userId: (session.user as any).id,
+                    userId: (session?.user as any)?.id as string,
                     targetId: keepId,
                     details: `Perfil duplicado ${deleteId} fusionado en ${keepId}`
                 }

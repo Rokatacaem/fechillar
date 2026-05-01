@@ -97,7 +97,7 @@ export async function swapWithWaitingList(matchId: string, side: 'HOME' | 'AWAY'
         data: {
             action: "PLAYER_SWAP_WAITING_LIST",
             targetId: matchId,
-            userId: session.user.id,
+            userId: session?.user?.id as string,
             details: `Reemplazado jugador en ${side} por ${player.id} desde lista de espera.`
         }
     });

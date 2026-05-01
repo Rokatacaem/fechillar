@@ -16,7 +16,7 @@ export async function validateMembershipQuick(playerId: string, amount: number) 
     // Roles permitidos: Rodrigo (SuperAdmin), Federación o Admin General
     const allowedRoles = ["SUPERADMIN", "FEDERATION_ADMIN", "ADMIN", "CLUB_ADMIN"];
     
-    if (!session || !allowedRoles.includes((session.user as any).role)) {
+    if (!session || !allowedRoles.includes((session?.user as any)?.role)) {
         throw new Error(`No autorizado (${(session?.user as any).role || 'Invitado'}). Se requiere nivel administrativo.`);
     }
 
@@ -28,12 +28,12 @@ export async function validateMembershipQuick(playerId: string, amount: number) 
     }
 
     const dbAdmin = await prisma.user.upsert({
-        where: { email: session.user.email },
+        where: { email: session?.user?.email as string },
         update: {},
         create: {
-            email: session.user.email,
-            name: session.user.name || "Administrador SGF",
-            role: (session.user as any).role || "SUPERADMIN"
+            email: session?.user?.email as string,
+            name: session?.user?.name as string || "Administrador SGF",
+            role: (session?.user as any)?.role || "SUPERADMIN"
         },
         select: { id: true, name: true, email: true }
     });
@@ -79,8 +79,8 @@ export async function validateMembershipQuick(playerId: string, amount: number) 
                 details: JSON.stringify({
                     amount,
                     validUntil: oneYearLater,
-                    validator: (session.user as any).name,
-                    validatorEmail: (session.user as any).email,
+                    validator: (session?.user as any)?.name,
+                    validatorEmail: (session?.user as any)?.email,
                     timestamp: new Date().toISOString(),
                     method: "QUICK_ADMIN_VALIDATION"
                 })
