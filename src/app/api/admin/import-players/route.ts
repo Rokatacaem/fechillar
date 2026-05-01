@@ -26,9 +26,6 @@ export async function POST(req: Request) {
                         firstName: player.firstName || existing.firstName,
                         lastName: player.lastName || existing.lastName,
                         averageBase: player.averageBase !== undefined ? player.averageBase : existing.averageBase,
-                        highRun: player.highRun !== undefined ? player.highRun : existing.highRun,
-                        rankingPoints: player.rankingPoints !== undefined ? player.rankingPoints : existing.rankingPoints,
-                        category: player.category || existing.category,
                     }
                 });
                 updatedCount++;
@@ -40,9 +37,6 @@ export async function POST(req: Request) {
                         firstName: player.firstName || "",
                         lastName: player.lastName || "",
                         averageBase: player.averageBase || 0,
-                        highRun: player.highRun || 0,
-                        rankingPoints: player.rankingPoints || 0,
-                        category: player.category || "PROMO",
                         tenantId: player.clubId || null
                     }
                 });
