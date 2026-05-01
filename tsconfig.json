@@ -35,6 +35,11 @@
     "**/*.mts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "backup_antes_fix",
+    "backup_sgf",
+    "scratch",
+    "temp",
+    "old"
   ]
 }

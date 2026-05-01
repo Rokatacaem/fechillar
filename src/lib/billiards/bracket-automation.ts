@@ -478,3 +478,55 @@ export function generateRoundRobinBracket(
     grandFinalMatchId: null,
   };
 }
+export function matchesToBracket(tournamentId: string, prismaMatches: any[]): TournamentBracket {
+  const rounds = Math.max(...prismaMatches.map(m => m.round), 0);
+  const matches: BracketMatch[] = prismaMatches.map(m => ({
+    id: m.id,
+    round: m.round,
+    position: m.matchOrder,
+    homePlayerId: m.homePlayerId,
+    awayPlayerId: m.awayPlayerId,
+    winnerId: m.winnerId,
+    status: (m.winnerId || m.isWO) ? "COMPLETED" : "PENDING",
+    side: "WINNERS",
+    feedsFromMatchIds: [],
+    winnerGoesToMatchId: null,
+    loserGoesToMatchId: null,
+    isBye: m.isWO && m.homeScore === 0 && m.awayScore === 0,
+  }));
+
+  // Reconstruir feeds y avance
+  matches.forEach(m => {
+    if (m.round < rounds) {
+      const nextPos = Math.floor(m.position / 2);
+      const nextMatch = matches.find(next => next.round === m.round + 1 && next.position === nextPos);
+      if (nextMatch) {
+        m.winnerGoesToMatchId = nextMatch.id;
+        if (!nextMatch.feedsFromMatchIds.includes(m.id)) {
+            nextMatch.feedsFromMatchIds.push(m.id);
+        }
+      }
+    }
+  });
+
+  return {
+    tournamentId,
+    format: "SINGLE_ELIMINATION",
+    rounds,
+    matches,
+    losersMatches: [],
+    grandFinalMatchId: null,
+  };
+}
+
+export function getBracketProgress(bracket: TournamentBracket) {
+  const totalMatches = bracket.matches.length;
+  const completedMatches = bracket.matches.filter(m => m.winnerId || m.status === "COMPLETED").length;
+  const percentage = totalMatches > 0 ? Math.round((completedMatches / totalMatches) * 100) : 0;
+
+  return {
+    totalMatches,
+    completedMatches,
+    percentage,
+  };
+}
