@@ -683,7 +683,7 @@ export async function generatePlayoffsFromGroups(tournamentId: string) {
 
         const adjustmentWinners = adjustmentMatches
             .filter(m => m.winnerId !== null)
-            .map(m => ({ playerId: m.winnerId, isAdjustmentWinner: true }));
+            .map(m => ({ playerId: m.winnerId as string, isAdjustmentWinner: true }));
 
         if (adjustmentWinners.length < adjustmentMatches.length && adjustmentMatches.length > 0) {
             throw new Error("Aún hay partidos de ajuste pendientes.");
