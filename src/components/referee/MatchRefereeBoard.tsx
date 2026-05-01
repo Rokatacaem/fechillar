@@ -18,7 +18,13 @@ interface PlayerState {
 }
 
 export default function MatchRefereeBoard({ matchId, initialData }: { matchId: string, initialData?: any }) {
-    highRun: initialData?.homeHighRun || 0, 
+  const [home, setHome] = useState<PlayerState>({
+    id: initialData?.homePlayer?.id || 'home-1',
+    name: initialData?.homePlayer?.user?.name || 'Jugador 1',
+    score: initialData?.homeScore || 0,
+    target: initialData?.homeTarget || 30,
+    innings: initialData?.homeInnings || 0,
+    highRun: initialData?.homeHighRun || 0,
     currentRun: 0,
     photoUrl: initialData?.homePlayer?.photoUrl,
   });
