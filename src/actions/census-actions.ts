@@ -23,11 +23,15 @@ export async function validateMembershipQuick(playerId: string, amount: number) 
     console.log("🛠️ Iniciando habilitación rápida para:", playerId);
 
     // Resiliencia: Asegurar que el validador existe en la DB actual antes de auditar
+    if (!session?.user?.email) {
+        throw new Error("No autorizado o sesión inválida");
+    }
+
     const dbAdmin = await prisma.user.upsert({
-        where: { email: session.user.email as string },
+        where: { email: session.user.email },
         update: {},
         create: {
-            email: session.user.email as string,
+            email: session.user.email,
             name: session.user.name || "Administrador SGF",
             role: (session.user as any).role || "SUPERADMIN"
         },
