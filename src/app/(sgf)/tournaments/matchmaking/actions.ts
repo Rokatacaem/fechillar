@@ -614,8 +614,6 @@ export async function generateGroups(tournamentId: string) {
     }
 }
 
-import { revalidatePath } from "next/cache";
-
 /**
  * Genera el cuadro de eliminación directa (Playoffs) a partir de los resultados
  * de la fase de grupos. 
