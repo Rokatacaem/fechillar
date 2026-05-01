@@ -1,4 +1,4 @@
-import { PrismaClient, Discipline, Category, TournamentStatus, TournamentScope } from '@prisma/client';
+import { PrismaClient, Discipline, Category, TournamentStatus, TournamentScope, TournamentTurn } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -1019,7 +1019,7 @@ async function main() {
         registeredRank: ranking?.rankPosition || 999,
         registeredCategory: 'MASTER',
         isWaitingList: false,
-        preferredTurn: playerData?.preferredTurn || null
+        preferredTurn: (playerData?.preferredTurn as TournamentTurn) || null
       }
     });
   }
