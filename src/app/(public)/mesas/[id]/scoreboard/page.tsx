@@ -34,7 +34,7 @@ export default function HighContrastScoreboardTV({ params }: { params: Promise<{
     const numColor = (state.isZero || state.isCritical) ? 'text-white' : 'text-yellow-400';
 
     return (
-        <main className={`h-screen w-screen overflow-hidden ${state.isCritical ? 'bg-red-950 animate-pulse' : 'bg-black'} cursor-none flex px-12 py-8 transition-colors duration-[1000ms]`}>
+        <main className={`h-screen w-screen overflow-hidden ${state.isCritical ? 'bg-red-950 animate-pulse' : 'bg-black'} cursor-none flex px-12 py-8 transition-colors duration-1000`}>
             {/* Contendor Global de Marcador Vertical */}
             <div className="h-full w-full flex flex-col justify-between items-center text-white font-sans font-black tracking-wider uppercase">
 

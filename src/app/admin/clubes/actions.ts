@@ -487,7 +487,7 @@ export async function upsertPlayerInClub(clubId: string, formData: FormData) {
         });
 
         const result = await prisma.$transaction(async (tx) => {
-            let finalPlayerId: string;
+            let finalPlayerId: string | null = playerId;
             let photoUrl = undefined;
 
             // 1. Manejo de Foto (Híbrido: Vercel Blob -> Local Fallback)
