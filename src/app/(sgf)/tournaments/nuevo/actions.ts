@@ -99,9 +99,9 @@ export async function createTournament(prevState: any, formData: FormData) {
     const registrationPhone = formData.get("registrationPhone") as string;
     
     const prizeDistributionRaw = formData.get("prizeDistribution") as string;
-    let prizeDistribution = null;
+    let prizeDistribution = undefined;
     try {
-        prizeDistribution = prizeDistributionRaw ? JSON.parse(prizeDistributionRaw) : null;
+        prizeDistribution = prizeDistributionRaw ? JSON.parse(prizeDistributionRaw) : undefined;
     } catch (e) {
         console.error("Failed to parse prize distribution:", e);
     }
@@ -151,7 +151,7 @@ export async function createTournament(prevState: any, formData: FormData) {
     
     const diferencia = totalClasificados - playoffBracketSize;
     let requiresAdjustment = false;
-    let adjustmentPhaseConfig = null;
+    let adjustmentPhaseConfig = undefined;
 
     if (diferencia > 0) {
         requiresAdjustment = true;

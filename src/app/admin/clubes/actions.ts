@@ -238,7 +238,7 @@ export async function createClub(data: {
                 isValidated: true,
                 infrastructure: data.tablesCount ? { 
                     tables: [{ type: "Gran Match", count: data.tablesCount }] 
-                } : null
+                } : undefined
             }
         });
 
