@@ -32,7 +32,7 @@ export default async function DelegateInscriptionsPage() {
             },
             registrations: {
                 include: {
-                   tournament: { select: { name: true } }
+                    tournament: { select: { name: true } }
                 }
             }
         }
@@ -40,11 +40,11 @@ export default async function DelegateInscriptionsPage() {
 
     // 2. Calcular standing para cada jugador
     const playersWithStanding = await Promise.all(players.map(async (p) => {
-        const standing = await getPlayerStanding(p.userId);
-        
+        const standing = await getPlayerStanding(p.userId as string);
+
         // Obtener membresía actual para facilitar el ID al modal
         const membership = await prisma.membership.findFirst({
-            where: { userId: p.userId },
+            where: { userId: p.userId as string }, // ✅ ¡AQUÍ ESTÁ EL FIX APLICADO!
             orderBy: { validUntil: "desc" },
             select: { id: true, status: true }
         });

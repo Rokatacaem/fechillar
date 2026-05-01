@@ -11,7 +11,7 @@ import { Loader2 } from "lucide-react";
 export default function TournamentStreamingPage() {
     const params = useParams();
     const tournamentId = params.id as string;
-    
+
     // Estado para detectar nuevos récords de High Run
     const [currentRecord, setCurrentRecord] = useState<number>(0);
     const [recordBreaker, setRecordBreaker] = useState<{ name: string; value: number } | null>(null);
@@ -23,12 +23,12 @@ export default function TournamentStreamingPage() {
     useEffect(() => {
         if (data?.topPerformers?.byHighRun?.[0]) {
             const topHR = data.topPerformers.byHighRun[0];
-            
+
             // Si el valor recibido es mayor que lo que hemos visto antes (y no es el inicio)
             if (currentRecord > 0 && topHR.highRun > currentRecord) {
                 setRecordBreaker({ name: topHR.playerName, value: topHR.highRun });
             }
-            
+
             // Actualizar el récord local si es mayor
             if (topHR.highRun > currentRecord) {
                 setCurrentRecord(topHR.highRun);
@@ -56,28 +56,28 @@ export default function TournamentStreamingPage() {
         );
     }
 
-    const hostClub = (data.tournament as any).hostClub;
+    const hostClub = (data.tournament as any)?.hostClub;
 
     return (
         <WhiteLabelProvider config={{
-            brandColor: hostClub?.brandColor,
-            accentColor: hostClub?.accentColor,
-            logoUrl: hostClub?.logoUrl
+            brandColor: hostClub?.brandColor || "#0ea5e9",
+            accentColor: hostClub?.accentColor || "#10b981",
+            logoUrl: hostClub?.logoUrl || ""
         }}>
             {/* Contenedor Principal */}
-            <AutoRotationContainer 
+            <AutoRotationContainer
                 tournament={data.tournament}
-                groups={data.groups}
-                matches={data.matches}
-                topPerformers={data.topPerformers}
-                allStandings={(data as any).allStandings}
-                rotationInterval={45000} 
-                clubLogo={hostClub?.logoUrl}
+                groups={data.groups || []} // ✅ FIX APLICADO
+                matches={data.matches || []} // ✅ FIX APLICADO
+                topPerformers={data.topPerformers || { byAverage: [], byHighRun: [] }} // ✅ FIX APLICADO
+                allStandings={(data as any).allStandings || []}
+                rotationInterval={45000}
+                clubLogo={hostClub?.logoUrl || ""}
             />
 
             {/* Flash de Récord (Overlay) */}
             {recordBreaker && (
-                <HighRunFlash 
+                <HighRunFlash
                     playerName={recordBreaker.name}
                     runValue={recordBreaker.value}
                     onComplete={() => setRecordBreaker(null)}

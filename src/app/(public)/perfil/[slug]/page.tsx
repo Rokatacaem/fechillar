@@ -23,8 +23,9 @@ export default async function PlayerPublicIDPage({ params }: { params: Promise<{
 
     if (!player) return notFound();
 
-    const standing = await getPlayerStanding(player.userId);
-    
+    // ✅ FIX APLICADO AQUÍ: Agregamos "as string"
+    const standing = await getPlayerStanding(player.userId as string);
+
     // Si no hay foto, generamos un color de fondo dinámico basado en la inicial
     const avatarBg = player.user?.name || player.firstName ? `bg-gradient-to-br from-slate-800 to-slate-900` : "bg-slate-900";
 
@@ -44,9 +45,9 @@ export default async function PlayerPublicIDPage({ params }: { params: Promise<{
     };
 
     return (
-        <WhiteLabelProvider 
-            brandColor={player.club?.brandColor || "#0ea5e9"} 
-            accentColor={player.club?.accentColor || "#10b981"}
+        <WhiteLabelProvider
+            brandColor={(player.club as any)?.brandColor || "#0ea5e9"}
+            accentColor={(player.club as any)?.accentColor || "#10b981"}
         >
             <div className="min-h-screen bg-[#070b14] flex items-center justify-center p-4 md:p-8 font-sans overflow-hidden relative">
                 {/* Background Effects */}
@@ -56,9 +57,9 @@ export default async function PlayerPublicIDPage({ params }: { params: Promise<{
                 <div className="w-full max-w-[380px] relative space-y-6 animate-in fade-in zoom-in-95 duration-700">
                     {/* HEAD: Official Branding */}
                     <div className="text-center space-y-3 mb-4">
-                        <img 
-                            src="/fechillar_logo_final_v3_transparent.png" 
-                            alt="FECHILLAR" 
+                        <img
+                            src="/fechillar_logo_final_v3_transparent.png"
+                            alt="FECHILLAR"
                             className="h-14 mx-auto drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]"
                         />
                         <div className="space-y-1">
@@ -75,7 +76,7 @@ export default async function PlayerPublicIDPage({ params }: { params: Promise<{
                     <div className="bg-slate-900/40 border border-white/10 rounded-[2.5rem] backdrop-blur-2xl shadow-2xl relative overflow-hidden group">
                         {/* Status Light */}
                         <div className={`absolute top-0 left-0 w-full h-1 bg-${safeColor} opacity-50`} />
-                        
+
                         <div className="p-8 pt-10 space-y-8">
                             {/* Player Photo Section */}
                             <div className="flex flex-col items-center space-y-4">
@@ -91,8 +92,8 @@ export default async function PlayerPublicIDPage({ params }: { params: Promise<{
                                     </div>
                                     {/* Status Icon */}
                                     <div className="absolute -bottom-2 -translate-y-1/2 left-1/2 -translate-x-1/2">
-                                        <div className={`bg-#070b14 p-1.5 rounded-2xl border border-white/10 shadow-2xl`}>
-                                            {statusIcons[standing.status]}
+                                        <div className={`bg-[#070b14] p-1.5 rounded-2xl border border-white/10 shadow-2xl`}>
+                                            {statusIcons[standing.status as keyof typeof statusIcons]}
                                         </div>
                                     </div>
                                 </div>

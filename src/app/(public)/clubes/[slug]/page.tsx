@@ -11,7 +11,7 @@ import { Metadata } from "next";
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const slugParams = await params;
     const club = await prisma.club.findUnique({ where: { slug: slugParams.slug } });
-    
+
     if (!club) return { title: 'Club no encontrado' };
 
     return {
@@ -40,7 +40,7 @@ export default async function PublicClubPage({ params }: { params: Promise<{ slu
 
     const finishedTournaments = allTournaments.filter(t => t.status === "FINISHED");
     const latestFinished = finishedTournaments.length > 0 ? finishedTournaments[finishedTournaments.length - 1] : null;
-    
+
     let latestPodium = null;
     if (latestFinished) {
         latestPodium = await getTournamentPodium(latestFinished.id);
@@ -49,21 +49,25 @@ export default async function PublicClubPage({ params }: { params: Promise<{ slu
     return (
         <div className="bg-[#020817] min-h-screen pb-24 font-sans text-slate-300">
             {/* HERO HEADER */}
-            <header 
+            <header
                 className="relative h-72 md:h-96 flex items-end justify-between border-b"
-                style={{ 
-                    borderColor: club.primaryColor,
-                    background: `linear-gradient(to top, #020817 10%, ${club.primaryColor}80 100%)` 
+                style={{
+                    borderColor: (club as any).primaryColor || '#10b981',
+                    background: `linear-gradient(to top, #020817 10%, ${(club as any).primaryColor || '#10b981'}80 100%)`
                 }}
             >
                 <div className="absolute inset-0 z-0 bg-black/40" />
                 <div className="relative z-10 p-8 md:p-16 w-full max-w-7xl mx-auto flex items-end justify-between gap-6">
                     <div className="flex gap-6 items-center">
-                        <div 
+                        <div
                             className="w-24 h-24 md:w-32 md:h-32 rounded-2xl flex items-center justify-center font-black text-4xl shadow-xl"
-                            style={{ backgroundColor: club.primaryColor, color: club.secondaryColor, border: `2px solid ${club.secondaryColor}`}}
+                            style={{
+                                backgroundColor: (club as any).primaryColor || '#10b981',
+                                color: (club as any).secondaryColor || '#ffffff',
+                                border: `2px solid ${(club as any).secondaryColor || '#ffffff'}`
+                            }}
                         >
-                            {club.name.substring(0,2).toUpperCase()}
+                            {club.name.substring(0, 2).toUpperCase()}
                         </div>
                         <div>
                             <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight">{club.name}</h1>
@@ -79,7 +83,7 @@ export default async function PublicClubPage({ params }: { params: Promise<{ slu
                     <div className="absolute top-4 left-6 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest z-20">
                         Podio Histórico: {latestFinished.name}
                     </div>
-                    <TournamentPodium 
+                    <TournamentPodium
                         champion={latestPodium.champion}
                         runnerUp={latestPodium.runnerUp}
                         bronze={latestPodium.bronzes}
@@ -88,7 +92,7 @@ export default async function PublicClubPage({ params }: { params: Promise<{ slu
             )}
 
             <main className="max-w-7xl mx-auto p-4 md:p-16 grid grid-cols-1 lg:grid-cols-3 gap-12 mt-8">
-                
+
                 {/* COLUMNA IZQUIERDA: RANKING LOCAL */}
                 <div className="lg:col-span-2 space-y-8">
                     <div className="flex items-center gap-3 border-b border-white/10 pb-4">
@@ -96,7 +100,7 @@ export default async function PublicClubPage({ params }: { params: Promise<{ slu
                         <h2 className="text-2xl font-black text-white">Ranking Interno del Club</h2>
                     </div>
                     {/* Tabla Extraída como Componente Servidor o Mixto */}
-                    <ClubRankingTable clubId={club.id} secondaryColor={club.secondaryColor} />
+                    <ClubRankingTable clubId={club.id} secondaryColor={(club as any).secondaryColor || '#ffffff'} />
                 </div>
 
                 {/* COLUMNA DERECHA: TORNEOS Y ESTADÍSTICAS */}
@@ -117,7 +121,7 @@ export default async function PublicClubPage({ params }: { params: Promise<{ slu
                                         <div className={`absolute top-0 left-0 w-1 h-full ${t.status === 'OPEN' ? 'bg-indigo-500' : 'bg-emerald-500'}`} />
                                         <h3 className="font-bold text-white pl-3">{t.name}</h3>
                                         <p className="text-xs text-slate-400 pl-3 uppercase tracking-wider mt-1 mb-3">{t.category} - {t.discipline}</p>
-                                        
+
                                         {t.status === 'OPEN' && (
                                             <Link href={`/tournaments/${t.id}/inscripciones`} className="block text-center text-[10px] font-black tracking-widest bg-indigo-500/10 hover:bg-indigo-500 hover:text-white border border-indigo-500/50 text-indigo-400 py-2 rounded-lg transition-all ml-3">
                                                 INSCRIPCIONES

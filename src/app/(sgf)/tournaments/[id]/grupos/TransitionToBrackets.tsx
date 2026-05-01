@@ -1,7 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useTransition } from "react";
-import { getGroupStandings, generateKnockoutPhase } from "./actions";
+// ✅ FIX APLICADO: Se separan las importaciones según su ubicación real
+import { generateKnockoutPhase } from "./actions";
+import { getGroupStandings } from "@/lib/tournament-results";
+
 import { Trophy, Users, Info, ChevronRight, Loader2, Sparkles, Settings, AlertTriangle, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -19,7 +22,7 @@ export function TransitionToBrackets({ tournamentId, onClose }: Props) {
     const [qCount, setQCount] = useState(16);
     const [generating, setGenerating] = useState(false);
     const [isAuditMode, setIsAuditMode] = useState(false);
-    
+
     // Sort logic
     const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
 
@@ -59,9 +62,10 @@ export function TransitionToBrackets({ tournamentId, onClose }: Props) {
         setStandings(newStandings);
     };
 
-    
+
     useEffect(() => {
         async function load() {
+            // ✅ Ahora llama a la función desde la ruta correcta
             const res = await getGroupStandings(tournamentId);
             if (res.success) {
                 setStandings(res.standings || []);
@@ -76,7 +80,7 @@ export function TransitionToBrackets({ tournamentId, onClose }: Props) {
     const handleGenerateBrackets = async () => {
         let msg = `¿Estás seguro de generar el cuadro con los ${qCount} mejores clasificados?`;
         if (isAuditMode) msg = `⚠️ ESTÁS EN MODO AUDITORÍA.\nSe ignorará el motor matemático oficial y se utilizará EXACTAMENTE el orden manual que has configurado en pantalla.\n\n¿Deseas continuar?`;
-        
+
         const ok = confirm(msg);
         if (!ok) return;
 
@@ -127,14 +131,14 @@ export function TransitionToBrackets({ tournamentId, onClose }: Props) {
                         <p className="text-slate-400 font-medium mt-2">Configura el tamaño del cuadro final y verifica los clasificados.</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button 
+                        <button
                             onClick={onClose}
                             disabled={generating}
                             className="px-6 py-3 rounded-2xl bg-slate-800 text-slate-300 font-bold text-sm hover:bg-slate-700 transition-all disabled:opacity-50"
                         >
                             Cancelar
                         </button>
-                        <button 
+                        <button
                             onClick={handleGenerateBrackets}
                             disabled={generating}
                             className="px-8 py-3 rounded-2xl bg-emerald-600 text-white font-black text-sm hover:bg-emerald-500 shadow-xl shadow-emerald-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
@@ -160,23 +164,22 @@ export function TransitionToBrackets({ tournamentId, onClose }: Props) {
                                         <button
                                             key={n}
                                             onClick={() => setQCount(n)}
-                                            className={`px-6 py-3 rounded-2xl font-black text-sm transition-all ${
-                                                qCount === n 
-                                                ? "bg-violet-600 text-white shadow-lg shadow-violet-500/20" 
-                                                : "bg-slate-800 text-slate-500 hover:text-slate-300"
-                                            }`}
+                                            className={`px-6 py-3 rounded-2xl font-black text-sm transition-all ${qCount === n
+                                                    ? "bg-violet-600 text-white shadow-lg shadow-violet-500/20"
+                                                    : "bg-slate-800 text-slate-500 hover:text-slate-300"
+                                                }`}
                                         >
                                             {n}
                                         </button>
                                     ))}
                                 </div>
                             </div>
-                            
+
                             <div className="pt-4 border-t border-white/5">
                                 <label className="flex items-center gap-3 cursor-pointer group">
-                                    <input 
-                                        type="checkbox" 
-                                        className="w-5 h-5 accent-amber-500 bg-slate-800 border-white/10 rounded-md" 
+                                    <input
+                                        type="checkbox"
+                                        className="w-5 h-5 accent-amber-500 bg-slate-800 border-white/10 rounded-md"
                                         checked={isAuditMode}
                                         onChange={(e) => setIsAuditMode(e.target.checked)}
                                     />
@@ -192,21 +195,21 @@ export function TransitionToBrackets({ tournamentId, onClose }: Props) {
                             </div>
                         </div>
 
-                            {isAdjustmentNeeded && (
-                                <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-3xl flex gap-4">
-                                    <div className="p-3 bg-amber-500/20 rounded-2xl h-fit">
-                                        <Info className="w-6 h-6 text-amber-400" />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-amber-400 font-black text-sm uppercase tracking-widest">Fase de Ajuste Detectada</h4>
-                                        <p className="text-amber-500/80 text-xs font-medium mt-1 leading-relaxed">
-                                            Se generará una ronda previa para <span className="font-black text-amber-400">{adjCount * 2}</span> jugadores. 
-                                            Los <span className="font-black text-amber-400">{byeCount}</span> mejores clasificados pasarán directo (BYE) a la ronda de {P}.
-                                        </p>
-                                    </div>
+                        {isAdjustmentNeeded && (
+                            <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-3xl flex gap-4 mt-6">
+                                <div className="p-3 bg-amber-500/20 rounded-2xl h-fit">
+                                    <Info className="w-6 h-6 text-amber-400" />
                                 </div>
-                            )}
-                        </div>
+                                <div>
+                                    <h4 className="text-amber-400 font-black text-sm uppercase tracking-widest">Fase de Ajuste Detectada</h4>
+                                    <p className="text-amber-500/80 text-xs font-medium mt-1 leading-relaxed">
+                                        Se generará una ronda previa para <span className="font-black text-amber-400">{adjCount * 2}</span> jugadores.
+                                        Los <span className="font-black text-amber-400">{byeCount}</span> mejores clasificados pasarán directo (BYE) a la ronda de {P}.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                     <div className="bg-slate-900/60 border border-white/10 rounded-[2.5rem] p-8 flex flex-col justify-between">
                         <div className="space-y-6">
@@ -243,7 +246,7 @@ export function TransitionToBrackets({ tournamentId, onClose }: Props) {
                         </h3>
                         <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Auditoría de Clasificación</span>
                     </div>
-                    
+
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
@@ -313,5 +316,3 @@ export function TransitionToBrackets({ tournamentId, onClose }: Props) {
         </div>
     );
 }
-
-

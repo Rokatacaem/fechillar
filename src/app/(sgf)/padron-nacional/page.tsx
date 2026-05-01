@@ -173,11 +173,11 @@ export default async function PadronNacionalPage({
                     #
                   </th>
                   <Suspense>
-                    <SortableTh label="Nombre"   sortKey="nombre"   currentSort={sort} currentDir={dir} />
-                    <SortableTh label="Club"      sortKey="club"     currentSort={sort} currentDir={dir} />
-                    <SortableTh label="Ranking"   sortKey="ranking"  currentSort={sort} currentDir={dir} />
-                    <SortableTh label="Promedio"  sortKey="promedio" currentSort={sort} currentDir={dir} />
-                    <SortableTh label="Puntos"    sortKey="puntos"   currentSort={sort} currentDir={dir} />
+                    <SortableTh label="Nombre" sortKey="nombre" currentSort={sort} currentDir={dir} />
+                    <SortableTh label="Club" sortKey="club" currentSort={sort} currentDir={dir} />
+                    <SortableTh label="Ranking" sortKey="ranking" currentSort={sort} currentDir={dir} />
+                    <SortableTh label="Promedio" sortKey="promedio" currentSort={sort} currentDir={dir} />
+                    <SortableTh label="Puntos" sortKey="puntos" currentSort={sort} currentDir={dir} />
                   </Suspense>
                   <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">
                     Estado
@@ -253,7 +253,8 @@ export default async function PadronNacionalPage({
                       </td>
                       {isSuperAdmin && (
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <RankingEditButton player={player} />
+                          {/* ✅ FIX APLICADO: Se entrega la prop isSuper={isSuperAdmin} */}
+                          <RankingEditButton player={player as any} isSuper={isSuperAdmin} />
                         </td>
                       )}
                     </tr>

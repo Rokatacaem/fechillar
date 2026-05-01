@@ -74,7 +74,7 @@ export default async function TournamentBracketsPage({ params }: { params: Promi
                             </span>
                         </div>
                         <p className="text-slate-500 text-sm font-bold uppercase tracking-[0.2em] mt-2">
-                             {tournament.name} • {tournament.discipline}
+                            {tournament.name} • {tournament.discipline}
                         </p>
                     </div>
                 </div>
@@ -87,7 +87,8 @@ export default async function TournamentBracketsPage({ params }: { params: Promi
                         </div>
                         <div>
                             <p className="text-[10px] text-slate-500 font-bold uppercase">Capacidad</p>
-                            <p className="text-xl font-black text-white">{tournament.maxPlayers} <span className="text-slate-600 text-xs">Cupos</span></p>
+                            {/* ✅ FIX APLICADO AQUÍ: as any y fallback */}
+                            <p className="text-xl font-black text-white">{(tournament as any).maxParticipants || (tournament as any).maxPlayers || '54'} <span className="text-slate-600 text-xs">Cupos</span></p>
                         </div>
                     </div>
                 </div>
@@ -96,14 +97,14 @@ export default async function TournamentBracketsPage({ params }: { params: Promi
             {/* Podio y Estadísticas */}
             {podiumData && (
                 <div className="grid grid-cols-1 gap-12 mb-16">
-                    <TournamentPodium 
-                        champion={podiumData.champion} 
-                        runnerUp={podiumData.runnerUp} 
-                        bronze={podiumData.bronzes} 
+                    <TournamentPodium
+                        champion={podiumData.champion}
+                        runnerUp={podiumData.runnerUp}
+                        bronze={podiumData.bronzes}
                     />
-                    
+
                     {statsData && (
-                        <TournamentStats 
+                        <TournamentStats
                             bestRun={statsData.bestRun}
                             bestAverage={statsData.bestAverage}
                         />
@@ -125,14 +126,14 @@ export default async function TournamentBracketsPage({ params }: { params: Promi
                     </div>
                     <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">Sin actividad algorítmica</h2>
                     <p className="text-slate-500 max-w-sm mx-auto mb-8">Genera las llaves desde el panel de control o usa el motor de grupos para clasificar a los mejores.</p>
-                    
+
                     <form action={async () => {
                         "use server";
                         await generatePlayoffsFromGroups(tournamentId);
                     }}>
-                        <button 
+                        <button
                             type="submit"
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-widest text-xs px-8 py-4 rounded-2xl transition-all active:scale-95 shadow-lg shadow-emerald-500/20 flex items-center gap-2 mx-auto"
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-widest text-xs px-8 py-4 rounded-2xl transition-all active:scale-[0.95] shadow-lg shadow-emerald-500/20 flex items-center gap-2 mx-auto"
                         >
                             <Trophy className="w-4 h-4" />
                             Finalizar Grupos y Generar Cuadro
@@ -158,7 +159,7 @@ export default async function TournamentBracketsPage({ params }: { params: Promi
                                     {roundIndex < rounds.length - 1 && (
                                         <div className="hidden lg:block absolute top-[50%] -right-10 w-10 h-[2px] bg-gradient-to-r from-slate-800 to-slate-900" />
                                     )}
-                                    
+
                                     <div className={`bg-slate-900/80 border-2 ${match.winnerId ? 'border-emerald-500/20' : 'border-white/5 shadow-2xl'} rounded-3xl overflow-hidden backdrop-blur-xl transition-all shadow-black/50`}>
                                         <div className="p-3 border-b border-white/5 bg-white/[0.02] flex justify-between items-center px-5">
                                             <div className="flex items-center gap-2">
@@ -175,7 +176,7 @@ export default async function TournamentBracketsPage({ params }: { params: Promi
                                                 ID {match.matchOrder}
                                             </span>
                                         </div>
-                                        
+
                                         {/* Home Player Slot */}
                                         <div className={`flex items-center justify-between p-4 px-5 border-b border-white/5 relative ${match.winnerId === match.homePlayerId ? 'bg-emerald-500/10' : ''}`}>
                                             <div className="flex items-center gap-4">
@@ -213,23 +214,22 @@ export default async function TournamentBracketsPage({ params }: { params: Promi
                                                 {match.isWO ? "W.O" : (match.awayScore ?? "-")}
                                             </span>
                                         </div>
-                                        
+
                                         {/* Dynamic Control Overlay */}
                                         <div className="p-3 bg-black/20 flex items-center justify-between px-5">
                                             <div className="flex gap-2">
-                                                {/* Botón de Swap para SuperAdmin (Placeholder UI) */}
                                                 {(session?.user as any)?.role === 'SUPERADMIN' && !match.winnerId && (
                                                     <button className="p-2 rounded-lg bg-slate-800 text-slate-500 hover:text-amber-500 hover:bg-amber-500/10 transition-all" title="Reemplazo Táctico">
                                                         <ShieldAlert className="w-4 h-4" />
                                                     </button>
                                                 )}
                                             </div>
-                                            
-                                            <MatchScoreEditor 
-                                                matchId={match.id} 
-                                                hasWinner={match.winnerId !== null} 
-                                                isWO={match.isWO} 
-                                                homeScore={match.homeScore} 
+
+                                            <MatchScoreEditor
+                                                matchId={match.id}
+                                                hasWinner={match.winnerId !== null}
+                                                isWO={match.isWO}
+                                                homeScore={match.homeScore}
                                                 awayScore={match.awayScore}
                                             />
                                         </div>
@@ -238,23 +238,22 @@ export default async function TournamentBracketsPage({ params }: { params: Promi
                             ))}
                         </div>
                     ))}
-                    
+
                     {/* Final Trophy Slot */}
                     <div className="flex flex-col gap-6 min-w-[340px] opacity-20 pointer-events-none justify-center h-full">
-                         <div className="bg-slate-900 border-4 border-emerald-500/20 shadow-2xl rounded-[3rem] h-64 flex flex-col items-center justify-center relative">
-                             <div className="absolute top-[50%] -left-10 w-10 h-[2px] bg-slate-800" />
-                             <div className="w-24 h-24 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6">
+                        <div className="bg-slate-900 border-4 border-emerald-500/20 shadow-2xl rounded-[3rem] h-64 flex flex-col items-center justify-center relative">
+                            <div className="absolute top-[50%] -left-10 w-10 h-[2px] bg-slate-800" />
+                            <div className="w-24 h-24 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6">
                                 <Trophy className="w-12 h-12 text-emerald-500" />
-                             </div>
-                             <h3 className="text-xl font-black text-emerald-500 uppercase tracking-[0.4em]">
-                                 Campeón
-                             </h3>
-                             <p className="text-slate-600 text-[10px] font-black uppercase mt-2">FECHILLAR 2026</p>
-                         </div>
+                            </div>
+                            <h3 className="text-xl font-black text-emerald-500 uppercase tracking-[0.4em]">
+                                Campeón
+                            </h3>
+                            <p className="text-slate-600 text-[10px] font-black uppercase mt-2">FECHILLAR 2026</p>
+                        </div>
                     </div>
                 </div>
             )}
         </div>
     );
 }
-
