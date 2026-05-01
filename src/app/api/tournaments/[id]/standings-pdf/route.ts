@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getTournamentStandings } from "@/lib/tournament-results";
-import { generateTournamentStandingsPDF } from "@/lib/billiards/pdf.tsx";
+import { generateTournamentStandingsPDF } from "@/lib/billiards/pdf";
 import * as path from "path";
 import * as fs from "fs";
 

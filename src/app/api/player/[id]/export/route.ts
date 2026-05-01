@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generatePlayerReportPDF } from "@/lib/billiards/pdf.tsx";
+import { generatePlayerReportPDF } from "@/lib/billiards/pdf";
 import { getPlayerPerformanceMetrics, getPGPTrend } from "@/lib/billiards/analytics";
 import { auth } from "@/auth";
 
