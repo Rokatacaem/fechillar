@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useTransition } from "react";
 // ✅ RUTA FINAL CORREGIDA: Traemos las acciones desde sus orígenes globales
 import { getGroupStandings } from "@/lib/tournament-results";
-import { generateKnockoutPhase } from "@/app/(sgf)/matchmaking/actions";
+import { generateKnockoutPhase } from "@/app/(sgf)/tournaments/matchmaking/actions";
 
 import { Trophy, Users, Info, ChevronRight, Loader2, Sparkles, Settings, AlertTriangle, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";

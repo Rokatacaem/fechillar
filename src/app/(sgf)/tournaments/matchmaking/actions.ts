@@ -3,6 +3,8 @@
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import { evaluateMatchWinner } from "@/lib/billiards/match-engine";
+import { getGroupStandings } from "@/lib/tournament-results";
+import { revalidatePath } from "next/cache";
 
 /**
  * Obtiene el ranking efectivo para un jugador según el tipo de torneo
@@ -742,8 +744,8 @@ export async function generatePlayoffsFromGroups(tournamentId: string) {
         return {
             success: true,
             bracketSize,
-            qualifiedCount: qualifiedPlayers.length,
-            message: `Cuadro de ${bracketSize} generado con ${qualifiedPlayers.length} clasificados.`
+            qualifiedCount: final32.length,
+            message: `Cuadro de ${bracketSize} generado con ${final32.length} clasificados.`
         };
 
     } catch (error: any) {
@@ -992,5 +994,92 @@ export async function closeGroupPhase(tournamentId: string) {
     } catch (error: any) {
         console.error("Error in closeGroupPhase:", error);
         return { success: false, error: error.message || "Error al cerrar la fase de grupos." };
+    }
+}
+
+/**
+ * Genera la fase de eliminación directa (Knockout) de forma flexible.
+ * @param tournamentId ID del torneo
+ * @param qCount Cantidad de clasificados (ej: 16, 32)
+ * @param customPlayerIds Lista opcional de IDs de jugadores clasificados (Modo Auditoría)
+ */
+export async function generateKnockoutPhase(tournamentId: string, qCount: number, customPlayerIds?: string[]) {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("No autorizado");
+
+    try {
+        const tournament = await prisma.tournament.findUnique({
+            where: { id: tournamentId }
+        });
+        if (!tournament) throw new Error("Torneo no encontrado");
+
+        let classifiedIds: string[] = [];
+
+        if (customPlayerIds && customPlayerIds.length > 0) {
+            // MODO AUDITORÍA: Usamos la lista exacta enviada desde el UI
+            classifiedIds = customPlayerIds.slice(0, qCount);
+        } else {
+            // MODO AUTOMÁTICO: Calculamos standings globales de grupos
+            const res = await getGroupStandings(tournamentId);
+            if (!res.success) throw new Error(res.error);
+            classifiedIds = res.standings.slice(0, qCount).map((s: any) => s.playerId);
+        }
+
+        if (classifiedIds.length < 2) throw new Error("Se necesitan al menos 2 clasificados.");
+
+        // Determinar tamaño de bracket (Potencia de 2)
+        let bracketSize = 2;
+        while (bracketSize < qCount) bracketSize *= 2;
+
+        // Limpiar llaves previas
+        await prisma.match.deleteMany({
+            where: { tournamentId, groupId: null, round: { gt: 0 } }
+        });
+
+        const seeds = getButterflySeeds(bracketSize);
+        const matchesToCreate = [];
+        const totalMatches = bracketSize / 2;
+
+        for (let i = 0; i < totalMatches; i++) {
+            const seedHome = seeds[i * 2];
+            const seedAway = seeds[i * 2 + 1];
+
+            const homeId = classifiedIds[seedHome - 1] || null;
+            const awayId = classifiedIds[seedAway - 1] || null;
+
+            // Obtener targets de hándicap si hay jugador
+            let homeTarget = 15;
+            let awayTarget = 15;
+
+            if (homeId) {
+                const hR = await prisma.ranking.findFirst({ where: { playerId: homeId, discipline: tournament.discipline } });
+                homeTarget = hR?.handicapTarget ?? 15;
+            }
+            if (awayId) {
+                const aR = await prisma.ranking.findFirst({ where: { playerId: awayId, discipline: tournament.discipline } });
+                awayTarget = aR?.handicapTarget ?? 15;
+            }
+
+            matchesToCreate.push({
+                tournamentId,
+                round: 1,
+                matchOrder: i + 1,
+                homePlayerId: homeId,
+                awayPlayerId: awayId,
+                homeTarget,
+                awayTarget,
+                isWO: !!(homeId && !awayId),
+                winnerId: (homeId && !awayId) ? homeId : null
+            });
+        }
+
+        await prisma.match.createMany({ data: matchesToCreate });
+
+        revalidatePath(`/tournaments/${tournamentId}/cuadros`);
+        return { success: true, bracketSize };
+
+    } catch (error: any) {
+        console.error("Error in generateKnockoutPhase:", error);
+        return { success: false, error: error.message };
     }
 }

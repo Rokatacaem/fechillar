@@ -129,3 +129,85 @@ export async function checkPlayerIsHighRun(tournamentId: string, playerId: strin
     if (!stats || stats.bestRun.value === 0) return false;
     return stats.bestRun.playerId === playerId;
 }
+
+export async function getGroupStandings(tournamentId: string) {
+    try {
+        const tournament = await prisma.tournament.findUnique({
+            where: { id: tournamentId },
+            include: {
+                matches: {
+                    where: { groupId: { not: null } },
+                    include: {
+                        homePlayer: { include: { user: true } },
+                        awayPlayer: { include: { user: true } }
+                    }
+                },
+                registrations: {
+                    where: { status: 'APPROVED' },
+                    include: {
+                        player: { include: { user: true } }
+                    }
+                }
+            }
+        });
+
+        if (!tournament) return { success: false, error: "Torneo no encontrado" };
+
+        const playerIds = tournament.registrations.map(r => r.playerId);
+        const playerNames: Record<string, string> = {};
+        tournament.registrations.forEach(r => {
+            playerNames[r.playerId] = r.player.user.name || "Sin Nombre";
+        });
+
+        const stats: Record<string, any> = {};
+        playerIds.forEach(id => {
+            stats[id] = {
+                playerId: id,
+                playerName: playerNames[id],
+                matchPoints: 0,
+                totalCaroms: 0,
+                totalInnings: 0,
+                highRun: 0,
+                particularAverage: 0,
+                weightedAverage: 0
+            };
+        });
+
+        tournament.matches.forEach(match => {
+            if (!match.homePlayerId || !match.awayPlayerId) return;
+            const homeId = match.homePlayerId;
+            const awayId = match.awayPlayerId;
+
+            if (match.winnerId === homeId) {
+                stats[homeId].matchPoints += 2;
+            } else if (match.winnerId === awayId) {
+                stats[awayId].matchPoints += 2;
+            } else if (match.winnerId === null && (match.homeInnings ?? 0) > 0) {
+                stats[homeId].matchPoints += 1;
+                stats[awayId].matchPoints += 1;
+            }
+
+            stats[homeId].totalCaroms += (match.homeScore || 0);
+            stats[homeId].totalInnings += (match.homeInnings || 0);
+            if ((match.homeHighRun || 0) > stats[homeId].highRun) stats[homeId].highRun = match.homeHighRun!;
+
+            stats[awayId].totalCaroms += (match.awayScore || 0);
+            stats[awayId].totalInnings += (match.awayInnings || 0);
+            if ((match.awayHighRun || 0) > stats[awayId].highRun) stats[awayId].highRun = match.awayHighRun!;
+        });
+
+        const standings = Object.values(stats).map(s => ({
+            ...s,
+            weightedAverage: s.totalInnings > 0 ? s.totalCaroms / s.totalInnings : 0
+        })).sort((a, b) => {
+            if (b.matchPoints !== a.matchPoints) return b.matchPoints - a.matchPoints;
+            if (b.weightedAverage !== a.weightedAverage) return b.weightedAverage - a.weightedAverage;
+            return b.highRun - a.highRun;
+        });
+
+        return { success: true, standings };
+    } catch (error: any) {
+        console.error("Error in getGroupStandings:", error);
+        return { success: false, error: error.message };
+    }
+}

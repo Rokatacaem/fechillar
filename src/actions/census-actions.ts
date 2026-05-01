@@ -17,7 +17,7 @@ export async function validateMembershipQuick(playerId: string, amount: number) 
     const allowedRoles = ["SUPERADMIN", "FEDERATION_ADMIN", "ADMIN", "CLUB_ADMIN"];
     
     if (!session || !allowedRoles.includes((session?.user as any)?.role)) {
-        throw new Error(`No autorizado (${(session?.user as any).role || 'Invitado'}). Se requiere nivel administrativo.`);
+        throw new Error(`No autorizado (${(session?.user as any)?.role || 'Invitado'}). Se requiere nivel administrativo.`);
     }
 
     console.log("🛠️ Iniciando habilitación rápida para:", playerId);
