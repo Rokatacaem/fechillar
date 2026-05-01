@@ -137,13 +137,15 @@ export async function removePlayerFromTournament(registrationId: string) {
         const hasResults = await prisma.match.findFirst({
             where: {
                 tournamentId: reg.tournamentId,
-                OR: [{ homePlayerId: reg.playerId }, { awayPlayerId: reg.playerId }],
-                OR: [
-                    { winnerId: { not: null } },
-                    { homeScore: { gt: 0 } },
-                    { awayScore: { gt: 0 } },
-                    { homeInnings: { gt: 0 } },
-                    { awayInnings: { gt: 0 } }
+                AND: [
+                    { OR: [{ homePlayerId: reg.playerId }, { awayPlayerId: reg.playerId }] },
+                    { OR: [
+                        { winnerId: { not: null } },
+                        { homeScore: { gt: 0 } },
+                        { awayScore: { gt: 0 } },
+                        { homeInnings: { gt: 0 } },
+                        { awayInnings: { gt: 0 } }
+                    ]}
                 ]
             }
         });
