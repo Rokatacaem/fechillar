@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Trophy, Activity, Target, Zap } from "lucide-react";
-import { TournamentQR } from "./TournamentQR";
+import { TournamentQR } from "../tournaments/TournamentQR";
 
 interface Standing {
     playerId: string;
