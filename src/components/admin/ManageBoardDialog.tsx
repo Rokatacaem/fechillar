@@ -10,10 +10,10 @@ import { ClubBoardRole } from "@prisma/client";
 
 interface Props {
     clubId: string;
-    existingMembers?: any[];
+    currentBoard?: any[];
 }
 
-export function ManageBoardDialog({ clubId, existingMembers = [] }: Props) {
+export function ManageBoardDialog({ clubId, currentBoard: existingMembers = [] }: Props) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     

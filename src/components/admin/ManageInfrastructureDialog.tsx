@@ -16,10 +16,10 @@ interface TableEntry {
 
 interface Props {
     clubId: string;
-    initialTables?: TableEntry[];
+    currentInfrastructure?: TableEntry[];
 }
 
-export function ManageInfrastructureDialog({ clubId, initialTables = [] }: Props) {
+export function ManageInfrastructureDialog({ clubId, currentInfrastructure: initialTables = [] }: Props) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [tables, setTables] = useState<TableEntry[]>(
