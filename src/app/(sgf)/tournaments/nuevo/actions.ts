@@ -20,7 +20,7 @@ export async function getPrizeTemplates() {
 export async function createTournament(prevState: any, formData: FormData) {
     const session = await auth();
     
-    if (!session?.user?.id as string) {
+    if (!session?.user?.id) {
         throw new Error("No autorizado");
     }
 
