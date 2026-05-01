@@ -389,7 +389,7 @@ async function main() {
       averageAnnual: 0.652,
       rankingAnnual: 16,
       categoryAnnual: 'MASTER',
-      turnPreference: 'T1' 
+      preferredTurn: 'T1' 
     },
     
     { 
@@ -881,12 +881,12 @@ async function main() {
     },
     
     // Resto de jugadores de Santiago...
-    { firstName: 'Carlos', lastName: 'Enrique Olaya', club: clubSantiago.id, pointsNational: 0, averageNational: 0.3, rankingNational: 999, handicap: 18, categoryNational: 'MASTER', pointsAnnual: null, averageAnnual: null, rankingAnnual: null, categoryAnnual: null, turnPreference: null },
-    { firstName: 'Carlos', lastName: 'Illanes', club: clubSantiago.id, pointsNational: 0, averageNational: 0.3, rankingNational: 999, handicap: 18, categoryNational: 'MASTER', pointsAnnual: null, averageAnnual: null, rankingAnnual: null, categoryAnnual: null, turnPreference: null },
-    { firstName: 'Cristian', lastName: 'Pailacura', club: clubSantiago.id, pointsNational: 0, averageNational: 0.3, rankingNational: 999, handicap: 18, categoryNational: 'MASTER', pointsAnnual: null, averageAnnual: null, rankingAnnual: null, categoryAnnual: null, turnPreference: null },
-    { firstName: 'Marcelo', lastName: 'Zambra', club: clubSantiago.id, pointsNational: 619, averageNational: 0.814, rankingNational: 4, handicap: 26, categoryNational: 'MASTER', pointsAnnual: 70, averageAnnual: 0.837, rankingAnnual: 8, categoryAnnual: 'MASTER', turnPreference: null },
-    { firstName: 'Luis', lastName: 'Rubino', club: clubSantiago.id, pointsNational: 347, averageNational: 0.704, rankingNational: 13, handicap: 26, categoryNational: 'MASTER', pointsAnnual: 40, averageAnnual: 0.627, rankingAnnual: 20, categoryAnnual: 'MASTER', turnPreference: null },
-    { firstName: 'Carlos', lastName: 'Johnson', club: clubSantiago.id, pointsNational: 208, averageNational: 0.505, rankingNational: 62, handicap: 22, categoryNational: 'INTERMEDIATE', pointsAnnual: 35, averageAnnual: 0.504, rankingAnnual: 49, categoryAnnual: 'INTERMEDIATE', turnPreference: null }
+    { firstName: 'Carlos', lastName: 'Enrique Olaya', club: clubSantiago.id, pointsNational: 0, averageNational: 0.3, rankingNational: 999, handicap: 18, categoryNational: 'MASTER', pointsAnnual: null, averageAnnual: null, rankingAnnual: null, categoryAnnual: null, preferredTurn: null },
+    { firstName: 'Carlos', lastName: 'Illanes', club: clubSantiago.id, pointsNational: 0, averageNational: 0.3, rankingNational: 999, handicap: 18, categoryNational: 'MASTER', pointsAnnual: null, averageAnnual: null, rankingAnnual: null, categoryAnnual: null, preferredTurn: null },
+    { firstName: 'Cristian', lastName: 'Pailacura', club: clubSantiago.id, pointsNational: 0, averageNational: 0.3, rankingNational: 999, handicap: 18, categoryNational: 'MASTER', pointsAnnual: null, averageAnnual: null, rankingAnnual: null, categoryAnnual: null, preferredTurn: null },
+    { firstName: 'Marcelo', lastName: 'Zambra', club: clubSantiago.id, pointsNational: 619, averageNational: 0.814, rankingNational: 4, handicap: 26, categoryNational: 'MASTER', pointsAnnual: 70, averageAnnual: 0.837, rankingAnnual: 8, categoryAnnual: 'MASTER', preferredTurn: null },
+    { firstName: 'Luis', lastName: 'Rubino', club: clubSantiago.id, pointsNational: 347, averageNational: 0.704, rankingNational: 13, handicap: 26, categoryNational: 'MASTER', pointsAnnual: 40, averageAnnual: 0.627, rankingAnnual: 20, categoryAnnual: 'MASTER', preferredTurn: null },
+    { firstName: 'Carlos', lastName: 'Johnson', club: clubSantiago.id, pointsNational: 208, averageNational: 0.505, rankingNational: 62, handicap: 22, categoryNational: 'INTERMEDIATE', pointsAnnual: 35, averageAnnual: 0.504, rankingAnnual: 49, categoryAnnual: 'INTERMEDIATE', preferredTurn: null }
   ];
 
   const createdPlayers = [];
@@ -1019,7 +1019,7 @@ async function main() {
         registeredRank: ranking?.rankPosition || 999,
         registeredCategory: 'MASTER',
         isWaitingList: false,
-        turnPreference: playerData?.turnPreference || null
+        preferredTurn: playerData?.preferredTurn || null
       }
     });
   }
