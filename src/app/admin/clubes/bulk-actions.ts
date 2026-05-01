@@ -34,6 +34,7 @@ export async function processBulkImport(data: {
         firstName: string;
         lastName: string;
         rut?: string;
+        email?: string;
         clubName: string;
         disciplines: string[];
         points?: number;

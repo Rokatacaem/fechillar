@@ -62,7 +62,7 @@ export default function DisciplinesGrid() {
                                     src={item.imageSrc}
                                     alt={item.title}
                                     fill
-                                    className="object-cover transform transition-transform duration-[20s] ease-in-out group-hover:scale-125"
+                                    className="object-cover transform transition-transform duration-[20000ms] ease-in-out group-hover:scale-125"
                                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                 />
                                 {/* Dark Gradient Overlay */}
