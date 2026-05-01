@@ -45,8 +45,8 @@ export async function registerPlayer(tournamentId: string, playerId: string, pre
             }
         });
 
-        const pointsToFreeze = ranking ? ranking.points : 0;
-        const averageToFreeze = ranking ? ranking.average : 0;
+        const pointsToFreeze = ranking?.points ?? 0;
+        const averageToFreeze = ranking?.average ?? 0;
 
         // 4. Inscribir al jugador
         const registration = await prisma.tournamentRegistration.create({
@@ -54,7 +54,7 @@ export async function registerPlayer(tournamentId: string, playerId: string, pre
                 tournamentId,
                 playerId,
                 registeredPoints: pointsToFreeze,
-                registeredAverage: averageToFreeze,
+                registeredAverage: averageToFreeze ?? undefined,
                 preferredTurn,
                 status: "APPROVED",
                 paid: false,
@@ -216,7 +216,7 @@ export async function registerPlayersBulk(tournamentId: string, playerIds: strin
                         tournamentId,
                         playerId,
                         registeredPoints: rData?.points ?? 0,
-                        registeredAverage: rData?.average ?? 0,
+                        registeredAverage: rData?.average ?? undefined,
                         status: "APPROVED",
                         paymentStatus: "PENDING",
                         preferredTurn: "T1"
