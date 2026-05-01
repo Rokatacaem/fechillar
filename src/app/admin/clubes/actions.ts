@@ -29,10 +29,10 @@ export async function uploadClubCertificate(formData: FormData) {
     try {
         // Asegurar que el usuario de la sesión existe en la DB para la auditoría
         const dbUser = await prisma.user.upsert({
-            where: { email: session?.user?.email as string as string },
+            where: { email: (session?.user as any)?.email },
             update: {},
             create: {
-                email: session?.user?.email as string as string,
+                email: (session?.user as any)?.email,
                 name: session?.user?.name || "Desconocido" || "Admin SGF",
                 role: (session?.user as any)?.role || UserRole.SUPERADMIN
             },
@@ -218,10 +218,10 @@ export async function createClub(data: {
 
     try {
         const dbUser = await prisma.user.upsert({
-            where: { email: session?.user?.email as string as string },
+            where: { email: (session?.user as any)?.email },
             update: {},
             create: {
-                email: session?.user?.email as string as string,
+                email: (session?.user as any)?.email,
                 name: session?.user?.name || "Desconocido" || "Admin SGF",
                 role: (session?.user as any)?.role || UserRole.SUPERADMIN
             },
@@ -477,10 +477,10 @@ export async function upsertPlayerInClub(clubId: string, formData: FormData) {
 
         // Asegurar que el actor existe para auditoría
         const dbAdmin = await prisma.user.upsert({
-            where: { email: session?.user?.email as string as string },
+            where: { email: (session?.user as any)?.email },
             update: {},
             create: {
-                email: session?.user?.email as string as string,
+                email: (session?.user as any)?.email,
                 name: session?.user?.name || "Desconocido" || "Admin",
                 role: userRole
             }

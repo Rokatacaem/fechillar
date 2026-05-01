@@ -25,7 +25,7 @@ export async function overrideMatchScore(matchId: string, actionPayload: any) {
         data: {
             action: `override_${type}_${playerTarget}`,
             targetId: matchId,
-            userId: session?.user?.id as string,
+            userId: (session?.user as any)?.id,
             details: JSON.stringify({
                 event: "[STREAM_OVERRIDE]",
                 context: "Intervención Operador de Cámaras Local (Control Maestro)",

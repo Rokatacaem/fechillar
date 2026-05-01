@@ -22,7 +22,7 @@ export async function validateManualPayment(
 
 
     const caller = await prisma.user.findUnique({
-        where: { id: session?.user?.id as string }
+        where: { id: (session?.user as any)?.id }
     });
 
     if (!caller || !["SUPERADMIN", "FEDERATION_ADMIN", "CLUB_DELEGATE", "CLUB_ADMIN"].includes(caller.role)) {
@@ -38,7 +38,7 @@ export async function validateManualPayment(
                         status: MembershipStatus.PAID,
                         paymentReference: reference,
                         validatedAt: new Date(),
-                        validatedById: session?.user?.id as string
+                        validatedById: (session?.user as any)?.id
                     }
                 });
             } else {
@@ -48,7 +48,7 @@ export async function validateManualPayment(
                         paymentStatus: EnrollmentPaymentStatus.PAID,
                         paymentReference: reference,
                         validatedAt: new Date(),
-                        validatedById: session?.user?.id as string
+                        validatedById: (session?.user as any)?.id
                     }
                 });
             }
@@ -58,7 +58,7 @@ export async function validateManualPayment(
                 data: {
                     action: `manual_payment_validation_${type.toLowerCase()}`,
                     targetId: targetId,
-                    userId: session?.user?.id as string,
+                    userId: (session?.user as any)?.id,
                     details: JSON.stringify({
                         reference,
                         timestamp: new Date().toISOString(),
@@ -120,7 +120,7 @@ export async function forceEnrollmentOverride(enrollmentId: string) {
         data: {
             paymentStatus: EnrollmentPaymentStatus.PAID,
             validatedAt: new Date(),
-            validatedById: session?.user?.id as string,
+            validatedById: (session?.user as any)?.id,
             paymentReference: "SUPERADMIN_OVERRIDE"
         }
     });

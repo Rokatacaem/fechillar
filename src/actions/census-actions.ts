@@ -28,11 +28,11 @@ export async function validateMembershipQuick(playerId: string, amount: number) 
     }
 
     const dbAdmin = await prisma.user.upsert({
-        where: { email: session?.user?.email as string },
+        where: { email: (session?.user as any)?.email },
         update: {},
         create: {
-            email: session?.user?.email as string,
-            name: session?.user?.name as string || "Administrador SGF",
+            email: (session?.user as any)?.email,
+            name: (session?.user as any)?.name || "Administrador SGF",
             role: (session?.user as any)?.role || "SUPERADMIN"
         },
         select: { id: true, name: true, email: true }
