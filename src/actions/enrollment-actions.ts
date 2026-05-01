@@ -16,7 +16,10 @@ export async function validateManualPayment(
     reference?: string
 ) {
     const session = await auth();
-    if (!session) throw new Error("No autenticado");
+    if (!session?.user?.id) {
+        throw new Error("No autorizado o sesión inválida");
+    }
+
 
     const caller = await prisma.user.findUnique({
         where: { id: session.user.id }
@@ -80,7 +83,7 @@ export async function validateManualPayment(
  */
 export async function enrollInTournament(playerId: string, tournamentId: string) {
     const session = await auth();
-    if (!session) throw new Error("No autenticado");
+    if (!session?.user?.id) throw new Error("No autorizado");
 
     const standing = await getPlayerStanding(playerId);
     if (standing.status === "RED") {
@@ -108,7 +111,7 @@ export async function enrollInTournament(playerId: string, tournamentId: string)
  */
 export async function forceEnrollmentOverride(enrollmentId: string) {
     const session = await auth();
-    if (!session || (session.user as any).role !== "SUPERADMIN") {
+    if (!session?.user?.id || (session.user as any).role !== "SUPERADMIN") {
         throw new Error("Acción reservada para SuperAdmin.");
     }
 

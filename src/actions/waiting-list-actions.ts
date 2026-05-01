@@ -64,7 +64,7 @@ export async function manageRegistrationCapacity(tournamentId: string, registrat
  */
 export async function swapWithWaitingList(matchId: string, side: 'HOME' | 'AWAY', waitingUserId: string) {
     const session = await auth();
-    if (!session || session.user.role !== 'SUPERADMIN') {
+    if (!session?.user?.id || (session.user as any).role !== 'SUPERADMIN') {
         throw new Error("Solo los SuperAdmin pueden realizar reemplazos tácticos.");
     }
 

@@ -96,7 +96,7 @@ export async function findDuplicatePlayers(): Promise<DuplicateGroup[]> {
 export async function mergePlayerProfiles(keepId: string, deleteId: string) {
     const session = await auth();
     const allowedRoles = ["SUPERADMIN", "FEDERATION_ADMIN"];
-    if (!session || !allowedRoles.includes((session.user as any)?.role)) {
+    if (!session?.user?.id || !allowedRoles.includes((session.user as any)?.role)) {
         return { success: false, error: "No autorizado" };
     }
 
@@ -177,7 +177,7 @@ export async function mergePlayerProfiles(keepId: string, deleteId: string) {
 export async function deletePlayerProfile(playerId: string) {
     const session = await auth();
     const allowedRoles = ["SUPERADMIN", "FEDERATION_ADMIN"];
-    if (!session || !allowedRoles.includes((session.user as any)?.role)) {
+    if (!session?.user?.id || !allowedRoles.includes((session.user as any)?.role)) {
         return { success: false, error: "No autorizado" };
     }
 
