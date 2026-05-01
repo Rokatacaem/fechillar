@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useTransition } from "react";
-// ✅ FIX APLICADO: Se separan las importaciones según su ubicación real
-import { generateKnockoutPhase } from "./actions";
+// ✅ FIX DEFINITIVO: Importaciones desde sus ubicaciones globales reales
 import { getGroupStandings } from "@/lib/tournament-results";
+import { generateKnockoutPhase } from "../../matchmaking/actions";
 
 import { Trophy, Users, Info, ChevronRight, Loader2, Sparkles, Settings, AlertTriangle, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
@@ -65,7 +65,6 @@ export function TransitionToBrackets({ tournamentId, onClose }: Props) {
 
     useEffect(() => {
         async function load() {
-            // ✅ Ahora llama a la función desde la ruta correcta
             const res = await getGroupStandings(tournamentId);
             if (res.success) {
                 setStandings(res.standings || []);
@@ -165,8 +164,8 @@ export function TransitionToBrackets({ tournamentId, onClose }: Props) {
                                             key={n}
                                             onClick={() => setQCount(n)}
                                             className={`px-6 py-3 rounded-2xl font-black text-sm transition-all ${qCount === n
-                                                    ? "bg-violet-600 text-white shadow-lg shadow-violet-500/20"
-                                                    : "bg-slate-800 text-slate-500 hover:text-slate-300"
+                                                ? "bg-violet-600 text-white shadow-lg shadow-violet-500/20"
+                                                : "bg-slate-800 text-slate-500 hover:text-slate-300"
                                                 }`}
                                         >
                                             {n}
