@@ -55,7 +55,7 @@ export async function registerPlayer(tournamentId: string, playerId: string, pre
                 playerId,
                 registeredPoints: pointsToFreeze,
                 registeredAverage: averageToFreeze ?? undefined,
-                preferredTurn,
+                preferredTurn: preferredTurn as any,
                 status: "APPROVED",
                 paid: false,
                 paymentStatus: "PENDING"
@@ -101,7 +101,7 @@ export async function updatePlayerAvailability(registrationId: string, preferred
 
         await prisma.tournamentRegistration.update({
             where: { id: registrationId },
-            data: { preferredTurn }
+            data: { preferredTurn: preferredTurn as any }
         });
 
         revalidatePath(`/tournaments/${reg.tournamentId}/inscripciones`);
