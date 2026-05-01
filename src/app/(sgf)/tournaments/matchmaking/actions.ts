@@ -1028,7 +1028,7 @@ export async function generateKnockoutPhase(tournamentId: string, qCount: number
         } else {
             // MODO AUTOMÁTICO: Calculamos standings globales de grupos
             const res = await getGroupStandings(tournamentId);
-            if (!res.success) throw new Error(res.error);
+            if (!res.success || !res.standings) throw new Error(res.error || "No se pudieron obtener las posiciones.");
             classifiedIds = res.standings.slice(0, qCount).map((s: any) => s.playerId);
         }
 
