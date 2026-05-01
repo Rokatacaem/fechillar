@@ -79,7 +79,7 @@ async function main() {
     
     // Traer puntos de todos
     const allRankings = await prisma.ranking.findMany({
-        where: { discipline: "POOL", category: "HONOR" }
+        where: { discipline: "POOL_8", category: "HONOR" }
     });
 
     const registrationsToInsert = poolOfPlayers.map(p => {
