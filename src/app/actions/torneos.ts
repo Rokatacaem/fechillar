@@ -34,7 +34,7 @@ export async function generarCuadroFaseAjuste(torneoId: string): Promise<Resulta
     console.log('🎯 Iniciando generación de cuadro para torneo:', torneoId)
 
     // 1. Verificar que el torneo existe
-    const torneo = await prisma.torneo.findUnique({
+    const torneo = await prisma.tournament.findUnique({
       where: { id: torneoId }
     })
 
@@ -46,9 +46,9 @@ export async function generarCuadroFaseAjuste(torneoId: string): Promise<Resulta
     }
 
     // 2. Obtener todos los jugadores del torneo
-    const jugadores = await prisma.jugador.findMany({
-      where: { torneoId },
-      orderBy: { ranking: 'desc' }
+    const jugadores = await (prisma as any).playerProfile.findMany({
+      where: { tournamentId: torneoId },
+      orderBy: { averageBase: 'desc' }
     })
 
     if (jugadores.length < 2) {
@@ -64,19 +64,24 @@ export async function generarCuadroFaseAjuste(torneoId: string): Promise<Resulta
     const partidos = generarPartidosPorGrupos(jugadores, torneoId)
 
     // 4. Guardar los partidos en la base de datos
-    const resultado = await prisma.partido.createMany({
-      data: partidos,
+    const resultado = await prisma.match.createMany({
+      data: partidos.map(p => ({
+        tournamentId: p.torneoId,
+        homePlayerId: p.jugador1Id,
+        awayPlayerId: p.jugador2Id,
+        round: p.grupo,
+        matchOrder: 0
+      })),
       skipDuplicates: true
     })
 
     console.log(`✅ Se crearon ${resultado.count} partidos`)
 
     // 5. Actualizar el estado del torneo
-    await prisma.torneo.update({
+    await prisma.tournament.update({
       where: { id: torneoId },
       data: { 
-        estado: 'fase_grupos',
-        faseActual: 'grupos'
+        status: 'IN_PROGRESS' as any
       }
     })
 
@@ -138,10 +143,10 @@ export async function cerrarTorneoYPublicarRankings(torneoId: string): Promise<R
     console.log('🏆 Cerrando torneo:', torneoId)
 
     // 1. Verificar que todos los partidos están completos
-    const partidosPendientes = await prisma.partido.findMany({
+    const partidosPendientes = await prisma.match.findMany({
       where: {
-        torneoId,
-        completado: false
+        tournamentId: torneoId,
+        homeScore: null
       }
     })
 
@@ -153,8 +158,8 @@ export async function cerrarTorneoYPublicarRankings(torneoId: string): Promise<R
     }
 
     // 2. Obtener todos los jugadores del torneo
-    const jugadores = await prisma.jugador.findMany({
-      where: { torneoId }
+    const jugadores = await (prisma as any).playerProfile.findMany({
+      where: { tournamentId: torneoId }
     })
 
     // 3. Calcular puntos y actualizar rankings
@@ -163,25 +168,33 @@ export async function cerrarTorneoYPublicarRankings(torneoId: string): Promise<R
       
       // Actualizar o crear ranking nacional
       await prisma.ranking.upsert({
-        where: { jugadorId: jugador.id },
+        where: { 
+          playerId_discipline_category: {
+            playerId: jugador.id,
+            discipline: 'THREE_BAND',
+            category: 'MASTER'
+          }
+        },
         update: {
-          puntos: { increment: puntos },
-          ultimaActualizacion: new Date()
+          points: { increment: puntos },
+          updatedAt: new Date()
         },
         create: {
-          jugadorId: jugador.id,
-          puntos,
-          ultimaActualizacion: new Date()
+          playerId: jugador.id,
+          discipline: 'THREE_BAND',
+          category: 'MASTER',
+          points: puntos,
+          updatedAt: new Date()
         }
       })
     }
 
     // 4. Cerrar el torneo
-    await prisma.torneo.update({
+    await prisma.tournament.update({
       where: { id: torneoId },
       data: {
-        estado: 'cerrado',
-        fechaCierre: new Date()
+        status: 'FINISHED' as any,
+        endDate: new Date()
       }
     })
 
@@ -209,14 +222,14 @@ export async function cerrarTorneoYPublicarRankings(torneoId: string): Promise<R
  */
 async function calcularPuntosJugador(jugadorId: string, torneoId: string): Promise<number> {
   // Obtener todos los partidos del jugador en este torneo
-  const partidos = await prisma.partido.findMany({
+  const partidos = await prisma.match.findMany({
     where: {
-      torneoId,
+      tournamentId: torneoId,
       OR: [
-        { jugador1Id: jugadorId },
-        { jugador2Id: jugadorId }
+        { homePlayerId: jugadorId },
+        { awayPlayerId: jugadorId }
       ],
-      completado: true
+      NOT: { homeScore: null }
     }
   })
 
@@ -232,9 +245,9 @@ async function calcularPuntosJugador(jugadorId: string, torneoId: string): Promi
     puntos += 1
 
     // Puntos adicionales por victoria
-    if (partido.jugador1Id === jugadorId && partido.puntaje1 > partido.puntaje2) {
+    if (partido.homePlayerId === jugadorId && (partido.homeScore || 0) > (partido.awayScore || 0)) {
       puntos += 3
-    } else if (partido.jugador2Id === jugadorId && partido.puntaje2 > partido.puntaje1) {
+    } else if (partido.awayPlayerId === jugadorId && (partido.awayScore || 0) > (partido.homeScore || 0)) {
       puntos += 3
     }
   }
