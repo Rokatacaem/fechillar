@@ -109,7 +109,7 @@ export function TournamentForm({ canCreateNational }: TournamentFormProps) {
             const defaultTemplate = templatesData.find((t: any) => t.isDefault);
             if (defaultTemplate) {
                 setSelectedPrizeTemplate(defaultTemplate.id);
-                setCustomPrizeDistribution(defaultTemplate.distribution);
+                setCustomPrizeDistribution((defaultTemplate.distribution as any[]) || []);
             }
         };
         fetchData();
@@ -359,7 +359,7 @@ export function TournamentForm({ canCreateNational }: TournamentFormProps) {
                                 const template = prizeTemplates.find(t => t.id === e.target.value);
                                 if (template) {
                                     setSelectedPrizeTemplate(template.id);
-                                    setCustomPrizeDistribution(template.distribution);
+                                    setCustomPrizeDistribution((template.distribution as any[]) || []);
                                 } else if (e.target.value === "CUSTOM") {
                                     setSelectedPrizeTemplate("CUSTOM");
                                 }
