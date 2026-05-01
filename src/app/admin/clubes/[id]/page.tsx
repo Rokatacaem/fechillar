@@ -263,9 +263,9 @@ export default async function ClubMasterFile({ params, searchParams }: { params:
                                                     </TableCell>
                                                     <TableCell className="font-bold text-white uppercase text-sm flex items-center gap-2">
                                                         {member.isValidated ? (
-                                                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" title="Validado" />
+                                                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" aria-label="Validado" />
                                                         ) : (
-                                                            <ShieldAlert className="w-3.5 h-3.5 text-amber-500" title="Pendiente" />
+                                                            <ShieldAlert className="w-3.5 h-3.5 text-amber-500" aria-label="Pendiente" />
                                                         )}
                                                         {member.name}
                                                     </TableCell>
