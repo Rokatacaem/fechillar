@@ -48,7 +48,7 @@ export default function LoginForm() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 relative overflow-hidden">
             {/* Background Decorativo */}
-            <div className="absolute top-0 left-0 w-full h-1/2 bg-[var(--color-primary)] z-0 rounded-b-[50px]"></div>
+            <div className="absolute top-0 left-0 w-full h-1/2 bg-[var(--color-primary)] z-[-1] rounded-b-[50px]"></div>
 
             <div className="relative z-10 w-full max-w-md p-6">
                 <div className="bg-white rounded-2xl shadow-xl p-8 space-y-8">
@@ -59,7 +59,7 @@ export default function LoginForm() {
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                            <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
                                 Correo Electrónico
                             </label>
                             <input
@@ -68,9 +68,10 @@ export default function LoginForm() {
                                 type="email"
                                 autoComplete="username"
                                 required
+                                autoFocus
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none transition-all text-slate-900"
+                                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-slate-900 bg-white relative z-20"
                                 placeholder="ejemplo@fechillar.cl"
                             />
                         </div>
@@ -86,7 +87,7 @@ export default function LoginForm() {
                                 required
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none transition-all text-slate-900"
+                                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-slate-900 bg-white relative z-20"
                                 placeholder="••••••••"
                             />
                         </div>
