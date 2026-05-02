@@ -112,19 +112,23 @@ export async function enrollInTournament(playerId: string, tournamentId: string)
 export async function forceEnrollmentOverride(enrollmentId: string) {
     const session = await auth();
     if (!session?.user?.id || (session?.user as any)?.role !== "SUPERADMIN") {
-        throw new Error("Acción reservada para SuperAdmin.");
+        return { success: false, error: "Acción reservada para SuperAdmin." };
     }
 
-    await prisma.tournamentEnrollment.update({
-        where: { id: enrollmentId },
-        data: {
-            paymentStatus: EnrollmentPaymentStatus.PAID,
-            validatedAt: new Date(),
-            validatedById: (session?.user as any)?.id,
-            paymentReference: "SUPERADMIN_OVERRIDE"
-        }
-    });
+    try {
+        await prisma.tournamentEnrollment.update({
+            where: { id: enrollmentId },
+            data: {
+                paymentStatus: EnrollmentPaymentStatus.PAID,
+                validatedAt: new Date(),
+                validatedById: (session?.user as any)?.id,
+                paymentReference: "SUPERADMIN_OVERRIDE"
+            }
+        });
 
-    revalidatePath("/admin/dashboard");
-    return { success: true };
+        revalidatePath("/admin/dashboard");
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
 }
