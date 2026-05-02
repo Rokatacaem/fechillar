@@ -38,7 +38,7 @@ export async function getPlayerOfficialRanking(playerId: string) {
         // Reglas estándar de puntuación: si ganó el jugador
         if (match.winnerId === playerId) {
             totalPoints += 3; // 3 pts por Victoria Directa
-        } else if (match.winnerId === null && match.innings && match.innings > 0) {
+        } else if (match.winnerId === null && (match.homeInnings ?? 0) > 0) {
             // Empate
             totalPoints += 1;
         }
