@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useTournamentLive } from "@/hooks/use-tournament-live";
-import { Trophy, Users, ListOrdered, Play, Activity, Star, Calendar, Search, MapPin, Clock } from "lucide-react";
+import { Trophy, Users, ListOrdered, Play, Activity, Star, Calendar, Search, MapPin, Clock, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { LiveGeneralRanking } from "../public/LiveGeneralRanking";
