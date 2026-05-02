@@ -30,7 +30,7 @@ interface InscritoData {
 
 interface SearchResult {
     id: string;
-    displayName: string;
+    name: string;
     club: string;
     rut: string | null;
 }
@@ -295,7 +295,7 @@ export function InscritosListClient({
                                     <div key={p.id}
                                         className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0">
                                         <div>
-                                            <p className="text-white font-bold text-sm">{p.displayName}</p>
+                                            <p className="text-white font-bold text-sm">{p.name}</p>
                                             <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
                                                 {p.club}{p.rut ? ` · ${p.rut}` : ""}
                                             </p>
