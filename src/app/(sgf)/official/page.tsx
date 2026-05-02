@@ -1,4 +1,7 @@
+import { redirect } from "next/navigation";
+
 export default function OfficialDashboard() {
+    redirect("/dashboard");
     return (
         <div className="space-y-8">
             <h1 className="text-3xl font-bold text-slate-800">Panel de Control</h1>
