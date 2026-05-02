@@ -1,5 +1,7 @@
 import prisma from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 import { ArrowLeft, Users, Trophy, MapPin } from "lucide-react";
 import Link from "next/link";
 import { InscritosListClient } from "@/components/tournaments/InscritosListClient";
