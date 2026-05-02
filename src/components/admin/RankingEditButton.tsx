@@ -27,9 +27,6 @@ export function RankingEditButton({ player, isSuper }: RankingEditButtonProps) {
       {editingPlayer && (
         <RankingEditor
           player={editingPlayer}
-          ranking={editingPlayer.rankings?.[0]}
-          discipline="THREE_BAND"
-          category="MASTER"
           onClose={() => setEditingPlayer(null)}
           onSuccess={() => {
             setEditingPlayer(null);
