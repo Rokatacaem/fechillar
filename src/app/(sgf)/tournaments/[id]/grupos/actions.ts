@@ -411,3 +411,84 @@ export async function getGroupsWithPlayers(tournamentId: string) {
 
     return { groups: groupsWithRegs, unassigned };
 }
+
+// ─────────────────────────────────────────────────────────
+// SINCRONIZAR PARTIDOS SEGÚN DISTRIBUCIÓN MANUAL
+// ─────────────────────────────────────────────────────────
+
+export async function syncMatches(tournamentId: string) {
+    const session = await auth();
+    const role = (session?.user as any)?.role;
+    if (!["SUPERADMIN", "FEDERATION_ADMIN"].includes(role)) {
+        return { success: false, error: "No autorizado" };
+    }
+
+    try {
+        // 1. Obtener grupos y sus jugadores actuales (según groupOrder)
+        const groups = await prisma.tournamentGroup.findMany({
+            where: { tournamentId },
+            include: {
+                registrations: {
+                    orderBy: { groupOrder: 'asc' },
+                    select: { playerId: true }
+                }
+            },
+            orderBy: { order: 'asc' }
+        });
+
+        if (groups.length === 0) return { success: false, error: "No hay grupos creados" };
+
+        // 2. Borrar partidos actuales (Solo los de fase de grupos)
+        // Buscamos matches que pertenezcan a un grupo del torneo
+        await prisma.match.deleteMany({
+            where: {
+                tournamentId,
+                groupId: { not: null }
+            }
+        });
+
+        // 3. Crear nuevos partidos Round Robin
+        const matchData: Prisma.MatchCreateManyInput[] = [];
+
+        groups.forEach(group => {
+            const players = group.registrations;
+            const [p1, p2, p3] = players;
+            if (!p1 || !p2) return;
+
+            // Round Robin estándar Fechillar (3 jugadores)
+            // Orden Oficial: 1 vs 3, 1 vs 2, 3 vs 2
+            if (p3) {
+                matchData.push({ 
+                    tournamentId, groupId: group.id, round: 1, matchOrder: 1,
+                    homePlayerId: p1.playerId, awayPlayerId: p3.playerId,
+                    homeTarget: 25, awayTarget: 25, matchDistance: 25 
+                });
+            }
+
+            matchData.push({ 
+                tournamentId, groupId: group.id, round: 1, matchOrder: 2,
+                homePlayerId: p1.playerId, awayPlayerId: p2.playerId,
+                homeTarget: 25, awayTarget: 25, matchDistance: 25 
+            });
+
+            if (p3) {
+                matchData.push({ 
+                    tournamentId, groupId: group.id, round: 1, matchOrder: 3,
+                    homePlayerId: p3.playerId, awayPlayerId: p2.playerId,
+                    homeTarget: 25, awayTarget: 25, matchDistance: 25 
+                });
+            }
+        });
+
+        if (matchData.length > 0) {
+            await prisma.match.createMany({ data: matchData });
+        }
+
+        revalidatePath(`/tournaments/${tournamentId}/grupos`);
+        return { success: true, matchesCreated: matchData.length };
+    } catch (error: any) {
+        console.error("[syncMatches] Error:", error);
+        return { success: false, error: error.message };
+    }
+}
+

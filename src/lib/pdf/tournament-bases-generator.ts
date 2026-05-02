@@ -4,6 +4,7 @@ import { getBase64Image } from './image-utils';
 
 interface TournamentWithClub extends Tournament {
   venueClub: Club | null;
+  hostClub: Club | null;
 }
 
 export async function generateTournamentBasesPDF(

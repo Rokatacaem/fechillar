@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Shuffle, Loader2, GripVertical, Edit2, Check, X, Users, AlertTriangle, ArrowRightLeft, ChevronUp, ChevronDown } from "lucide-react";
-import { movePlayerToGroup, renameGroup, movePlayerOrder, generateGroups, resetGroups } from "./actions";
+import { movePlayerToGroup, renameGroup, movePlayerOrder, generateGroups, resetGroups, syncMatches } from "./actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
@@ -55,21 +55,39 @@ export function GroupsEditorClient({ tournamentId, groups: initialGroups, unassi
 
     const handleGenerate = async () => {
         if (groups.length > 0) {
-            const ok = confirm("⚠️ ATENCIÓN: Al regenerar los grupos se borrarán todas las asignaciones y cambios manuales actuales. ¿Estás seguro de que deseas continuar?");
+            const ok = confirm("⚠️ ATENCIÓN: Esta opción borrará tus cambios manuales y volverá a aplicar el algoritmo de serpentina. ¿Estás seguro?");
             if (!ok) return;
         }
         setGenerating(true);
-        toast.loading("Generando grupos, por favor espera...", { id: "generate-groups" });
+        toast.loading("Generando por algoritmo...", { id: "generate-groups" });
         try {
             const res = await generateGroups(tournamentId);
             if (res.success) {
-                toast.success(`✅ Grupos generados con éxito`, { id: "generate-groups" });
+                toast.success(`✅ Grupos regenerados por algoritmo`, { id: "generate-groups" });
                 startTransition(() => router.refresh());
             } else {
                 toast.error(`Error: ${res.error}`, { id: "generate-groups" });
             }
         } catch (e: any) {
             toast.error(`Error inesperado: ${e.message}`, { id: "generate-groups" });
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    const handleSync = async () => {
+        setGenerating(true);
+        toast.loading("Sincronizando planillas con distribución manual...", { id: "sync-matches" });
+        try {
+            const res = await syncMatches(tournamentId);
+            if (res.success) {
+                toast.success(`✅ Planillas actualizadas según orden manual`, { id: "sync-matches" });
+                startTransition(() => router.refresh());
+            } else {
+                toast.error(`Error: ${res.error}`, { id: "sync-matches" });
+            }
+        } catch (e: any) {
+            toast.error(`Error inesperado: ${e.message}`, { id: "sync-matches" });
         } finally {
             setGenerating(false);
         }
@@ -181,13 +199,25 @@ export function GroupsEditorClient({ tournamentId, groups: initialGroups, unassi
                             Eliminar Grupos
                         </button>
 
+                        {groups.length > 0 && (
+                            <button
+                                onClick={handleGenerate}
+                                disabled={generating}
+                                className="flex items-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black uppercase tracking-widest text-[10px] rounded-2xl transition-all active:scale-95 disabled:opacity-50 shadow-lg"
+                                title="Volver a aplicar el algoritmo de serpentina (pierde cambios manuales)"
+                            >
+                                <Shuffle className="w-4 h-4" />
+                                Algoritmo
+                            </button>
+                        )}
+
                         <button
-                            onClick={handleGenerate}
+                            onClick={groups.length > 0 ? handleSync : handleGenerate}
                             disabled={generating}
                             className="flex items-center gap-2 px-5 py-3 bg-violet-600 hover:bg-violet-500 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-violet-500/20"
                         >
-                            {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shuffle className="w-4 h-4" />}
-                            {generating ? "Generando..." : groups.length > 0 ? "Regenerar Grupos" : "Generar Grupos"}
+                            {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                            {generating ? "Procesando..." : groups.length > 0 ? "Sincronizar Planillas" : "Generar Grupos"}
                         </button>
                     </div>
                 </div>
