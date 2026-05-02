@@ -80,6 +80,7 @@ interface Match {
   winnerId: string | null;
   isWO: boolean;
   groupId: string | null;
+  phaseId?: string | null;
   homeInnings?: number | null;
 }
 

@@ -26,6 +26,8 @@ export default async function TournamentRegistrationsPage({ params }: { params: 
                     winnerId: true,
                     isWO: true,
                     groupId: true,
+                    phaseId: true,
+                    homeInnings: true,
                 }
             },
             groups: {
