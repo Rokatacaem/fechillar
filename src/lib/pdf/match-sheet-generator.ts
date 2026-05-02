@@ -44,75 +44,82 @@ export async function generateMatchSheetsPDF(matches: MatchWithPlayers[]): Promi
   matches.forEach((match, index) => {
     if (index > 0) doc.addPage();
 
-    // ─── CABECERA TÉCNICA ───
-    // Logos con proporciones fijas para evitar deformación
-    if (imgFechillar) doc.addImage(imgFechillar, 'PNG', margin, 7, 32, 0, undefined, 'FAST');
-    if (imgSantiago) doc.addImage(imgSantiago, 'JPEG', margin + 35, 6, 12, 0, undefined, 'FAST');
-    if (imgIND) doc.addImage(imgIND, 'PNG', pageWidth - margin - 32, 7, 32, 0, undefined, 'FAST');
+    // ─── CABECERA TÉCNICA (REDiseñada para evitar solapamientos) ───
+    const headerY = 5;
+    
+    // Logos con proporciones y posiciones fijas
+    if (imgFechillar) doc.addImage(imgFechillar, 'PNG', margin, headerY, 28, 0, undefined, 'FAST');
+    if (imgSantiago) doc.addImage(imgSantiago, 'JPEG', (pageWidth / 2) - 10, headerY, 20, 0, undefined, 'FAST'); // Centrado
+    if (imgIND) doc.addImage(imgIND, 'PNG', pageWidth - margin - 35, headerY, 35, 0, undefined, 'FAST');
 
-    // Información Lateral Izquierda
-    doc.setFontSize(7);
+    // TÍTULO DEL TORNEO (CENTRAL)
+    doc.setFontSize(14);
+    doc.setTextColor(15, 63, 42); // Verde institucional oscuro
     doc.setFont('helvetica', 'bold');
-    doc.text(match.tournament?.name || 'TORNEO NACIONAL CLUB SANTIAGO', margin, 20);
+    doc.text(match.tournament?.name?.toUpperCase() || 'TORNEO NACIONAL CLUB SANTIAGO', pageWidth / 2, 32, { align: 'center' });
+    
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139); // Gris azulado
     doc.setFont('helvetica', 'normal');
-    doc.text(`${match.tournament?.discipline || ''} - ${match.tournament?.category || ''}`, margin, 23);
+    doc.text(`${match.tournament?.discipline || ''} - ${match.tournament?.category || ''} - FASE DE GRUPOS`, pageWidth / 2, 37, { align: 'center' });
 
-    // INFORMACIÓN CENTRAL (NOMBRES DE JUGADORES)
+    // INFORMACIÓN DE JUGADORES (EXTREMOS)
     const p1Name = match.homePlayer ? `${match.homePlayer.firstName} ${match.homePlayer.lastName}` : 'JUGADOR 1';
     const p2Name = match.awayPlayer ? `${match.awayPlayer.firstName} ${match.awayPlayer.lastName}` : 'JUGADOR 2';
     
+    doc.setTextColor(0, 0, 0);
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.text(p1Name.toUpperCase(), pageWidth / 2, 19, { align: 'center' });
+    doc.text(`JUGADOR 1: ${p1Name.toUpperCase()}`, margin, 46);
+    doc.text(`JUGADOR 2: ${p2Name.toUpperCase()}`, pageWidth - margin, 46, { align: 'right' });
+    
     doc.setFontSize(8);
-    doc.text('VS', pageWidth / 2, 22, { align: 'center' });
-    doc.setFontSize(11);
-    doc.text(p2Name.toUpperCase(), pageWidth / 2, 26, { align: 'center' });
-
-    // Información Lateral Derecha
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.text(match.group?.name || 'GRUPO A (10:00 hrs)', pageWidth - margin, 20, { align: 'right' });
     doc.setFont('helvetica', 'normal');
-    doc.text(`PARTIDO #${match.matchOrder || index + 1}`, pageWidth - margin, 23, { align: 'right' });
+    doc.text(match.homePlayer?.tenantId ? 'Club Registrado' : 'Club Invitado', margin, 50); // Aquí se podría poner el nombre del club real si estuviera en el join
+    doc.text(match.awayPlayer?.tenantId ? 'Club Registrado' : 'Club Invitado', pageWidth - margin, 50, { align: 'right' });
+
+    // CAJA DE INFO (GRUPO / PARTIDO)
+    doc.setDrawColor(226, 232, 240);
+    doc.setFillColor(248, 250, 252);
+    const infoWidth = 100;
+    doc.roundedRect((pageWidth / 2) - (infoWidth / 2), 54, infoWidth, 8, 1, 1, 'FD');
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    const infoText = `GRUPO: ${match.group?.name || 'A'}  |  PARTIDO: ${match.matchOrder || index + 1}  |  MESA: ____`;
+    doc.text(infoText.toUpperCase(), pageWidth / 2, 59.5, { align: 'center' });
 
     // Separador Horizontal
     doc.setDrawColor(15, 23, 42);
-    doc.setLineWidth(0.5);
-    doc.line(margin, 28, pageWidth - margin, 28);
-    doc.setLineWidth(0.2);
+    doc.setLineWidth(0.3);
 
-    // ─── BLOQUE DE ASIGNACIÓN DE BOLA (PARA ESCRIBIR A MANO) ───
+    // ─── BLOQUE DE ASIGNACIÓN DE BOLA ───
     const boxWidth = (contentWidth - 4) / 2;
+    const yBoxes = 66;
     doc.setDrawColor(203, 213, 225);
     doc.setFillColor(248, 250, 252);
-    doc.roundedRect(margin, 31, boxWidth, 18, 1, 1, 'FD');
-    doc.roundedRect(margin + boxWidth + 4, 31, boxWidth, 18, 1, 1, 'FD');
+    doc.roundedRect(margin, yBoxes, boxWidth, 18, 1, 1, 'FD');
+    doc.roundedRect(margin + boxWidth + 4, yBoxes, boxWidth, 18, 1, 1, 'FD');
 
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(100, 116, 139);
     
-    // Cuadros para marcar Blanca/Amarilla
-    doc.text('ASIGNACIÓN DE BOLA:', margin + 3, 36);
-    doc.rect(margin + 50, 33, 8, 6); // Cuadro para Blanca
-    doc.text('', margin + 60, 37);
-    doc.rect(margin + 50, 41, 8, 6); // Cuadro para Amarilla
-    doc.text('', margin + 60, 45);
+    doc.text('ASIGNACIÓN DE BOLA:', margin + 3, yBoxes + 5);
+    doc.rect(margin + 50, yBoxes + 2, 8, 6); // Blanca
+    doc.rect(margin + 50, yBoxes + 10, 8, 6); // Amarilla
 
-    doc.text('ASIGNACIÓN DE BOLA:', margin + boxWidth + 7, 36);
-    doc.rect(margin + boxWidth + 54, 33, 8, 6); // Cuadro para Blanca
-    doc.text('', margin + boxWidth + 64, 37);
-    doc.rect(margin + boxWidth + 54, 41, 8, 6); // Cuadro para Amarilla
-    doc.text('', margin + boxWidth + 64, 45);
+    doc.text('ASIGNACIÓN DE BOLA:', margin + boxWidth + 7, yBoxes + 5);
+    doc.rect(margin + boxWidth + 54, yBoxes + 2, 8, 6); 
+    doc.rect(margin + boxWidth + 54, yBoxes + 10, 8, 6); 
 
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
-    doc.text(`META: ${match.homeTarget || '--'}`, margin + 3, 45);
-    doc.text(`META: ${match.awayTarget || '--'}`, margin + boxWidth + 7, 45);
+    doc.text(`META: ${match.homeTarget || '--'}`, margin + 3, yBoxes + 14);
+    doc.text(`META: ${match.awayTarget || '--'}`, margin + boxWidth + 7, yBoxes + 14);
 
     // ─── TABLA DE ENTRADAS (CUADRÍCULA COMPLETA) ───
-    let yTable = 53;
+    let yTable = yBoxes + 22;
     const tableWidth = boxWidth;
     
     doc.setFillColor(241, 245, 249);
@@ -134,8 +141,8 @@ export async function generateMatchSheetsPDF(matches: MatchWithPlayers[]): Promi
     yTable += 6;
     doc.setFont('helvetica', 'normal');
     
-    // Filas de la tabla (Aumentado a 42 filas para llenar la hoja)
-    for (let i = 1; i <= 42; i++) {
+    // Filas de la tabla (Ajustado para que quepa en una sola hoja Carta)
+    for (let i = 1; i <= 38; i++) {
       doc.setDrawColor(203, 213, 225);
       doc.rect(margin, yTable, 8, 4.5); 
       doc.rect(margin + 8, yTable, 25, 4.5); 
@@ -144,7 +151,7 @@ export async function generateMatchSheetsPDF(matches: MatchWithPlayers[]): Promi
       doc.rect(margin + boxWidth + 4, yTable, 8, 4.5); 
       doc.rect(margin + boxWidth + 4 + 8, yTable, 25, 4.5); 
       doc.rect(margin + boxWidth + 4 + 33, yTable, tableWidth - 33, 4.5); 
-
+ 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(7);
       doc.text(i.toString().padStart(2, '0'), margin + 1.5, yTable + 3.2);

@@ -447,10 +447,16 @@ export default function TournamentManager({
                                     standingsSummary={(() => {
                                         // Cálculo rápido de 1° y 2° para el reporte
                                         const stats: Record<string, any> = {};
-                                        group.players.forEach((p: any) => {
-                                            stats[p.id] = { id: p.id, name: p.player.lastName, pts: 0 };
+                                        
+                                        // Seguridad: Verificar existencia de arreglos
+                                        const players = group.players || [];
+                                        const matches = group.matches || [];
+
+                                        players.forEach((p: any) => {
+                                            stats[p.id] = { id: p.id, name: p.player?.lastName || "N/A", pts: 0 };
                                         });
-                                        group.matches.forEach((m: any) => {
+
+                                        matches.forEach((m: any) => {
                                             if (m.winnerId) {
                                                 if (stats[m.homePlayerId]) stats[m.homePlayerId].pts += (m.winnerId === m.homePlayerId ? 2 : 0);
                                                 if (stats[m.awayPlayerId]) stats[m.awayPlayerId].pts += (m.winnerId === m.awayPlayerId ? 2 : 0);
@@ -459,7 +465,7 @@ export default function TournamentManager({
                                         const sorted = Object.values(stats).sort((a: any, b: any) => {
                                             if (b.pts !== a.pts) return b.pts - a.pts;
                                             // Duelo Directo Simplificado
-                                            const h2h = group.matches.find((m: any) => 
+                                            const h2h = matches.find((m: any) => 
                                                 (m.homePlayerId === a.id && m.awayPlayerId === b.id) ||
                                                 (m.homePlayerId === b.id && m.awayPlayerId === a.id)
                                             );
