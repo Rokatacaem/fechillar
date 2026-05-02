@@ -30,13 +30,14 @@ export function BulkActivateButton() {
         try {
             const res = await bulkActivateAllPlayers();
             if (res.success) {
+                const data = res as any;
                 setResult({
-                    activated: res.activated ?? 0,
-                    skipped: res.skipped ?? 0,
-                    errors: res.errors ?? [],
-                    message: res.message ?? "",
+                    activated: data.activated ?? 0,
+                    skipped: data.skipped ?? 0,
+                    errors: data.errors ?? [],
+                    message: data.message ?? "",
                 });
-                toast.success(`${res.activated} jugadores activados exitosamente.`);
+                toast.success(`${data.activated} jugadores activados exitosamente.`);
             } else {
                 toast.error(res.error ?? "Error en activación masiva");
             }
