@@ -55,18 +55,20 @@ export function BulkImportTool({ fixedClubId, fixedClubName }: { fixedClubId?: s
         try {
             const result = await processBulkImport({ players: fileData, fixedClubId });
             if (result.success) {
-                if (result.errors.length > 0) {
-                    setImportErrors(result.errors);
-                    toast.warning(`Importación completada con ${result.errors.length} errores.`);
+                // Cast to any to bypass the union type narrowing limitation in this specific context
+                const successData = result as any;
+                if (successData.errors && successData.errors.length > 0) {
+                    setImportErrors(successData.errors);
+                    toast.warning(`Importación completada con ${successData.errors.length} errores.`);
                 } else {
-                    toast.success(`Importación finalizada. ${result.imported} creados, ${result.skipped} saltados.`);
+                    toast.success(`Importación finalizada. ${successData.imported} creados, ${successData.skipped} saltados.`);
                     setOpen(false);
                     setFileData([]);
                     setFileName("");
                     setImportErrors([]);
                 }
             } else {
-                toast.error(result.error || "Ocurrió un error en el servidor");
+                toast.error((result as any).error || "Ocurrió un error en el servidor");
             }
         } catch (error: any) {
             toast.error(error.message || "Error crítico durante el proceso");
