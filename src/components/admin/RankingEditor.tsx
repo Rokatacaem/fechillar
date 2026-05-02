@@ -78,7 +78,7 @@ export function RankingEditor({
         {
           points: formData.points,
           average: formData.average,
-          handicapTarget: rankingType === 'NATIONAL' ? formData.handicapTarget : null,
+          handicapTarget: rankingType === 'NATIONAL' ? formData.handicapTarget : undefined,
           rankPosition: formData.rankPosition
         }
       );
