@@ -73,7 +73,7 @@ export async function getTournamentStandings(tournamentId: string) {
         .filter(r => r.registeredRank && r.registeredRank > 0)
         .map(r => ({
             id: r.id,
-            name: r.player.user.name || "Jugador Desconocido",
+            name: r.player.user?.name || "Jugador Desconocido",
             rank: r.registeredRank || 0,
             handicap: (r as any).registeredHandicap || 30,
             club: r.player.club?.name || "Independiente"
@@ -156,7 +156,7 @@ export async function getGroupStandings(tournamentId: string) {
         const playerIds = tournament.registrations.map(r => r.playerId);
         const playerNames: Record<string, string> = {};
         tournament.registrations.forEach(r => {
-            playerNames[r.playerId] = r.player.user.name || "Sin Nombre";
+            playerNames[r.playerId] = r.player.user?.name || "Sin Nombre";
         });
 
         const stats: Record<string, any> = {};

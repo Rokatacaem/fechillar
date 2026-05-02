@@ -37,7 +37,7 @@ export async function calculatePowerRanking(discipline: Discipline = "THREE_BAND
 
         return {
             playerId: r.playerId,
-            name: r.player.user.name || "Jugador SGF",
+            name: r.player.user?.name || "Jugador SGF",
             club: r.player.club?.name || "Independiente",
             points: basePoints,
             average: average,

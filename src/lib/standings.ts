@@ -41,7 +41,7 @@ export async function getGroupStandings(groupId: string): Promise<GroupStanding[
         if (!statsMap.has(playerId)) {
             statsMap.set(playerId, {
                 playerId,
-                playerName: player.user.name || "Jugador",
+                playerName: player.user?.name || "Jugador",
                 playerPhoto: player.photoUrl,
                 clubName: player.club?.name || "Libre",
                 played: 0,
