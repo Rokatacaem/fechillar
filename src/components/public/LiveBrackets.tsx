@@ -14,6 +14,8 @@ interface Match {
     matchOrder: number;
     homePlayer: Player | null;
     awayPlayer: Player | null;
+    homePlayerId?: string | null;
+    awayPlayerId?: string | null;
     homeScore: number | null;
     awayScore: number | null;
     winnerId: string | null;
