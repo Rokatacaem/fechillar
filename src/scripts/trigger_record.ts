@@ -12,7 +12,7 @@ async function triggerRecord(tournamentId: string) {
                 tournamentId,
                 winnerId: null // Aún en juego o listo para actualizar
             },
-            orderBy: { updatedAt: 'desc' }
+            orderBy: { createdAt: 'desc' }
         });
 
         if (!match) {
@@ -30,8 +30,7 @@ async function triggerRecord(tournamentId: string) {
             where: { id: match.id },
             data: {
                 homeHighRun: newRecordValue,
-                homeScore: { increment: newRecordValue }, // Para que se note el cambio
-                updatedAt: new Date()
+                homeScore: { increment: newRecordValue } // Para que se note el cambio
             }
         });
 
