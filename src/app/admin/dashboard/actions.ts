@@ -68,3 +68,35 @@ export async function importSanMiguelData() {
     throw new Error("⛔ MIGRACIÓN BLOQUEADA POR EL COMANDANTE: El modo manual está activo y la auto-importación ha sido erradicada del núcleo.");
 }
 
+export async function createSystemBackup() {
+    const session = await auth();
+    if ((session?.user as any)?.role !== "SUPERADMIN") {
+        throw new Error("Solo el Superadmin puede orquestar respaldos masivos.");
+    }
+
+    try {
+        const users = await prisma.user.findMany();
+        const players = await prisma.playerProfile.findMany();
+        const tournaments = await prisma.tournament.findMany();
+
+        const backupData = {
+            version: "1.0",
+            timestamp: new Date().toISOString(),
+            data: { users, players, tournaments }
+        };
+
+        const fileName = `backup_${Date.now()}.json`;
+        const backupDir = path.join(process.cwd(), "backups");
+        
+        if (!fs.existsSync(backupDir)) {
+            fs.mkdirSync(backupDir);
+        }
+
+        fs.writeFileSync(path.join(backupDir, fileName), JSON.stringify(backupData, null, 2));
+
+        return { success: true, fileName };
+    } catch (error: any) {
+        throw new Error("Falla en la persistencia del respaldo: " + error.message);
+    }
+}
+
