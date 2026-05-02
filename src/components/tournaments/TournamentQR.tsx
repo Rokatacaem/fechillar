@@ -13,7 +13,7 @@ interface Props {
     standingsSummary?: string;
 }
 
-export function TournamentQR({ tournamentId, tournamentName, showLabel = true, size = 150 }: Props) {
+export function TournamentQR({ tournamentId, tournamentName, showLabel = true, size = 150, groupName, standingsSummary }: Props) {
     const [qrDataUrl, setQrDataUrl] = useState<string>("");
     
     // Asumimos la URL de producción (Vercel)
@@ -28,8 +28,8 @@ export function TournamentQR({ tournamentId, tournamentName, showLabel = true, s
                 light: "#00000000",
             },
         })
-        .then(url => setQrDataUrl(url))
-        .catch(err => console.error(err));
+        .then((url: string) => setQrDataUrl(url))
+        .catch((err: any) => console.error(err));
     }, [publicUrl, size]);
 
     const shareOnWhatsApp = () => {
