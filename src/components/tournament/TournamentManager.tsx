@@ -496,13 +496,13 @@ export default function TournamentManager({
                             ) : (
                               /* Mostrar jugadores si no hay partidas */
                               <div className="space-y-1 py-1">
-                                {group.registrations?.map((reg: any, rIdx: number) => (
-                                  <div key={reg.playerId} className="text-sm text-slate-400 flex items-center gap-2">
+                                {group.players?.map((reg: any, rIdx: number) => (
+                                  <div key={reg.id} className="text-sm text-slate-400 flex items-center gap-2">
                                     <span className="text-slate-600 w-4">{rIdx + 1}.</span>
                                     <span className="truncate">{reg.player.firstName} {reg.player.lastName}</span>
                                   </div>
                                 ))}
-                                {(!group.registrations || group.registrations.length === 0) && (
+                                {(!group.players || group.players.length === 0) && (
                                   <p className="text-xs text-rose-500 italic">Sin jugadores asignados</p>
                                 )}
                                 <button
