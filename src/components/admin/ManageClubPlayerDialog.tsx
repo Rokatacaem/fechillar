@@ -41,7 +41,7 @@ export function ManageClubPlayerDialog({ clubId, player, onSuccess, allClubs }: 
         email: "",
         rut: "",
         gender: "MASCULINO",
-        disciplines: [Discipline.THREE_BAND],
+        disciplines: [Discipline.THREE_BAND] as Discipline[],
         assignedClubId: clubId
     });
 
@@ -226,9 +226,9 @@ export function ManageClubPlayerDialog({ clubId, player, onSuccess, allClubs }: 
                                     </button>
                                     <button 
                                         type="button" 
-                                        onClick={() => toggleDiscipline(Discipline.BUCHACAS as any)} 
+                                        onClick={() => toggleDiscipline(Discipline.BUCHACAS)} 
                                         className={`w-full py-2.5 rounded-xl border text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2 ${
-                                            formData.disciplines.includes(Discipline.BUCHACAS as any) 
+                                            formData.disciplines.includes(Discipline.BUCHACAS) 
                                                 ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
                                                 : 'bg-slate-900 border-slate-800 text-slate-600'
                                         }`}
