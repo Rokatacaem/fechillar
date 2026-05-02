@@ -71,7 +71,7 @@ export default function LoginForm() {
                                 autoFocus
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-slate-900 bg-white relative z-20"
+                                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-slate-900 bg-white relative z-20 placeholder:text-slate-400"
                                 placeholder="ejemplo@fechillar.cl"
                             />
                         </div>
@@ -87,7 +87,7 @@ export default function LoginForm() {
                                 required
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-slate-900 bg-white relative z-20"
+                                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-slate-900 bg-white relative z-20 placeholder:text-slate-400"
                                 placeholder="••••••••"
                             />
                         </div>
