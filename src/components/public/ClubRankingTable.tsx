@@ -44,11 +44,11 @@ export default async function ClubRankingTable({ clubId, secondaryColor }: { clu
                                     </div>
                                 ) : (
                                     <div className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center font-bold text-xs" style={{ backgroundColor: secondaryColor, color: '#fff' }}>
-                                        {rk.player.user.name?.substring(0,2).toUpperCase()}
+                                        {rk.player.user?.name?.substring(0,2).toUpperCase() || "??"}
                                     </div>
                                 )}
                                 <span className="group-hover:text-emerald-400 transition-colors">
-                                    {rk.player.user.name}
+                                    {rk.player.user?.name || "Jugador Provisional"}
                                 </span>
                             </td>
                             <td className="p-4 hidden sm:table-cell text-sm text-slate-400 font-medium">
