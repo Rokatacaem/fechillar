@@ -30,7 +30,7 @@ export async function GET(
     console.log('PDF generado exitosamente, tamaño:', pdfBuffer.length, 'bytes');
 
     const safeName = tournament.name.replace(/[^a-zA-Z0-9_-]/g, '_');
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(pdfBuffer as any, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Length': pdfBuffer.length.toString(),

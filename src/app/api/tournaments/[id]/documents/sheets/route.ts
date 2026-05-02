@@ -35,7 +35,7 @@ export async function GET(
 
     const pdfBuffer = await generateMatchSheetsPDF(matches);
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(pdfBuffer as any, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="Planillas_Torneo_${params.id.substring(0, 8)}.pdf"`,
