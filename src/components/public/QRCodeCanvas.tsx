@@ -20,7 +20,7 @@ export function QRCodeCanvas({ value, size = 120 }: QRCodeCanvasProps) {
                     dark: "#000000",
                     light: "#ffffff",
                 },
-            }, (error) => {
+            }, (error: any) => {
                 if (error) console.error("Error generating QR Code:", error);
             });
         }
