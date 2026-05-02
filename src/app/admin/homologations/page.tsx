@@ -1,6 +1,8 @@
-import { PrismaClient, TournamentScope, OfficializationStatus } from '@prisma/client';
+import { TournamentScope, OfficializationStatus } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import prisma from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
 
 // Server action handling approval/rejection natively
 async function updateOfficialStatus(formData: FormData) {
