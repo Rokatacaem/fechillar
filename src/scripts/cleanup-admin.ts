@@ -38,14 +38,21 @@ async function main() {
     console.log(`⚠️ Se encontraron ${duplicates.length} perfiles duplicados.`);
 
     for (const dup of duplicates) {
+        if (!dup.user || !dup.userId) {
+            console.log(`- Saltando perfil sin usuario vinculado: ${dup.id}`);
+            continue;
+        }
+
         console.log(`- Procesando duplicado: ${dup.user.name} (${dup.user.email})`);
         
         // Transferencia de datos si fuera necesario (Ranking, etc)
         // Por seguridad, vinculamos los rankings al admin principal antes de borrar
-        await prisma.ranking.updateMany({
-            where: { playerId: dup.id },
-            data: { playerId: mainAdmin.playerProfile?.id || "" }
-        });
+        if (mainAdmin.playerProfile?.id) {
+            await prisma.ranking.updateMany({
+                where: { playerId: dup.id },
+                data: { playerId: mainAdmin.playerProfile.id }
+            });
+        }
 
         // Borrar el perfil y el usuario duplicado
         await prisma.user.delete({
