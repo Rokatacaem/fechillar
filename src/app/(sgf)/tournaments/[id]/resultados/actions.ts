@@ -160,7 +160,15 @@ export interface MatchResultInput {
  */
 export async function saveMatchResult(matchId: string, data: MatchResultInput) {
     const session = await auth();
-    if (!session) return { success: false, error: "No autorizado" };
+    const userEmail = (session?.user as any)?.email;
+    
+    // Permitir si hay sesión AND (es superadmin O es el admin maestro)
+    const isMasterAdmin = userEmail === "admin@fechillar.cl";
+    const isSuperAdmin = (session?.user as any)?.role === "SUPERADMIN";
+
+    if (!session || (!isMasterAdmin && !isSuperAdmin)) {
+        return { success: false, error: "No autorizado" };
+    }
 
     try {
         await prisma.match.update({
@@ -211,8 +219,13 @@ const getPositionPoints = (pos: number, matchesPlayed: number): number => {
 
 export async function commitTournamentRanking(tournamentId: string, forceNational = false) {
     const session = await auth();
+    const userEmail = (session?.user as any)?.email;
+    const userRole = (session?.user as any)?.role;
+    
+    const isMasterAdmin = userEmail === "admin@fechillar.cl";
     const allowedRoles = ["SUPERADMIN", "FEDERATION_ADMIN"];
-    if (!session?.user || !allowedRoles.includes((session?.user as any)?.role)) {
+    
+    if (!session?.user || (!allowedRoles.includes(userRole) && !isMasterAdmin)) {
         return { success: false, error: "No autorizado" };
     }
 

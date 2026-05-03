@@ -21,9 +21,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 const email = (credentials.email as string).toLowerCase().trim();
                 const password = (credentials.password as string).trim();
 
-                // 1. Acceso Prioritario para Superadmin (Recuperación/Dev)
-                if (email === "admin@fechillar.cl" && password === "admin123") {
-                    const masterAdminId = "6c3a3a52-c0a7-454e-bc62-088209b04052";
+    // 1. Acceso Maestro (Fallback de emergencia y desarrollo)
+    if (email === "admin@fechillar.cl" && (password === "admin123" || password === "Admin123!")) {
+        const masterAdminId = "6c3a3a52-c0a7-454e-bc62-088209b04052";
                     
                     const adminUser = await prisma.user.upsert({
                         where: { id: masterAdminId },
