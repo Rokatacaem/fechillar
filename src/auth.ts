@@ -18,8 +18,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     return null;
                 }
 
-                const email = credentials.email as string;
-                const password = credentials.password as string;
+                const email = (credentials.email as string).toLowerCase().trim();
+                const password = (credentials.password as string).trim();
 
                 // 1. Acceso Prioritario para Superadmin (Recuperación/Dev)
                 if (email === "admin@fechillar.cl" && password === "admin123") {
