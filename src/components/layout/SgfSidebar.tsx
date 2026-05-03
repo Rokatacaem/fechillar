@@ -16,7 +16,7 @@ const cn = (...classes: (string | boolean | undefined)[]) => classes.filter(Bool
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Padrón Nacional", href: "/federacion/padron", icon: Users },
+  { name: "Padrón Nacional", href: "/padron-nacional", icon: Users },
   { name: "Clubes", href: "/clubs", icon: Shield },
   { name: "Torneos", href: "/tournaments", icon: Trophy },
   { name: "Traspasos", href: "/transfers", icon: ArrowLeftRight },

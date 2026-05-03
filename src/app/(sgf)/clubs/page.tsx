@@ -68,8 +68,16 @@ export default async function ClubsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {clubs.map((club) => {
                         const compliance = parseLegalStatus(club.legalStatus);
-                        const isVigente = compliance.expiryDate ? isAfter(new Date(compliance.expiryDate), now) : false;
-                        const isDeferred = compliance.deferredUntil ? isAfter(new Date(compliance.deferredUntil), now) : false;
+                        
+                        const isValidDate = (d: string) => d && !isNaN(new Date(d).getTime());
+                        
+                        const isVigente = isValidDate(compliance.expiryDate) 
+                            ? isAfter(new Date(compliance.expiryDate), now) 
+                            : false;
+                            
+                        const isDeferred = isValidDate(compliance.deferredUntil) 
+                            ? isAfter(new Date(compliance.deferredUntil), now) 
+                            : false;
                         
                         let statusText = "S/N";
                         let statusColor = "text-slate-500";
@@ -80,7 +88,7 @@ export default async function ClubsPage() {
                         } else if (isDeferred) {
                             statusText = "PRORROGADO";
                             statusColor = "text-amber-500";
-                        } else if (compliance.expiryDate || compliance.deferredUntil) {
+                        } else if (isValidDate(compliance.expiryDate) || isValidDate(compliance.deferredUntil)) {
                             statusText = "EXPIRADO";
                             statusColor = "text-red-500";
                         }
