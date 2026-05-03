@@ -113,13 +113,13 @@ export async function generateTournamentBasesPDF(
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text(`• Capacidad Máxima: ${tournament.maxCapacity || 54} jugadores`, col1X + 2, y); y += 5;
+  doc.text(`• Capacidad Máxima: ${(tournament as any).maxCapacity || 54} jugadores`, col1X + 2, y); y += 5;
   doc.text(`• Formato: Grupos de 3 jugadores`, col1X + 2, y); y += 5;
   doc.text(`• Costo de Inscripción: $30.000`, col1X + 2, y);
   y += 12;
 
   // DATOS BANCARIOS
-  if (tournament.bankAccountName) {
+  if ((tournament as any).bankAccountName) {
     doc.setFillColor(235, 245, 255);
     doc.rect(col1X, y, 170, 8, 'F');
     doc.setFont('helvetica', 'bold');
@@ -128,11 +128,11 @@ export async function generateTournamentBasesPDF(
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.text(`• Nombre: ${tournament.bankAccountName}`, col1X + 2, y); y += 5;
-    doc.text(`• RUT: ${tournament.bankAccountRut}`, col1X + 2, y); y += 5;
-    doc.text(`• Banco: ${tournament.bankName}`, col1X + 2, y); y += 5;
-    doc.text(`• Número Cuenta: ${tournament.bankAccountNumber} (${tournament.bankAccountType})`, col1X + 2, y); y += 5;
-    doc.text(`• Correo: ${tournament.bankAccountEmail}`, col1X + 2, y);
+    doc.text(`• Nombre: ${(tournament as any).bankAccountName}`, col1X + 2, y); y += 5;
+    doc.text(`• RUT: ${(tournament as any).bankAccountRut}`, col1X + 2, y); y += 5;
+    doc.text(`• Banco: ${(tournament as any).bankName}`, col1X + 2, y); y += 5;
+    doc.text(`• Número Cuenta: ${(tournament as any).bankAccountNumber} (${(tournament as any).bankAccountType})`, col1X + 2, y); y += 5;
+    doc.text(`• Correo: ${(tournament as any).bankAccountEmail}`, col1X + 2, y);
   }
 
   // ============ FORMATO DEL TORNEO (PÁGINA 2) ============
@@ -227,8 +227,8 @@ export async function generateTournamentBasesPDF(
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(`• Grupos/Eliminatorias: ${tournament.distanceGroups || 25} carambolas (Tope 35 entradas)`, col1X + 2, y); y += 5;
-  doc.text(`• Gran Final: ${tournament.distanceFinal || 30} carambolas (Sin límite de entradas)`, col1X + 2, y); y += 5;
+  doc.text(`• Grupos/Eliminatorias: ${(tournament as any).distanceGroups || 25} carambolas (Tope 35 entradas)`, col1X + 2, y); y += 5;
+  doc.text(`• Gran Final: ${(tournament as any).distanceFinal || 30} carambolas (Sin límite de entradas)`, col1X + 2, y); y += 5;
   doc.text('• Sistema: Nacional (Sin handicap)', col1X + 2, y);
   y += 10;
 
@@ -260,8 +260,8 @@ export async function generateTournamentBasesPDF(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   
-  if (tournament.prizeDistribution && Array.isArray(tournament.prizeDistribution)) {
-    (tournament.prizeDistribution as any[]).forEach((prize) => {
+  if ((tournament as any).prizeDistribution && Array.isArray((tournament as any).prizeDistribution)) {
+    ((tournament as any).prizeDistribution as any[]).forEach((prize) => {
       doc.text(`• ${prize.label}: ${prize.percentage}%`, col1X + 2, y);
       y += 5;
     });
