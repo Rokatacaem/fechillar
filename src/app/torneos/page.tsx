@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { generarCuadroFaseAjuste, cerrarTorneoYPublicarRankings } from '@/src/app/actions/torneos'
+import { generarCuadroFaseAjuste, cerrarTorneoYPublicarRankings } from '@/app/actions/torneos'
 
 interface Partido {
   id: string

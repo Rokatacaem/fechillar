@@ -131,8 +131,8 @@ export default async function TournamentsListPage() {
                                     <div className="flex items-center gap-2 text-slate-400 text-sm">
                                         <Calendar className="w-4 h-4 text-slate-500" />
                                         <span>
-                                            {tournament.startDate.toLocaleDateString("es-CL")} 
-                                            {tournament.endDate && ` - ${tournament.endDate.toLocaleDateString("es-CL")}`}
+                                            {tournament.startDate ? new Date(tournament.startDate).toLocaleDateString("es-CL") : "Fecha pendiente"} 
+                                            {tournament.endDate && ` - ${new Date(tournament.endDate).toLocaleDateString("es-CL")}`}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2 text-slate-400 text-sm">
