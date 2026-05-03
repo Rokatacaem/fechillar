@@ -19,38 +19,37 @@ export async function GET() {
 
         console.log("Restaurando datos desde backup...");
 
-        // 1. Restaurar Clubes
+        // 1. Restaurar Clubes (Usamos slug como identificador único para evitar conflictos)
         for (const club of data.clubs) {
             await prisma.club.upsert({
-                where: { id: club.id },
+                where: { slug: club.slug },
                 update: club,
                 create: club
             });
         }
 
-        // 2. Restaurar Usuarios (Importante para relaciones)
+        // 2. Restaurar Usuarios (Usamos email como identificador único)
         if (data.users) {
             for (const user of data.users) {
                 await prisma.user.upsert({
-                    where: { id: user.id },
+                    where: { email: user.email },
                     update: user,
                     create: user
                 });
             }
         }
 
-        // 3. Restaurar Jugadores
+        // 3. Restaurar Jugadores (Usamos slug)
         for (const player of data.players) {
-            // Limpiamos relaciones que podrían fallar si el target no existe aún
-            const { club, user, ...playerData } = player;
+            const { club, user, rankings: _, ...playerData } = player;
             await prisma.playerProfile.upsert({
-                where: { id: player.id },
+                where: { slug: player.slug },
                 update: playerData,
                 create: playerData
             });
         }
 
-        // 4. Restaurar Torneos
+        // 4. Restaurar Torneos (Usamos ID o Nombre si es necesario, pero ID suele ser seguro si es el mismo proyecto)
         if (data.tournaments) {
             for (const tournament of data.tournaments) {
                 const { hostClub, venueClub, creator, registrations, groups, ...tData } = tournament;
@@ -79,7 +78,12 @@ export async function GET() {
             for (const reg of data.registrations) {
                 const { player, tournament, group, ...rData } = reg;
                 await prisma.tournamentRegistration.upsert({
-                    where: { id: reg.id },
+                    where: { 
+                        tournamentId_playerId: {
+                            tournamentId: reg.tournamentId,
+                            playerId: reg.playerId
+                        }
+                    },
                     update: rData,
                     create: rData
                 });
@@ -91,7 +95,13 @@ export async function GET() {
             for (const rank of data.rankings) {
                 const { player, ...rankData } = rank;
                 await prisma.ranking.upsert({
-                    where: { id: rank.id },
+                    where: { 
+                        playerId_discipline_category: {
+                            playerId: rank.playerId,
+                            discipline: rank.discipline,
+                            category: rank.category
+                        }
+                    },
                     update: rankData,
                     create: rankData
                 });
