@@ -147,8 +147,8 @@ export async function generateTournamentBasesPDF(
   const capacity = tournament.maxCapacity || 54;
   const playersPerGroup = 3;
   const totalGroups = 18;
-  const config = tournament.adjustmentPhaseConfig as any;
-  const bracketSize = 32;
+  const config = (tournament as any).adjustmentPhaseConfig || {};
+  const bracketSize = (tournament as any).playoffBracketSize || 32;
   const tables = 6;
 
   // 1. FASE DE GRUPOS
