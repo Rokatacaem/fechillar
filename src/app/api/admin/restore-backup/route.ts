@@ -49,10 +49,16 @@ export async function GET() {
             });
         }
 
-        // 4. Restaurar Torneos (Usamos ID o Nombre si es necesario, pero ID suele ser seguro si es el mismo proyecto)
+        // 4. Restaurar Torneos
         if (data.tournaments) {
             for (const tournament of data.tournaments) {
-                const { hostClub, venueClub, creator, registrations, groups, ...tData } = tournament;
+                const { 
+                    hostClub, venueClub, creator, registrations, groups, 
+                    registrationFee,
+                    adjustmentPhaseConfig, playoffBracketSize, requiresAdjustment, tournamentStructure, // Excluimos campos nuevos
+                    ...tData 
+                } = tournament;
+                
                 await prisma.tournament.upsert({
                     where: { id: tournament.id },
                     update: tData,
