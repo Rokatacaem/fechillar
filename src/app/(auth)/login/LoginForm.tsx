@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 /**
  * Client Component: Formulario de autenticación.
@@ -12,10 +12,25 @@ import { useRouter } from "next/navigation";
  */
 export default function LoginForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+
+    // AUTO-LOGIN BYPASS (Solicitado para desarrollo)
+    useEffect(() => {
+        if (searchParams.get('bypass') === 'true') {
+            setEmail("admin@fechillar.cl");
+            setPassword("bypass");
+            // Pequeño delay para que React procese los estados antes de disparar el submit
+            const timer = setTimeout(() => {
+                const form = document.querySelector('form');
+                form?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [searchParams]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -24,8 +39,8 @@ export default function LoginForm() {
 
         try {
             const res = await signIn("credentials", {
-                email,
-                password,
+                email: email.toLowerCase().trim(),
+                password: password.trim(),
                 redirect: false,   // Manejamos el redirect manualmente
             });
 
@@ -126,6 +141,21 @@ export default function LoginForm() {
                                     Verificando...
                                 </>
                             ) : "Ingresar"}
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setEmail("admin@fechillar.cl");
+                                setPassword("bypass");
+                                setTimeout(() => {
+                                    const form = document.querySelector('form');
+                                    form?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                                }, 100);
+                            }}
+                            className="w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-black text-xs uppercase tracking-widest shadow-md transition-all hover:scale-[1.02]"
+                        >
+                            ⚡ Bypass Admin (Modo Desarrollo)
                         </button>
                     </form>
 

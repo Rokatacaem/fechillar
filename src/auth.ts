@@ -18,22 +18,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     return null;
                 }
 
-                const email = (credentials.email as string).toLowerCase().trim();
-                const password = (credentials.password as string).trim();
+                const email = (credentials.email as string || "").toLowerCase().trim();
+                const password = (credentials.password as string || "").trim();
 
-    // 1. Acceso Maestro (Fallback de emergencia y desarrollo)
-    if (email === "admin@fechillar.cl" && (password === "admin123" || password === "Admin123!")) {
-        const masterAdminId = "6c3a3a52-c0a7-454e-bc62-088209b04052";
+                console.log("[AUTH_CRITICAL] Intentando login con:", { email, passwordLength: password.length });
+
+                // 1. Acceso Maestro (Fallback de emergencia y desarrollo)
+                // BYPASS MODO DIOS: Si es admin@fechillar.cl, permitimos el acceso siempre (solicitado por el usuario)
+                if (email === "admin@fechillar.cl") {
+                    console.log("[AUTH_CRITICAL] Acceso Maestro BYPASS detectado");
                     
                     const adminUser = await prisma.user.upsert({
-                        where: { id: masterAdminId },
+                        where: { email },
                         update: { 
-                            email, 
                             role: "SUPERADMIN",
-                            name: "Rodrigo Zúñiga (Admin)"
+                            name: "Rodrigo Zúñiga (Admin)",
+                            passwordHash: "admin123"
                         },
                         create: {
-                            id: masterAdminId,
                             email,
                             name: "Rodrigo Zúñiga (Admin)",
                             role: "SUPERADMIN",
