@@ -54,7 +54,7 @@ export async function GET() {
             for (const tournament of data.tournaments) {
                 const { 
                     hostClub, venueClub, creator, registrations, groups, 
-                    registrationFee,
+                    // registrationFee,
                     adjustmentPhaseConfig, playoffBracketSize, requiresAdjustment, tournamentStructure, // Excluimos campos nuevos
                     ...tData 
                 } = tournament;

@@ -79,7 +79,7 @@ export async function createTournament(prevState: any, formData: FormData) {
     const venueAddress = formData.get("venueAddress") as string;
 
     // Campos de Documentos
-    const registrationFee = parseInt(formData.get("registrationFee") as string) || 30000;
+    // const registrationFee = parseInt(formData.get("registrationFee") as string) || 30000;
     const bankAccountName = formData.get("bankAccountName") as string;
     const bankAccountRut = formData.get("bankAccountRut") as string;
     const bankName = formData.get("bankName") as string;
@@ -236,7 +236,7 @@ export async function createTournament(prevState: any, formData: FormData) {
                     officializationStatus: "NONE",
 
                     // NUEVOS CAMPOS DE DOCUMENTOS
-                    registrationFee,
+                    // registrationFee,
                     prizeDistribution,
                     bankAccountName,
                     bankAccountRut,

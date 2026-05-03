@@ -115,7 +115,7 @@ export async function generateTournamentBasesPDF(
   doc.setFontSize(9);
   doc.text(`• Capacidad Máxima: ${tournament.maxCapacity || 54} jugadores`, col1X + 2, y); y += 5;
   doc.text(`• Formato: Grupos de 3 jugadores`, col1X + 2, y); y += 5;
-  doc.text(`• Costo de Inscripción: $${tournament.registrationFee?.toLocaleString('es-CL') || '30.000'}`, col1X + 2, y);
+  doc.text(`• Costo de Inscripción: $30.000`, col1X + 2, y);
   y += 12;
 
   // DATOS BANCARIOS

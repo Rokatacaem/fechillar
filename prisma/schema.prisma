@@ -129,7 +129,6 @@ model Tournament {
   hasTimeLimit          Boolean                  @default(false)
   secondsPerShot        Int                      @default(40)
   extensionsPerPlayer   Int                      @default(2)
-  registrationFee       Int?                     @default(30000)
   prizeDistribution     Json?
   bankAccountName       String?
   bankAccountRut        String?
@@ -149,10 +148,6 @@ model Tournament {
   registrationPhone     String?
   registrationDeadline  DateTime?
   groupsPublishDate     DateTime?
-  playoffBracketSize    Int?                     // 128, 64, 32, 16, 8
-  requiresAdjustment    Boolean                  @default(false)
-  adjustmentPhaseConfig Json?                    // { directos: 28, playoff: 8, partidos: 4 }
-  tournamentStructure   String?                  @db.Text // Bases generadas automáticamente
   config                Json?
   matches               Match[]
   creator               User?                    @relation("TournamentCreator", fields: [createdById], references: [id])
