@@ -256,10 +256,10 @@ export async function createTournament(prevState: any, formData: FormData) {
                     registrationPhone,
                     registrationDeadline,
                     groupsPublishDate,
-                    playoffBracketSize,
-                    requiresAdjustment,
-                    adjustmentPhaseConfig: adjustmentPhaseConfig || {},
-                    tournamentStructure: description // Mapeamos description a tournamentStructure
+                    // playoffBracketSize,
+                    // requiresAdjustment,
+                    // adjustmentPhaseConfig: adjustmentPhaseConfig || {},
+                    // tournamentStructure: description // Mapeamos description a tournamentStructure
                 }
             });
 

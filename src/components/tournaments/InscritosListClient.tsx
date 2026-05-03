@@ -40,7 +40,7 @@ interface InscritosListClientProps {
     tournamentId: string;
     allClubs: { id: string, name: string }[];
     hasGroups?: boolean;
-    registrationFee?: number;
+    // registrationFee?: number;
 }
 
 export function InscritosListClient({ 
@@ -48,7 +48,7 @@ export function InscritosListClient({
     tournamentId, 
     allClubs, 
     hasGroups = false,
-    registrationFee = 30000 
+    // registrationFee = 30000 
 }: InscritosListClientProps) {
     const router = useRouter();
     const [query, setQuery] = useState("");
@@ -528,7 +528,7 @@ export function InscritosListClient({
                                                 <p className="text-yellow-500 font-bold text-[10px] uppercase tracking-widest">PENDIENTE</p>
                                                 <PaymentValidateButton 
                                                     registrationId={reg.id} 
-                                                    amount={registrationFee}
+                                                    amount={30000}
                                                 />
                                             </div>
                                         )}

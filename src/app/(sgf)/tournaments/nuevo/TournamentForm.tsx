@@ -342,12 +342,9 @@ export function TournamentForm({ canCreateNational }: TournamentFormProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Costo de Inscripción ($)</label>
-                        <input 
-                            type="number"
-                            name="registrationFee" 
-                            defaultValue={30000}
-                            className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:ring-1 focus:ring-emerald-500/50 transition-all font-bold" 
-                        />
+                        <div className="w-full bg-slate-950/50 border border-white/5 rounded-xl px-4 py-3 text-slate-400 font-bold text-sm">
+                            $30.000 (Fijo)
+                        </div>
                     </div>
 
                     <div className="space-y-2">
