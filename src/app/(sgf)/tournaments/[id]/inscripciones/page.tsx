@@ -168,7 +168,6 @@ export default async function TournamentRegistrationsPage({ params }: { params: 
                     tournamentId={tournamentId} 
                     allClubs={allClubs} 
                     hasGroups={tournament.groups.length > 0}
-                    registrationFee={30000}
                 />
             </div>
         </div>
