@@ -54,15 +54,23 @@ export async function GET() {
             for (const tournament of data.tournaments) {
                 const { 
                     hostClub, venueClub, creator, registrations, groups, 
-                    // registrationFee,
-                    adjustmentPhaseConfig, playoffBracketSize, requiresAdjustment, tournamentStructure, // Excluimos campos nuevos
+                    registrationFee,
+                    adjustmentPhaseConfig, playoffBracketSize, requiresAdjustment, tournamentStructure,
                     ...tData 
                 } = tournament;
+
+                // Limpieza manual de seguridad: eliminamos campos que sabemos que dan error
+                const cleanData = { ...tData };
+                delete (cleanData as any).registrationFee;
+                delete (cleanData as any).adjustmentPhaseConfig;
+                delete (cleanData as any).playoffBracketSize;
+                delete (cleanData as any).requiresAdjustment;
+                delete (cleanData as any).tournamentStructure;
                 
                 await prisma.tournament.upsert({
                     where: { id: tournament.id },
-                    update: tData,
-                    create: tData
+                    update: cleanData,
+                    create: cleanData
                 });
             }
         }
@@ -72,7 +80,7 @@ export async function GET() {
             for (const group of data.groups) {
                 const { tournament, registrations, ...gData } = group;
                 await prisma.tournamentGroup.upsert({
-                    where: { id: group.id },
+                    where: { id: gData.id },
                     update: gData,
                     create: gData
                 });
