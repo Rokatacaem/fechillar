@@ -59,13 +59,22 @@ export async function GET() {
                     ...tData 
                 } = tournament;
 
-                // Limpieza manual de seguridad: eliminamos campos que sabemos que dan error
+                // Limpieza manual de seguridad total: eliminamos campos que sabemos que dan error
                 const cleanData = { ...tData };
-                delete (cleanData as any).registrationFee;
-                delete (cleanData as any).adjustmentPhaseConfig;
-                delete (cleanData as any).playoffBracketSize;
-                delete (cleanData as any).requiresAdjustment;
-                delete (cleanData as any).tournamentStructure;
+                const fieldsToRemove = [
+                    'registrationFee', 'adjustmentPhaseConfig', 'playoffBracketSize', 
+                    'requiresAdjustment', 'tournamentStructure', 'prizeDistribution',
+                    'bankAccountName', 'bankAccountRut', 'bankName', 'bankAccountType',
+                    'bankAccountNumber', 'bankAccountEmail', 'groupFormat', 'maxCapacity',
+                    'distanceGroups', 'distancePlayoffs', 'distanceFinal', 
+                    'finalUnlimitedInnings', 'scheduleDay1Start', 'scheduleDay2Start',
+                    'registrationContact', 'registrationPhone', 'registrationDeadline', 
+                    'groupsPublishDate'
+                ];
+                
+                fieldsToRemove.forEach(field => {
+                    delete (cleanData as any)[field];
+                });
                 
                 await prisma.tournament.upsert({
                     where: { id: tournament.id },

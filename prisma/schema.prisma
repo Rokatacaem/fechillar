@@ -119,7 +119,7 @@ model Tournament {
   venue                 String?
   venueClubId           String?
   venueLogoUrl          String?
-  officializationStatus OfficializationStatus    @default(NONE)
+  officializationStatus String?                  @default("NONE")
   tenantId              String?
   createdById           String?
   createdAt             DateTime                 @default(now())
@@ -129,25 +129,6 @@ model Tournament {
   hasTimeLimit          Boolean                  @default(false)
   secondsPerShot        Int                      @default(40)
   extensionsPerPlayer   Int                      @default(2)
-  prizeDistribution     Json?
-  bankAccountName       String?
-  bankAccountRut        String?
-  bankName              String?
-  bankAccountType       String?
-  bankAccountNumber     String?
-  bankAccountEmail      String?
-  groupFormat           String?
-  maxCapacity           Int?
-  distanceGroups        Int?                     @default(25)
-  distancePlayoffs      Int?                     @default(25)
-  distanceFinal         Int?                     @default(30)
-  finalUnlimitedInnings Boolean?                 @default(true)
-  scheduleDay1Start     String?
-  scheduleDay2Start     String?
-  registrationContact   String?
-  registrationPhone     String?
-  registrationDeadline  DateTime?
-  groupsPublishDate     DateTime?
   config                Json?
   matches               Match[]
   creator               User?                    @relation("TournamentCreator", fields: [createdById], references: [id])
