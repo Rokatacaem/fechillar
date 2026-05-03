@@ -459,12 +459,6 @@ enum RegistrationStatus {
   REJECTED
 }
 
-enum OfficializationStatus {
-  NONE
-  PENDING
-  APPROVED
-  REJECTED
-}
 
 enum WorkflowRequestType {
   CERTIFICATE

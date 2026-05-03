@@ -1,4 +1,4 @@
-import { TournamentScope, OfficializationStatus } from '@prisma/client';
+import { TournamentScope } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import prisma from "@/lib/prisma";
 
