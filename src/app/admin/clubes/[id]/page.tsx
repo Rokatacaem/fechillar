@@ -102,8 +102,9 @@ export default async function ClubMasterFile({ params, searchParams }: { params:
     const compliance = parseLegalStatus(club.legalStatus);
 
     const now = new Date();
-    const isVigente = compliance.expiryDate ? isAfter(new Date(compliance.expiryDate), now) : false;
-    const isDeferred = compliance.deferredUntil ? isAfter(new Date(compliance.deferredUntil), now) : false;
+    const isValidDate = (d: string) => d && !isNaN(new Date(d).getTime());
+    const isVigente = isValidDate(compliance.expiryDate) ? isAfter(new Date(compliance.expiryDate), now) : false;
+    const isDeferred = isValidDate(compliance.deferredUntil) ? isAfter(new Date(compliance.deferredUntil), now) : false;
     
     // Status Final
     let complianceStatus: 'OK' | 'WARNING' | 'CRITICAL' = 'OK';

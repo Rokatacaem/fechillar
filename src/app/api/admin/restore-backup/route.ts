@@ -53,7 +53,7 @@ export async function GET() {
         // 4. Restaurar Torneos
         if (data.tournaments) {
             for (const tournament of data.tournaments) {
-                const { hostClub, venueClub, creator, ...tData } = tournament;
+                const { hostClub, venueClub, creator, registrations, groups, ...tData } = tournament;
                 await prisma.tournament.upsert({
                     where: { id: tournament.id },
                     update: tData,
@@ -62,14 +62,38 @@ export async function GET() {
             }
         }
 
-        // 5. Restaurar Inscripciones
+        // 5. Restaurar Grupos de Torneos
+        if (data.groups) {
+            for (const group of data.groups) {
+                const { tournament, registrations, ...gData } = group;
+                await prisma.tournamentGroup.upsert({
+                    where: { id: group.id },
+                    update: gData,
+                    create: gData
+                });
+            }
+        }
+
+        // 6. Restaurar Inscripciones
         if (data.registrations) {
             for (const reg of data.registrations) {
-                const { player, tournament, ...rData } = reg;
+                const { player, tournament, group, ...rData } = reg;
                 await prisma.tournamentRegistration.upsert({
                     where: { id: reg.id },
                     update: rData,
                     create: rData
+                });
+            }
+        }
+
+        // 7. Restaurar Rankings
+        if (data.rankings) {
+            for (const rank of data.rankings) {
+                const { player, ...rankData } = rank;
+                await prisma.ranking.upsert({
+                    where: { id: rank.id },
+                    update: rankData,
+                    create: rankData
                 });
             }
         }
