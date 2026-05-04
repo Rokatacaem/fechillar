@@ -144,7 +144,7 @@ export async function generateTournamentBasesPDF(
   doc.text('FORMATO DEL TORNEO', pageWidth / 2, y, { align: 'center' });
   y += 12;
 
-  const capacity = tournament.maxCapacity || 54;
+  const capacity = (tournament as any).maxCapacity || 54;
   const playersPerGroup = 3;
   const totalGroups = 18;
   const config = (tournament as any).adjustmentPhaseConfig || {};
