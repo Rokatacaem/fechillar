@@ -102,6 +102,10 @@ export async function POST(req: Request) {
         if (data.registrations) {
             for (const reg of data.registrations) {
                 const cleanReg = Object.fromEntries(Object.entries(reg).filter(([_, v]) => typeof v !== 'object' || v === null));
+                
+                // Eliminar campos heredados que ya no existen en el esquema de producción
+                delete cleanReg.turnPreference;
+                
                 await prisma.tournamentRegistration.upsert({
                     where: { 
                         tournamentId_playerId: {
