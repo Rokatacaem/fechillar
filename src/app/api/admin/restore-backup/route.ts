@@ -48,6 +48,7 @@ export async function POST(req: Request) {
 
         // 4. Restaurar Torneos
         if (data.tournaments) {
+            await prisma.tournament.deleteMany({});
             for (const tournament of data.tournaments) {
                 const { 
                     hostClub, venueClub, creator, registrations, groups, 
@@ -55,8 +56,7 @@ export async function POST(req: Request) {
                     adjustmentPhaseConfig, playoffBracketSize, requiresAdjustment, tournamentStructure,
                     ...tData 
                 } = tournament;
-
-                // Limpieza manual de seguridad total: eliminamos campos que sabemos que dan error
+ 
                 const cleanData = { ...tData };
                 const fieldsToRemove = [
                     'registrationFee', 'adjustmentPhaseConfig', 'playoffBracketSize', 
@@ -73,10 +73,8 @@ export async function POST(req: Request) {
                     delete (cleanData as any)[field];
                 });
                 
-                await prisma.tournament.upsert({
-                    where: { id: tournament.id },
-                    update: cleanData,
-                    create: cleanData
+                await prisma.tournament.create({
+                    data: cleanData
                 });
             }
         }
