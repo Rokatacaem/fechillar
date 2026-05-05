@@ -16,33 +16,36 @@ export async function POST(req: Request) {
 
         console.log("Restaurando datos recibidos vía POST...");
 
-        // 1. Restaurar Clubes (Usamos slug como identificador único para evitar conflictos)
+        // 1. Restaurar Clubes
         for (const club of data.clubs) {
+            // Eliminar cualquier relación anidada para evitar nested creates
+            const cleanClub = Object.fromEntries(Object.entries(club).filter(([_, v]) => typeof v !== 'object' || v === null));
             await prisma.club.upsert({
-                where: { slug: club.slug },
-                update: club,
-                create: club
+                where: { slug: cleanClub.slug },
+                update: cleanClub,
+                create: cleanClub
             });
         }
 
-        // 2. Restaurar Usuarios (Usamos email como identificador único)
+        // 2. Restaurar Usuarios
         if (data.users) {
             for (const user of data.users) {
+                const cleanUser = Object.fromEntries(Object.entries(user).filter(([_, v]) => typeof v !== 'object' || v === null));
                 await prisma.user.upsert({
-                    where: { email: user.email },
-                    update: user,
-                    create: user
+                    where: { email: cleanUser.email },
+                    update: cleanUser,
+                    create: cleanUser
                 });
             }
         }
 
-        // 3. Restaurar Jugadores (Usamos slug)
+        // 3. Restaurar Jugadores
         for (const player of data.players) {
-            const { club, user, rankings: _, ...playerData } = player;
+            const cleanPlayer = Object.fromEntries(Object.entries(player).filter(([_, v]) => typeof v !== 'object' || v === null));
             await prisma.playerProfile.upsert({
-                where: { slug: player.slug },
-                update: playerData,
-                create: playerData
+                where: { slug: cleanPlayer.slug },
+                update: cleanPlayer,
+                create: cleanPlayer
             });
         }
 
@@ -86,11 +89,11 @@ export async function POST(req: Request) {
         // 5. Restaurar Grupos de Torneos
         if (data.groups) {
             for (const group of data.groups) {
-                const { tournament, registrations, ...gData } = group;
+                const cleanGroup = Object.fromEntries(Object.entries(group).filter(([_, v]) => typeof v !== 'object' || v === null));
                 await prisma.tournamentGroup.upsert({
-                    where: { id: gData.id },
-                    update: gData,
-                    create: gData
+                    where: { id: cleanGroup.id },
+                    update: cleanGroup,
+                    create: cleanGroup
                 });
             }
         }
@@ -98,16 +101,16 @@ export async function POST(req: Request) {
         // 6. Restaurar Inscripciones
         if (data.registrations) {
             for (const reg of data.registrations) {
-                const { player, tournament, group, ...rData } = reg;
+                const cleanReg = Object.fromEntries(Object.entries(reg).filter(([_, v]) => typeof v !== 'object' || v === null));
                 await prisma.tournamentRegistration.upsert({
                     where: { 
                         tournamentId_playerId: {
-                            tournamentId: reg.tournamentId,
-                            playerId: reg.playerId
+                            tournamentId: cleanReg.tournamentId,
+                            playerId: cleanReg.playerId
                         }
                     },
-                    update: rData,
-                    create: rData
+                    update: cleanReg,
+                    create: cleanReg
                 });
             }
         }
@@ -115,17 +118,17 @@ export async function POST(req: Request) {
         // 7. Restaurar Rankings
         if (data.rankings) {
             for (const rank of data.rankings) {
-                const { player, ...rankData } = rank;
+                const cleanRank = Object.fromEntries(Object.entries(rank).filter(([_, v]) => typeof v !== 'object' || v === null));
                 await prisma.ranking.upsert({
                     where: { 
                         playerId_discipline_category: {
-                            playerId: rank.playerId,
-                            discipline: rank.discipline,
-                            category: rank.category
+                            playerId: cleanRank.playerId,
+                            discipline: cleanRank.discipline,
+                            category: cleanRank.category
                         }
                     },
-                    update: rankData,
-                    create: rankData
+                    update: cleanRank,
+                    create: cleanRank
                 });
             }
         }
