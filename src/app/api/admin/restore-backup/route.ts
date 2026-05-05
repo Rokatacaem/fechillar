@@ -49,7 +49,8 @@ export async function POST(req: Request) {
         // 4. Restaurar Torneos
         if (data.tournaments) {
             await prisma.tournament.deleteMany({});
-            for (const tournament of data.tournaments) {
+            
+            const cleanTournaments = data.tournaments.map((tournament: any) => {
                 const { 
                     hostClub, venueClub, creator, registrations, groups, 
                     registrationFee,
@@ -73,10 +74,13 @@ export async function POST(req: Request) {
                     delete (cleanData as any)[field];
                 });
                 
-                await prisma.tournament.create({
-                    data: cleanData
-                });
-            }
+                return cleanData;
+            });
+
+            await prisma.tournament.createMany({
+                data: cleanTournaments,
+                skipDuplicates: true
+            });
         }
 
         // 5. Restaurar Grupos de Torneos
