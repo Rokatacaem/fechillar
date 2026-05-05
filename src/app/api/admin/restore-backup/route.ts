@@ -5,19 +5,16 @@ import path from "path";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function POST(req: Request) {
     try {
-        const backupPath = path.join(process.cwd(), "backups", "backup-2026-04-30T04-17-19.json");
-        
-        if (!fs.existsSync(backupPath)) {
-            return NextResponse.json({ error: "Backup file not found" }, { status: 404 });
+        const body = await req.json();
+        const { data } = body;
+
+        if (!data) {
+            return NextResponse.json({ error: "No data provided" }, { status: 400 });
         }
 
-        const fileContent = fs.readFileSync(backupPath, "utf-8");
-        const backup = JSON.parse(fileContent);
-        const { data } = backup;
-
-        console.log("Restaurando datos desde backup...");
+        console.log("Restaurando datos recibidos vía POST...");
 
         // 1. Restaurar Clubes (Usamos slug como identificador único para evitar conflictos)
         for (const club of data.clubs) {
