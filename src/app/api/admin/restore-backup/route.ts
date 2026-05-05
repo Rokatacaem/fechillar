@@ -21,9 +21,9 @@ export async function POST(req: Request) {
             // Eliminar cualquier relación anidada para evitar nested creates
             const cleanClub = Object.fromEntries(Object.entries(club).filter(([_, v]) => typeof v !== 'object' || v === null));
             await prisma.club.upsert({
-                where: { slug: cleanClub.slug },
-                update: cleanClub,
-                create: cleanClub
+                where: { slug: cleanClub.slug as string },
+                update: cleanClub as any,
+                create: cleanClub as any
             });
         }
 
@@ -32,9 +32,9 @@ export async function POST(req: Request) {
             for (const user of data.users) {
                 const cleanUser = Object.fromEntries(Object.entries(user).filter(([_, v]) => typeof v !== 'object' || v === null));
                 await prisma.user.upsert({
-                    where: { email: cleanUser.email },
-                    update: cleanUser,
-                    create: cleanUser
+                    where: { email: cleanUser.email as string },
+                    update: cleanUser as any,
+                    create: cleanUser as any
                 });
             }
         }
@@ -43,9 +43,9 @@ export async function POST(req: Request) {
         for (const player of data.players) {
             const cleanPlayer = Object.fromEntries(Object.entries(player).filter(([_, v]) => typeof v !== 'object' || v === null));
             await prisma.playerProfile.upsert({
-                where: { slug: cleanPlayer.slug },
-                update: cleanPlayer,
-                create: cleanPlayer
+                where: { slug: cleanPlayer.slug as string },
+                update: cleanPlayer as any,
+                create: cleanPlayer as any
             });
         }
 
@@ -91,9 +91,9 @@ export async function POST(req: Request) {
             for (const group of data.groups) {
                 const cleanGroup = Object.fromEntries(Object.entries(group).filter(([_, v]) => typeof v !== 'object' || v === null));
                 await prisma.tournamentGroup.upsert({
-                    where: { id: cleanGroup.id },
-                    update: cleanGroup,
-                    create: cleanGroup
+                    where: { id: cleanGroup.id as string },
+                    update: cleanGroup as any,
+                    create: cleanGroup as any
                 });
             }
         }
@@ -105,12 +105,12 @@ export async function POST(req: Request) {
                 await prisma.tournamentRegistration.upsert({
                     where: { 
                         tournamentId_playerId: {
-                            tournamentId: cleanReg.tournamentId,
-                            playerId: cleanReg.playerId
+                            tournamentId: cleanReg.tournamentId as string,
+                            playerId: cleanReg.playerId as string
                         }
                     },
-                    update: cleanReg,
-                    create: cleanReg
+                    update: cleanReg as any,
+                    create: cleanReg as any
                 });
             }
         }
@@ -122,13 +122,13 @@ export async function POST(req: Request) {
                 await prisma.ranking.upsert({
                     where: { 
                         playerId_discipline_category: {
-                            playerId: cleanRank.playerId,
-                            discipline: cleanRank.discipline,
-                            category: cleanRank.category
+                            playerId: cleanRank.playerId as string,
+                            discipline: cleanRank.discipline as any,
+                            category: cleanRank.category as any
                         }
                     },
-                    update: cleanRank,
-                    create: cleanRank
+                    update: cleanRank as any,
+                    create: cleanRank as any
                 });
             }
         }
