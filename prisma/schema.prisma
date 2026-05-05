@@ -119,7 +119,6 @@ model Tournament {
   venue                 String?
   venueClubId           String?
   venueLogoUrl          String?
-  officializationStatus String?                  @default("NONE")
   tenantId              String?
   createdById           String?
   createdAt             DateTime                 @default(now())
