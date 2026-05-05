@@ -12,8 +12,7 @@ export async function getPlayerOfficialRanking(playerId: string) {
                 { awayPlayerId: playerId }
             ],
             tournament: {
-                scope: "NATIONAL",
-                officializationStatus: "APPROVED" // REGLA ORO: Solo contarán eventos oficiales.
+                status: "FINISHED"
             }
         },
         include: {

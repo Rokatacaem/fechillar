@@ -262,8 +262,7 @@ export async function commitTournamentRanking(tournamentId: string, forceNationa
     });
 
     const isNational = tournament.scope === "NATIONAL";
-    const isApproved = tournament.officializationStatus === "APPROVED";
-    const applyNational = isNational && (isApproved || forceNational);
+    const applyNational = isNational || forceNational;
 
     let rankingsUpdated = 0;
 

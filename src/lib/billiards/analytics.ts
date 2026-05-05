@@ -37,10 +37,7 @@ export async function getPGPTrend(playerId: string) {
     const matches = await prisma.match.findMany({
         where: {
             OR: [{ homePlayerId: playerId }, { awayPlayerId: playerId }],
-            tournament: {
-                officializationStatus: "APPROVED"
-                // Idealmente limitaríamos 'take: 20' desde otro root, pero esto es simplificado para el chart
-            }
+            status: "FINISHED"
         },
         orderBy: { createdAt: "asc" },
         take: 20

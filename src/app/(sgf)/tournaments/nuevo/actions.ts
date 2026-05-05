@@ -233,7 +233,7 @@ export async function createTournament(prevState: any, formData: FormData) {
                     secondsPerShot: Number(secondsPerShot) || 40,
                     extensionsPerPlayer: Number(extensionsPerPlayer) || 2,
                     config: config || {},
-                    officializationStatus: "NONE",
+                    // officializationStatus: "NONE",
 
                     // NUEVOS CAMPOS DE DOCUMENTOS
                     // registrationFee,

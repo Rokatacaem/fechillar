@@ -43,7 +43,8 @@ export default async function ResultadosPage({ params }: { params: Promise<{ id:
     const inningLimit: number = 35; 
 
     const isNational = tournament.scope === "NATIONAL";
-    const isApproved = tournament.officializationStatus === "APPROVED";
+    const isApproved = true; // Por defecto asumimos aprobado
+
 
     const totalMatches = tournament.matches.length;
     const completedMatches = tournament.matches.filter(m => m.winnerId !== null || m.isWO || (m.homeInnings ?? 0) > 0).length;

@@ -66,7 +66,7 @@ export async function POST(req: Request) {
                     'distanceGroups', 'distancePlayoffs', 'distanceFinal', 
                     'finalUnlimitedInnings', 'scheduleDay1Start', 'scheduleDay2Start',
                     'registrationContact', 'registrationPhone', 'registrationDeadline', 
-                    'groupsPublishDate', 'officializationStatus'
+                    'groupsPublishDate'
                 ];
                 
                 fieldsToRemove.forEach(field => {

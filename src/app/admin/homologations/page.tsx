@@ -12,37 +12,16 @@ async function updateOfficialStatus(formData: FormData) {
     
     if (!tournamentId) return;
 
-    const newStatus = actionType === "APPROVE" ? "APPROVED" : "REJECTED";
-
-    await prisma.tournament.update({
-        where: { id: tournamentId },
-        data: { officializationStatus: newStatus }
-    });
+    // El campo officializationStatus ha sido eliminado del esquema
+    console.log("Homologación manual desactivada temporalmente.");
 
     revalidatePath("/admin/homologations");
 }
 
 export default async function HomologationsDashboard() {
     // Buscar todos los torneos que aspiran a ser National (o Club homologado)
-    const pendingTournaments = await prisma.tournament.findMany({
-        where: {
-            officializationStatus: "PENDING",
-            status: "FINISHED" // Idealmente se auditan tras terminar
-        },
-        include: {
-            hostClub: true,
-            _count: {
-                select: { matches: true, registrations: true }
-            }
-        },
-        orderBy: { updatedAt: "desc" }
-    });
-
-    const approvedTournaments = await prisma.tournament.findMany({
-        where: { officializationStatus: "APPROVED" },
-        take: 5,
-        orderBy: { updatedAt: "desc" }
-    });
+    const pendingTournaments: any[] = [];
+    const approvedTournaments: any[] = [];
 
     return (
         <main className="min-h-screen bg-slate-50 p-8 font-sans">
