@@ -10,6 +10,8 @@ export const metadata = {
   description: "Padrón Nacional de Jugadores Federados"
 };
 
+export const dynamic = "force-dynamic";
+
 type SortKey = "nombre" | "club" | "ranking" | "promedio" | "puntos";
 type SortDir = "asc" | "desc";
 

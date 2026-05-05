@@ -1,0 +1,47 @@
+{
+  "timestamp": "2026-05-05T01:22:28.141Z",
+  "findManyCount": 181,
+  "countFallback": -1,
+  "sample": [
+    {
+      "id": "a0911830-8c65-4907-85d6-d4e6358b129e",
+      "userId": null,
+      "tenantId": null,
+      "slug": "del-1777525434286-n5u6",
+      "publicSlug": "aa93e3be-4c12-41e6-9586-652db8ee600a",
+      "rut": "del-1777525434286",
+      "firstName": "ELIMINADO",
+      "lastName": "(Ref 1777525434286)",
+      "email": "del-1777525434286@fechillar.cl",
+      "federationId": null,
+      "photoUrl": null,
+      "birthDate": null,
+      "gender": null,
+      "balance": 0,
+      "averageBase": 0,
+      "createdAt": "2026-04-30T03:48:10.228Z",
+      "updatedAt": "2026-04-30T05:03:54.288Z",
+      "club": null
+    },
+    {
+      "id": "95ff3e6f-3643-4b8c-918c-d8235ba3a9a5",
+      "userId": null,
+      "tenantId": null,
+      "slug": "del-1777525550277-tv4o",
+      "publicSlug": "1a1c9427-8df7-4a55-90bf-46b8bc598409",
+      "rut": "del-1777525550277",
+      "firstName": "ELIMINADO",
+      "lastName": "(Ref 1777525550277)",
+      "email": "del-1777525550277@fechillar.cl",
+      "federationId": null,
+      "photoUrl": null,
+      "birthDate": null,
+      "gender": null,
+      "balance": 0,
+      "averageBase": 0,
+      "createdAt": "2026-04-30T03:48:01.286Z",
+      "updatedAt": "2026-04-30T05:05:50.278Z",
+      "club": null
+    }
+  ]
+}

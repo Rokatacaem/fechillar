@@ -37,6 +37,6 @@ export async function getFederatedCensus() {
     return players;
   } catch (error) {
     console.error("Error fetching federated census:", error);
-    return [];
+    throw error;
   }
 }

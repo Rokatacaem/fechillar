@@ -69,7 +69,7 @@ export async function GET() {
                     'distanceGroups', 'distancePlayoffs', 'distanceFinal', 
                     'finalUnlimitedInnings', 'scheduleDay1Start', 'scheduleDay2Start',
                     'registrationContact', 'registrationPhone', 'registrationDeadline', 
-                    'groupsPublishDate'
+                    'groupsPublishDate', 'officializationStatus'
                 ];
                 
                 fieldsToRemove.forEach(field => {
