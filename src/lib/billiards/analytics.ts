@@ -37,7 +37,9 @@ export async function getPGPTrend(playerId: string) {
     const matches = await prisma.match.findMany({
         where: {
             OR: [{ homePlayerId: playerId }, { awayPlayerId: playerId }],
-            status: "FINISHED"
+            tournament: {
+                status: "FINISHED"
+            }
         },
         orderBy: { createdAt: "asc" },
         take: 20
