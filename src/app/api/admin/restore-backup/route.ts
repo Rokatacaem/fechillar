@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import fs from "fs";
-import path from "path";
 
 export const dynamic = "force-dynamic";
+
+function stripNested(obj: Record<string, any>) {
+    return Object.fromEntries(
+        Object.entries(obj).filter(([_, v]) => typeof v !== 'object' || v === null)
+    );
+}
 
 export async function POST(req: Request) {
     const syncSecret = process.env.SYNC_SECRET;
@@ -23,84 +27,72 @@ export async function POST(req: Request) {
 
         // 1. Restaurar Clubes
         for (const club of data.clubs) {
-            // Eliminar cualquier relación anidada para evitar nested creates
-            const cleanClub = Object.fromEntries(Object.entries(club).filter(([_, v]) => typeof v !== 'object' || v === null));
+            const { id, ...fields } = stripNested(club);
             await prisma.club.upsert({
-                where: { slug: cleanClub.slug as string },
-                update: cleanClub as any,
-                create: cleanClub as any
+                where: { slug: fields.slug as string },
+                update: fields as any,
+                create: { id, ...fields } as any,
             });
         }
 
-        // 2. Restaurar Usuarios
+        // 2. Restaurar Usuarios (si el backup los incluye)
         if (data.users) {
             for (const user of data.users) {
-                const cleanUser = Object.fromEntries(Object.entries(user).filter(([_, v]) => typeof v !== 'object' || v === null));
+                const { id, ...fields } = stripNested(user);
                 await prisma.user.upsert({
-                    where: { email: cleanUser.email as string },
-                    update: cleanUser as any,
-                    create: cleanUser as any
+                    where: { email: fields.email as string },
+                    update: fields as any,
+                    create: { id, ...fields } as any,
                 });
             }
         }
 
         // 3. Restaurar Jugadores
         for (const player of data.players) {
-            const cleanPlayer = Object.fromEntries(Object.entries(player).filter(([_, v]) => typeof v !== 'object' || v === null));
-            // userId es FK a User — si el usuario no existe en producción rompe la FK
-            cleanPlayer.userId = null;
+            const { id, ...fields } = stripNested(player);
+            // No tocamos userId: si el usuario no existe en producción se dejará null
+            // y si sí existe, se mantiene el vínculo
             await prisma.playerProfile.upsert({
-                where: { slug: cleanPlayer.slug as string },
-                update: cleanPlayer as any,
-                create: cleanPlayer as any
+                where: { slug: fields.slug as string },
+                update: fields as any,
+                create: { id, ...fields } as any,
             });
         }
 
-        // 4. Restaurar Torneos
+        // 4. Restaurar Torneos (delete + recreate para evitar conflictos de id)
         if (data.tournaments) {
             await prisma.tournament.deleteMany({});
-            
-            const cleanTournaments = data.tournaments.map((tournament: any) => {
-                const { 
-                    hostClub, venueClub, creator, registrations, groups, 
-                    registrationFee,
-                    adjustmentPhaseConfig, playoffBracketSize, requiresAdjustment, tournamentStructure,
-                    ...tData 
-                } = tournament;
- 
-                const cleanData = { ...tData };
-                const fieldsToRemove = [
-                    'registrationFee', 'adjustmentPhaseConfig', 'playoffBracketSize', 
-                    'requiresAdjustment', 'tournamentStructure', 'prizeDistribution',
-                    'bankAccountName', 'bankAccountRut', 'bankName', 'bankAccountType',
-                    'bankAccountNumber', 'bankAccountEmail', 'groupFormat', 'maxCapacity',
-                    'distanceGroups', 'distancePlayoffs', 'distanceFinal', 
-                    'finalUnlimitedInnings', 'scheduleDay1Start', 'scheduleDay2Start',
-                    'registrationContact', 'registrationPhone', 'registrationDeadline', 
-                    'groupsPublishDate', 'officializationStatus'
-                ];
-                
-                fieldsToRemove.forEach(field => {
-                    delete (cleanData as any)[field];
-                });
-                
-                return cleanData;
+
+            const fieldsToRemove = [
+                'registrationFee', 'adjustmentPhaseConfig', 'playoffBracketSize',
+                'requiresAdjustment', 'tournamentStructure', 'prizeDistribution',
+                'bankAccountName', 'bankAccountRut', 'bankName', 'bankAccountType',
+                'bankAccountNumber', 'bankAccountEmail', 'groupFormat', 'maxCapacity',
+                'distanceGroups', 'distancePlayoffs', 'distanceFinal',
+                'finalUnlimitedInnings', 'scheduleDay1Start', 'scheduleDay2Start',
+                'registrationContact', 'registrationPhone', 'registrationDeadline',
+                'groupsPublishDate', 'officializationStatus',
+                // relaciones anidadas
+                'hostClub', 'venueClub', 'creator', 'registrations', 'groups',
+            ];
+
+            const cleanTournaments = data.tournaments.map((t: any) => {
+                const clean = stripNested(t);
+                fieldsToRemove.forEach(f => delete clean[f]);
+                return clean;
             });
 
-            await prisma.tournament.createMany({
-                data: cleanTournaments,
-                skipDuplicates: true
-            });
+            await prisma.tournament.createMany({ data: cleanTournaments, skipDuplicates: true });
         }
 
-        // 5. Restaurar Grupos de Torneos
+        // 5. Restaurar Grupos
         if (data.groups) {
             for (const group of data.groups) {
-                const cleanGroup = Object.fromEntries(Object.entries(group).filter(([_, v]) => typeof v !== 'object' || v === null));
+                const { id, ...fields } = stripNested(group);
                 await prisma.tournamentGroup.upsert({
-                    where: { id: cleanGroup.id as string },
-                    update: cleanGroup as any,
-                    create: cleanGroup as any
+                    where: { id },
+                    update: fields as any,
+                    create: { id, ...fields } as any,
                 });
             }
         }
@@ -108,21 +100,18 @@ export async function POST(req: Request) {
         // 6. Restaurar Inscripciones
         if (data.registrations) {
             for (const reg of data.registrations) {
-                const cleanReg = Object.fromEntries(Object.entries(reg).filter(([_, v]) => typeof v !== 'object' || v === null));
-                
-                // Eliminar campos enum que no existen en el esquema de producción
-                delete cleanReg.turnPreference;
-                delete cleanReg.preferredTurn;
-                
+                const { id, ...fields } = stripNested(reg);
+                delete fields.turnPreference;
+                delete fields.preferredTurn;
                 await prisma.tournamentRegistration.upsert({
-                    where: { 
+                    where: {
                         tournamentId_playerId: {
-                            tournamentId: cleanReg.tournamentId as string,
-                            playerId: cleanReg.playerId as string
-                        }
+                            tournamentId: fields.tournamentId as string,
+                            playerId: fields.playerId as string,
+                        },
                     },
-                    update: cleanReg as any,
-                    create: cleanReg as any
+                    update: fields as any,
+                    create: { id, ...fields } as any,
                 });
             }
         }
@@ -130,17 +119,17 @@ export async function POST(req: Request) {
         // 7. Restaurar Rankings
         if (data.rankings) {
             for (const rank of data.rankings) {
-                const cleanRank = Object.fromEntries(Object.entries(rank).filter(([_, v]) => typeof v !== 'object' || v === null));
+                const { id, ...fields } = stripNested(rank);
                 await prisma.ranking.upsert({
-                    where: { 
+                    where: {
                         playerId_discipline_category: {
-                            playerId: cleanRank.playerId as string,
-                            discipline: cleanRank.discipline as any,
-                            category: cleanRank.category as any
-                        }
+                            playerId: fields.playerId as string,
+                            discipline: fields.discipline as any,
+                            category: fields.category as any,
+                        },
                     },
-                    update: cleanRank as any,
-                    create: cleanRank as any
+                    update: fields as any,
+                    create: { id, ...fields } as any,
                 });
             }
         }
@@ -149,10 +138,12 @@ export async function POST(req: Request) {
             success: true,
             message: "Restauración completada con éxito",
             stats: {
-                clubs: data.clubs.length,
-                players: data.players.length,
-                tournaments: data.tournaments?.length || 0
-            }
+                clubs: data.clubs?.length ?? 0,
+                players: data.players?.length ?? 0,
+                rankings: data.rankings?.length ?? 0,
+                tournaments: data.tournaments?.length ?? 0,
+                registrations: data.registrations?.length ?? 0,
+            },
         });
 
     } catch (e: any) {
