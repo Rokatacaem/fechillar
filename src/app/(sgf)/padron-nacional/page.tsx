@@ -23,8 +23,8 @@ export default async function PadronNacionalPage() {
   const totalSinClub = rawPlayers.filter(p => !p.tenantId && !p.firstName?.startsWith("ELIMINADO")).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6">
-      <div className="max-w-7xl mx-auto mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4">
+      <div className="mb-6">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-4xl font-bold text-white mb-2">Padrón Nacional</h1>
@@ -76,7 +76,7 @@ export default async function PadronNacionalPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto">
+      <div>
         <PadronTable
           players={rawPlayers as any}
           clubs={clubs}

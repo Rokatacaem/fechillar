@@ -146,6 +146,7 @@ export function PadronTable({ players, clubs, isSuperAdmin }: PadronTableProps) 
         </div>
 
         <button
+          type="button"
           onClick={() => { setFilterSinClub(!filterSinClub); setShowEliminados(false); }}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${
             filterSinClub
@@ -164,6 +165,7 @@ export function PadronTable({ players, clubs, isSuperAdmin }: PadronTableProps) 
 
         {isSuperAdmin && eliminadosCount > 0 && (
           <button
+            type="button"
             onClick={() => { setShowEliminados(!showEliminados); setFilterSinClub(false); setSearch(""); }}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${
               showEliminados
@@ -190,16 +192,16 @@ export function PadronTable({ players, clubs, isSuperAdmin }: PadronTableProps) 
           <table className="w-full">
             <thead className="bg-slate-950/50 border-b border-white/10">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider w-10">
+                <th className="px-3 py-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider w-10">
                   #
                 </th>
                 {(["nombre", "club", "ranking", "promedio", "puntos"] as SortKey[]).map(key => (
                   <th
                     key={key}
                     onClick={() => toggleSort(key)}
-                    className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white select-none group"
+                    className="px-3 py-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-white select-none"
                   >
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
                       <span className={sortKey === key ? "text-emerald-400" : ""}>
                         {key.charAt(0).toUpperCase() + key.slice(1)}
                       </span>
@@ -207,11 +209,11 @@ export function PadronTable({ players, clubs, isSuperAdmin }: PadronTableProps) 
                     </div>
                   </th>
                 ))}
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <th className="px-3 py-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">
                   Estado
                 </th>
                 {isSuperAdmin && (
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">
                     Acciones
                   </th>
                 )}
@@ -244,22 +246,22 @@ export function PadronTable({ players, clubs, isSuperAdmin }: PadronTableProps) 
                         : "hover:bg-white/5"
                     }`}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-3 whitespace-nowrap">
                       <span className="text-xs text-slate-500 font-mono">{idx + 1}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-3 whitespace-nowrap">
                       <div className={`text-sm font-medium ${isEl ? "text-red-400/70 line-through" : "text-white"}`}>
                         {player.firstName} {player.lastName}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-3 whitespace-nowrap">
                       {player.club?.name ? (
                         <div className="text-sm text-slate-300">{player.club.name}</div>
                       ) : (
                         <span className="text-xs text-amber-500/70 italic">Sin club</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-3 whitespace-nowrap">
                       <div className="text-sm text-slate-300">
                         {!activeRanking?.rankPosition || activeRanking.rankPosition >= 999
                           ? "-"
@@ -269,41 +271,41 @@ export function PadronTable({ players, clubs, isSuperAdmin }: PadronTableProps) 
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-3 whitespace-nowrap">
                       <div className="text-sm font-mono text-emerald-400">
                         {activeRanking?.average?.toFixed(3) ?? "-"}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-3 whitespace-nowrap">
                       <div className="text-sm text-slate-300">
                         {activeRanking?.points ?? "-"}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
+                    <td className="px-3 py-3">
+                      <div className="flex flex-col gap-1">
                         {hasRanking ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 w-fit">
                             Habilitado
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 w-fit">
                             Sin ranking
                           </span>
                         )}
                         {!hasAccount && !isEl && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-500/10 text-slate-400 border border-slate-500/20 w-fit">
                             Sin cuenta
                           </span>
                         )}
                         {isEl && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20 w-fit">
                             Pendiente borrar
                           </span>
                         )}
                       </div>
                     </td>
                     {isSuperAdmin && (
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
                           {!isEl && (
                             <>
