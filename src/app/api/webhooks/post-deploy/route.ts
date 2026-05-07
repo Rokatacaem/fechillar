@@ -3,6 +3,7 @@ import { list } from "@vercel/blob";
 import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
     const { searchParams } = new URL(req.url);
