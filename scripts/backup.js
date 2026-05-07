@@ -19,9 +19,10 @@ async function createBackup() {
     // Exportar todas las tablas
     const data = {
       timestamp: new Date().toISOString(),
-      version: '1.0',
+      version: '1.1',
       data: {
         clubs: await prisma.club.findMany(),
+        users: await prisma.user.findMany(),
         players: await prisma.playerProfile.findMany(),
         rankings: await prisma.ranking.findMany(),
         tournaments: await prisma.tournament.findMany(),
@@ -32,6 +33,7 @@ async function createBackup() {
       },
       stats: {
         totalClubs: 0,
+        totalUsers: 0,
         totalPlayers: 0,
         totalRankings: 0,
         totalTournaments: 0
@@ -40,6 +42,7 @@ async function createBackup() {
 
     // Calcular estadísticas
     data.stats.totalClubs = data.data.clubs.length;
+    data.stats.totalUsers = data.data.users.length;
     data.stats.totalPlayers = data.data.players.length;
     data.stats.totalRankings = data.data.rankings.length;
     data.stats.totalTournaments = data.data.tournaments.length;
@@ -53,6 +56,7 @@ async function createBackup() {
     console.log('\n✅ BACKUP COMPLETADO EXITOSAMENTE\n');
     console.log('📊 Estadísticas:');
     console.log(`   • ${data.stats.totalClubs} clubes`);
+    console.log(`   • ${data.stats.totalUsers} usuarios`);
     console.log(`   • ${data.stats.totalPlayers} jugadores`);
     console.log(`   • ${data.stats.totalRankings} rankings`);
     console.log(`   • ${data.stats.totalTournaments} torneos`);

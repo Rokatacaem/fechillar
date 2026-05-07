@@ -50,13 +50,25 @@ export async function POST(req: Request) {
         // 3. Restaurar Jugadores
         for (const player of data.players) {
             const { id, ...fields } = stripNested(player);
-            // No tocamos userId: si el usuario no existe en producción se dejará null
-            // y si sí existe, se mantiene el vínculo
-            await prisma.playerProfile.upsert({
-                where: { slug: fields.slug as string },
-                update: fields as any,
-                create: { id, ...fields } as any,
-            });
+            try {
+                await prisma.playerProfile.upsert({
+                    where: { slug: fields.slug as string },
+                    update: fields as any,
+                    create: { id, ...fields } as any,
+                });
+            } catch (err: any) {
+                // Si falla por FK de userId (usuario no existe en esta DB), reintentar sin él
+                if (err.message?.includes('userId') || err.message?.includes('PlayerProfile_userId_fkey')) {
+                    const { userId: _u, ...fieldsNoUser } = fields as any;
+                    await prisma.playerProfile.upsert({
+                        where: { slug: fieldsNoUser.slug as string },
+                        update: fieldsNoUser as any,
+                        create: { id, ...fieldsNoUser } as any,
+                    });
+                } else {
+                    throw err;
+                }
+            }
         }
 
         // 4. Restaurar Torneos (delete + recreate para evitar conflictos de id)
