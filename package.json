@@ -16,6 +16,7 @@
     "fresh-install": "npm run clean && npm install && npm run db:generate",
     "seed": "ts-node --compilerOptions \"{\\\"module\\\":\\\"CommonJS\\\"}\" prisma/seed.ts",
     "backup": "node scripts/backup.js",
+    "backup:upload": "node --env-file .env scripts/upload-to-blob.js",
     "restore": "node scripts/restore.js",
     "sync": "node --env-file .env scripts/sync-to-vercel.js",
     "db:clean": "node --env-file .env scripts/purge-trash.js",
