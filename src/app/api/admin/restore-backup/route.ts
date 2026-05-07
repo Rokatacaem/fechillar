@@ -101,6 +101,7 @@ export async function POST(req: Request) {
         if (data.groups) {
             for (const group of data.groups) {
                 const { id, ...fields } = stripNested(group);
+                delete fields.order;
                 await prisma.tournamentGroup.upsert({
                     where: { id },
                     update: fields as any,
