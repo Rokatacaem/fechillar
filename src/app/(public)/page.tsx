@@ -26,6 +26,7 @@ export default function Home() {
               <li><a href="#" className="hover:text-white">Reglamentos</a></li>
               <li><a href="#" className="hover:text-white">Rankings</a></li>
               <li><a href="#" className="hover:text-white">Clubes Asociados</a></li>
+              <li><a href="/fechillar-landing" className="hover:text-white">Fechillar Landing</a></li>
             </ul>
           </div>
           <div>
