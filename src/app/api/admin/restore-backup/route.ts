@@ -47,6 +47,8 @@ export async function POST(req: Request) {
         // 3. Restaurar Jugadores
         for (const player of data.players) {
             const cleanPlayer = Object.fromEntries(Object.entries(player).filter(([_, v]) => typeof v !== 'object' || v === null));
+            // userId es FK a User — si el usuario no existe en producción rompe la FK
+            cleanPlayer.userId = null;
             await prisma.playerProfile.upsert({
                 where: { slug: cleanPlayer.slug as string },
                 update: cleanPlayer as any,
