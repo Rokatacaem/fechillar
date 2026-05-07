@@ -2,6 +2,13 @@
 
 import prisma from "@/lib/prisma";
 
+export async function getClubs() {
+  return prisma.club.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+}
+
 /**
  * Obtiene el padrón completo de jugadores federados con sus rankings
  * y estado de membresía (vía User → Membership)

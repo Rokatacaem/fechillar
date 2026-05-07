@@ -17,7 +17,10 @@
     "seed": "ts-node --compilerOptions \"{\\\"module\\\":\\\"CommonJS\\\"}\" prisma/seed.ts",
     "backup": "node scripts/backup.js",
     "restore": "node scripts/restore.js",
-    "sync": "node --env-file .env scripts/sync-to-vercel.js"
+    "sync": "node --env-file .env scripts/sync-to-vercel.js",
+    "db:clean": "node --env-file .env scripts/purge-trash.js",
+    "db:duplicates": "node --env-file .env scripts/find-duplicates.js",
+    "db:merge": "node --env-file .env scripts/merge-duplicates.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

@@ -17,6 +17,7 @@ interface RankingEditorProps {
       average: number;
       handicapTarget: number | null;
       rankPosition: number | null;
+      category?: string;
     }>;
   };
   onClose?: () => void;
@@ -40,7 +41,8 @@ export function RankingEditor({
     points: 0,
     average: 0,
     handicapTarget: 15,
-    rankPosition: 999
+    rankPosition: 999,
+    category: 'PROMO'
   });
 
   // Actualizar formulario cuando cambia el tipo de ranking
@@ -51,7 +53,8 @@ export function RankingEditor({
         points: activeRanking.points || 0,
         average: activeRanking.average || 0,
         handicapTarget: activeRanking.handicapTarget || 15,
-        rankPosition: activeRanking.rankPosition || 999
+        rankPosition: activeRanking.rankPosition || 999,
+        category: activeRanking.category || 'PROMO'
       });
     } else {
       // Si no existe, valores por defecto
@@ -59,7 +62,8 @@ export function RankingEditor({
         points: 0,
         average: 0,
         handicapTarget: rankingType === 'NATIONAL' ? 15 : 0,
-        rankPosition: 999
+        rankPosition: 999,
+        category: 'MASTER' // Sugerir MASTER por defecto para nuevos
       });
     }
   }, [rankingType, nationalRanking, annualRanking]);
@@ -74,7 +78,7 @@ export function RankingEditor({
       const result = await updatePlayerRanking(
         player.id,
         discipline,
-        'MASTER',
+        formData.category,
         {
           points: formData.points,
           average: formData.average,
@@ -174,6 +178,31 @@ export function RankingEditor({
               min="0"
               required
             />
+          </div>
+
+          {/* Categoría */}
+          <div>
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">
+              Categoría
+            </label>
+            <select
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-emerald-500/50"
+              required
+            >
+              <option value="MASTER">Master</option>
+              <option value="HONOR">Honor</option>
+              <option value="FIRST">Primera</option>
+              <option value="SECOND">Segunda</option>
+              <option value="THIRD">Tercera</option>
+              <option value="FOURTH">Cuarta</option>
+              <option value="FIFTH_A">Quinta A</option>
+              <option value="FIFTH_B">Quinta B</option>
+              <option value="SENIOR">Senior</option>
+              <option value="FEMALE">Damas</option>
+              <option value="PROMO">Promocional</option>
+            </select>
           </div>
 
           {/* Promedio */}
