@@ -6,6 +6,11 @@ import path from "path";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+    const syncSecret = process.env.SYNC_SECRET;
+    if (!syncSecret || req.headers.get("x-sync-secret") !== syncSecret) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     try {
         const body = await req.json();
         const { data } = body;
@@ -103,8 +108,9 @@ export async function POST(req: Request) {
             for (const reg of data.registrations) {
                 const cleanReg = Object.fromEntries(Object.entries(reg).filter(([_, v]) => typeof v !== 'object' || v === null));
                 
-                // Eliminar campos heredados que ya no existen en el esquema de producción
+                // Eliminar campos enum que no existen en el esquema de producción
                 delete cleanReg.turnPreference;
+                delete cleanReg.preferredTurn;
                 
                 await prisma.tournamentRegistration.upsert({
                     where: { 

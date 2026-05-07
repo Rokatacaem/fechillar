@@ -22,12 +22,7 @@ async function createBackup() {
       version: '1.0',
       data: {
         clubs: await prisma.club.findMany(),
-        players: await prisma.playerProfile.findMany({
-          include: {
-            rankings: true,
-            club: true
-          }
-        }),
+        players: await prisma.playerProfile.findMany(),
         rankings: await prisma.ranking.findMany(),
         tournaments: await prisma.tournament.findMany(),
         registrations: await prisma.tournamentRegistration.findMany(),

@@ -16,7 +16,8 @@
     "fresh-install": "npm run clean && npm install && npm run db:generate",
     "seed": "ts-node --compilerOptions \"{\\\"module\\\":\\\"CommonJS\\\"}\" prisma/seed.ts",
     "backup": "node scripts/backup.js",
-    "restore": "node scripts/restore.js"
+    "restore": "node scripts/restore.js",
+    "sync": "node --env-file .env scripts/sync-to-vercel.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
