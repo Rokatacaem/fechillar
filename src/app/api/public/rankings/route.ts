@@ -25,10 +25,10 @@ export async function GET(req: Request) {
     });
 
     const data = rankings
-        .filter(r => !r.player.firstName.startsWith("ELIMINADO"))
+        .filter(r => !r.player.firstName?.startsWith("ELIMINADO"))
         .map((r, i) => ({
             rank: i + 1,
-            name: `${r.player.firstName} ${r.player.lastName}`,
+            name: `${r.player.firstName ?? ""} ${r.player.lastName ?? ""}`.trim(),
             club: r.player.club?.name ?? "Sin club",
             points: r.points,
             average: r.average,
