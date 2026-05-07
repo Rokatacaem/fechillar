@@ -25,7 +25,7 @@ async function uploadLatestBackup() {
     console.log(`   • ${parsed.data?.clubs?.length ?? 0} clubes`);
 
     const blob = await put('backups/latest.json', content, {
-        access: 'public',
+        access: 'private',
         contentType: 'application/json',
         addRandomSuffix: false,
     });

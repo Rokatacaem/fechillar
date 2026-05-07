@@ -32,7 +32,9 @@ export async function POST(req: Request) {
             );
         }
 
-        const backupResponse = await fetch(blobs[0].url);
+        const backupResponse = await fetch(blobs[0].url, {
+            headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+        });
         const backupData = await backupResponse.json();
 
         const baseUrl = process.env.VERCEL_URL
