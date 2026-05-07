@@ -2,6 +2,7 @@ import HeroSection from "@/components/landing/HeroSection";
 import DisciplinesGrid from "@/components/landing/DisciplinesGrid";
 import RankingsPreview from "@/components/landing/RankingsPreview";
 import TransparencyPanel from "@/components/landing/TransparencyPanel";
+import TournamentsPreview from "@/components/landing/TournamentsPreview";
 
 export default function Home() {
   return (
@@ -11,6 +12,8 @@ export default function Home() {
       <DisciplinesGrid />
 
       <RankingsPreview />
+
+      <TournamentsPreview />
 
       <TransparencyPanel />
 
