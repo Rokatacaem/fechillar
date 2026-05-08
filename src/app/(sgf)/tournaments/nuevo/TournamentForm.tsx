@@ -536,7 +536,8 @@ export function TournamentForm({ canCreateNational }: TournamentFormProps) {
                                     className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white outline-none cursor-pointer" 
                                 >
                                     <option value="RR_3">Round Robin (3 Jugadores)</option>
-                                    <option value="DE_4">Doble Eliminación (4 Jugadores)</option>
+                                    <option value="RR_4">Round Robin (4 Jugadores - Todos vs Todos)</option>
+                                    <option value="DE_4">Doble Eliminación (4 Jugadores - GSL)</option>
                                 </select>
                             </div>
 

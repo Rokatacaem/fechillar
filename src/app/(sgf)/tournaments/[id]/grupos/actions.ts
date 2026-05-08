@@ -64,60 +64,80 @@ export async function generateGroups(tournamentId: string) {
             return { success: false, error: `Se necesitan al menos 2 jugadores. Encontrados: ${total}` };
         }
 
-        // 2. Segmentar por turno
-        const t1 = registrations.filter(r => r.preferred_turn === 'T1');
-        const t2 = registrations.filter(r => r.preferred_turn === 'T2');
-        const t3 = registrations.filter(r => r.preferred_turn === 'T3');
-        const flex = registrations.filter(r => !['T1', 'T2', 'T3'].includes(r.preferred_turn || ''));
+        const cfg = tournament.config as any;
+        const groupFormat: string = cfg?.groupFormat ?? 'RR_3';
+        const playersPerGroup = groupFormat === 'RR_3' ? 3 : 4;
 
-        console.log(`[generateGroups] T1:${t1.length}, T2:${t2.length}, T3:${t3.length}, Flex:${flex.length}`);
-
-        // 3. Rellenar turnos con comodines hasta 18
-        const blocks = [
-            { name: 'T1', label: '10:00 hrs', players: t1 },
-            { name: 'T2', label: '13:00 hrs', players: t2 },
-            { name: 'T3', label: '18:00 hrs', players: t3 },
-        ];
-        let flexIdx = 0;
-        for (const b of blocks) {
-            while (b.players.length < 18 && flexIdx < flex.length) {
-                b.players.push(flex[flexIdx++]);
-            }
-        }
-
-        // 4. Limpiar datos anteriores (3 queries)
+        // 4. Limpiar datos anteriores
         await prisma.$executeRaw`
             UPDATE "TournamentRegistration" SET "groupId" = NULL WHERE "tournamentId" = ${tournamentId}
         `;
         await prisma.match.deleteMany({ where: { tournamentId } });
         await prisma.tournamentGroup.deleteMany({ where: { tournamentId } });
 
-        // 5. Calcular distribución Snake Seeding en memoria
-        const GROUPS_PER_BLOCK = 6;
         const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
         type GroupDef = { letter: string; label: string; players: typeof registrations };
         const groupDefs: GroupDef[] = [];
 
-        for (const block of blocks) {
-            const sorted = [...block.players].sort((a, b) => b.registered_points - a.registered_points);
-            const slots: typeof registrations[] = Array.from({ length: GROUPS_PER_BLOCK }, () => []);
+        if (groupFormat === 'RR_3') {
+            // ── Algoritmo nacional: 3 bloques de turno (T1/T2/T3), 6 grupos por bloque ──
+            const t1 = registrations.filter(r => r.preferred_turn === 'T1');
+            const t2 = registrations.filter(r => r.preferred_turn === 'T2');
+            const t3 = registrations.filter(r => r.preferred_turn === 'T3');
+            const flex = registrations.filter(r => !['T1', 'T2', 'T3'].includes(r.preferred_turn || ''));
 
+            console.log(`[generateGroups RR_3] T1:${t1.length}, T2:${t2.length}, T3:${t3.length}, Flex:${flex.length}`);
+
+            const blocks = [
+                { label: '10:00 hrs', players: t1 },
+                { label: '13:00 hrs', players: t2 },
+                { label: '18:00 hrs', players: t3 },
+            ];
+            let flexIdx = 0;
+            for (const b of blocks) {
+                while (b.players.length < 18 && flexIdx < flex.length) {
+                    b.players.push(flex[flexIdx++]);
+                }
+            }
+
+            const GROUPS_PER_BLOCK = 6;
+            for (const block of blocks) {
+                const sorted = [...block.players].sort((a, b) => b.registered_points - a.registered_points);
+                const slots: typeof registrations[] = Array.from({ length: GROUPS_PER_BLOCK }, () => []);
+                sorted.forEach((p, idx) => {
+                    const row = Math.floor(idx / GROUPS_PER_BLOCK);
+                    const col = row % 2 === 0 ? idx % GROUPS_PER_BLOCK : GROUPS_PER_BLOCK - 1 - (idx % GROUPS_PER_BLOCK);
+                    slots[col].push(p);
+                });
+                slots.forEach(players => {
+                    groupDefs.push({
+                        letter: LETTERS[groupDefs.length] ?? String(groupDefs.length + 1),
+                        label: block.label,
+                        players,
+                    });
+                });
+            }
+        } else {
+            // ── Algoritmo simple: snake seeding por puntos, N grupos de 4 ──
+            const numGroups = Math.floor(total / playersPerGroup);
+            if (numGroups < 1) return { success: false, error: `Se necesitan al menos ${playersPerGroup} jugadores.` };
+
+            const sorted = [...registrations].sort((a, b) => b.registered_points - a.registered_points);
+            const slots: typeof registrations[] = Array.from({ length: numGroups }, () => []);
             sorted.forEach((p, idx) => {
-                const row = Math.floor(idx / GROUPS_PER_BLOCK);
-                const col = row % 2 === 0
-                    ? idx % GROUPS_PER_BLOCK
-                    : GROUPS_PER_BLOCK - 1 - (idx % GROUPS_PER_BLOCK);
-                slots[col].push(p);
+                const row = Math.floor(idx / numGroups);
+                const col = row % 2 === 0 ? idx % numGroups : numGroups - 1 - (idx % numGroups);
+                if (col < numGroups) slots[col].push(p);
             });
-
             slots.forEach(players => {
                 groupDefs.push({
                     letter: LETTERS[groupDefs.length] ?? String(groupDefs.length + 1),
-                    label: block.label,
+                    label: '',
                     players,
                 });
             });
+
+            console.log(`[generateGroups ${groupFormat}] ${numGroups} grupos de ${playersPerGroup}, ${total} jugadores`);
         }
 
         // 6. Crear todos los grupos en paralelo (solo metadatos, sin dependencias)
@@ -154,26 +174,40 @@ export async function generateGroups(tournamentId: string) {
             `);
         }
 
-        // 8. Crear todos los partidos Round Robin con 1 solo INSERT masivo
+        // 8. Crear todos los partidos con 1 solo INSERT masivo
         const matchData: Prisma.MatchCreateManyInput[] = [];
 
         groupDefs.forEach((def, gi) => {
             const groupId = createdGroups[gi].id;
-            const [p1, p2, p3] = def.players;
+            const [p1, p2, p3, p4] = def.players;
             if (!p1 || !p2) return;
 
-            if (p3) {
-                matchData.push({ tournamentId, groupId, round: 1, matchOrder: 1,
-                    homePlayerId: p1.player_id, awayPlayerId: p3.player_id,
+            if (groupFormat === 'RR_4' && p3 && p4) {
+                // Todos contra todos: 6 partidos
+                const pairs: [typeof p1, typeof p1][] = [
+                    [p1, p2], [p1, p3], [p1, p4],
+                    [p2, p3], [p2, p4], [p3, p4],
+                ];
+                pairs.forEach(([home, away], idx) => {
+                    matchData.push({ tournamentId, groupId, round: 1, matchOrder: idx + 1,
+                        homePlayerId: home.player_id, awayPlayerId: away.player_id,
+                        homeTarget: 25, awayTarget: 25, matchDistance: 25 });
+                });
+            } else {
+                // Round Robin 3 jugadores (RR_3 o DE_4 sin soporte completo aún)
+                if (p3) {
+                    matchData.push({ tournamentId, groupId, round: 1, matchOrder: 1,
+                        homePlayerId: p1.player_id, awayPlayerId: p3.player_id,
+                        homeTarget: 25, awayTarget: 25, matchDistance: 25 });
+                }
+                matchData.push({ tournamentId, groupId, round: 1, matchOrder: 2,
+                    homePlayerId: p1.player_id, awayPlayerId: p2.player_id,
                     homeTarget: 25, awayTarget: 25, matchDistance: 25 });
-            }
-            matchData.push({ tournamentId, groupId, round: 1, matchOrder: 2,
-                homePlayerId: p1.player_id, awayPlayerId: p2.player_id,
-                homeTarget: 25, awayTarget: 25, matchDistance: 25 });
-            if (p3) {
-                matchData.push({ tournamentId, groupId, round: 1, matchOrder: 3,
-                    homePlayerId: p3.player_id, awayPlayerId: p2.player_id,
-                    homeTarget: 25, awayTarget: 25, matchDistance: 25 });
+                if (p3) {
+                    matchData.push({ tournamentId, groupId, round: 1, matchOrder: 3,
+                        homePlayerId: p3.player_id, awayPlayerId: p2.player_id,
+                        homeTarget: 25, awayTarget: 25, matchDistance: 25 });
+                }
             }
         });
 
@@ -424,7 +458,13 @@ export async function syncMatches(tournamentId: string) {
     }
 
     try {
-        // 1. Obtener grupos y sus jugadores actuales (según groupOrder)
+        // 1. Obtener torneo (para leer groupFormat) y grupos con jugadores
+        const tournament = await prisma.tournament.findUnique({
+            where: { id: tournamentId },
+            select: { config: true }
+        });
+        const groupFormat = (tournament?.config as any)?.groupFormat ?? 'RR_3';
+
         const groups = await prisma.tournamentGroup.findMany({
             where: { tournamentId },
             include: {
@@ -438,45 +478,53 @@ export async function syncMatches(tournamentId: string) {
 
         if (groups.length === 0) return { success: false, error: "No hay grupos creados" };
 
-        // 2. Borrar partidos actuales (Solo los de fase de grupos)
-        // Buscamos matches que pertenezcan a un grupo del torneo
+        // 2. Borrar partidos actuales de fase de grupos
         await prisma.match.deleteMany({
-            where: {
-                tournamentId,
-                groupId: { not: null }
-            }
+            where: { tournamentId, groupId: { not: null } }
         });
 
-        // 3. Crear nuevos partidos Round Robin
+        // 3. Crear nuevos partidos según formato
         const matchData: Prisma.MatchCreateManyInput[] = [];
 
         groups.forEach(group => {
             const players = group.registrations;
-            const [p1, p2, p3] = players;
+            const [p1, p2, p3, p4] = players;
             if (!p1 || !p2) return;
 
-            // Round Robin estándar Fechillar (3 jugadores)
-            // Orden Oficial: 1 vs 3, 1 vs 2, 3 vs 2
-            if (p3) {
-                matchData.push({ 
-                    tournamentId, groupId: group.id, round: 1, matchOrder: 1,
-                    homePlayerId: p1.playerId, awayPlayerId: p3.playerId,
-                    homeTarget: 25, awayTarget: 25, matchDistance: 25 
+            if (groupFormat === 'RR_4' && p3 && p4) {
+                // Todos contra todos: 6 partidos
+                const pairs: [typeof p1, typeof p1][] = [
+                    [p1, p2], [p1, p3], [p1, p4],
+                    [p2, p3], [p2, p4], [p3, p4],
+                ];
+                pairs.forEach(([home, away], idx) => {
+                    matchData.push({
+                        tournamentId, groupId: group.id, round: 1, matchOrder: idx + 1,
+                        homePlayerId: home.playerId, awayPlayerId: away.playerId,
+                        homeTarget: 25, awayTarget: 25, matchDistance: 25
+                    });
                 });
-            }
-
-            matchData.push({ 
-                tournamentId, groupId: group.id, round: 1, matchOrder: 2,
-                homePlayerId: p1.playerId, awayPlayerId: p2.playerId,
-                homeTarget: 25, awayTarget: 25, matchDistance: 25 
-            });
-
-            if (p3) {
-                matchData.push({ 
-                    tournamentId, groupId: group.id, round: 1, matchOrder: 3,
-                    homePlayerId: p3.playerId, awayPlayerId: p2.playerId,
-                    homeTarget: 25, awayTarget: 25, matchDistance: 25 
+            } else {
+                // Round Robin 3 jugadores (orden oficial: 1v3, 1v2, 3v2)
+                if (p3) {
+                    matchData.push({
+                        tournamentId, groupId: group.id, round: 1, matchOrder: 1,
+                        homePlayerId: p1.playerId, awayPlayerId: p3.playerId,
+                        homeTarget: 25, awayTarget: 25, matchDistance: 25
+                    });
+                }
+                matchData.push({
+                    tournamentId, groupId: group.id, round: 1, matchOrder: 2,
+                    homePlayerId: p1.playerId, awayPlayerId: p2.playerId,
+                    homeTarget: 25, awayTarget: 25, matchDistance: 25
                 });
+                if (p3) {
+                    matchData.push({
+                        tournamentId, groupId: group.id, round: 1, matchOrder: 3,
+                        homePlayerId: p3.playerId, awayPlayerId: p2.playerId,
+                        homeTarget: 25, awayTarget: 25, matchDistance: 25
+                    });
+                }
             }
         });
 

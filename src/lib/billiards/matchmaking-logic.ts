@@ -42,3 +42,18 @@ export function generateDE4Matches(): MatchPlaceholder[] {
         { round: 3, matchOrder: 5, homeIndex: null, awayIndex: null, label: "Decider" }
     ];
 }
+
+/**
+ * Round Robin para 4 Jugadores (Todos contra Todos)
+ * 6 partidos: 1v2, 1v3, 1v4, 2v3, 2v4, 3v4
+ */
+export function generateRR4Matches(): MatchPlaceholder[] {
+    return [
+        { round: 1, matchOrder: 1, homeIndex: 0, awayIndex: 1, label: "1 vs 2" },
+        { round: 1, matchOrder: 2, homeIndex: 0, awayIndex: 2, label: "1 vs 3" },
+        { round: 1, matchOrder: 3, homeIndex: 0, awayIndex: 3, label: "1 vs 4" },
+        { round: 1, matchOrder: 4, homeIndex: 1, awayIndex: 2, label: "2 vs 3" },
+        { round: 1, matchOrder: 5, homeIndex: 1, awayIndex: 3, label: "2 vs 4" },
+        { round: 1, matchOrder: 6, homeIndex: 2, awayIndex: 3, label: "3 vs 4" },
+    ];
+}
