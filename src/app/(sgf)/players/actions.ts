@@ -278,6 +278,125 @@ export async function deletePlayer(playerId: string) {
 }
 
 /**
+ * Fusiona dos perfiles de jugador. Conserva keepId, elimina removeId transfiriendo
+ * rankings, inscripciones y referencias de partidos antes de borrar el duplicado.
+ */
+export async function mergePlayer(keepId: string, removeId: string) {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("No autenticado");
+
+    const userRole = (session?.user as any)?.role;
+    if (!["SUPERADMIN", "FEDERATION_ADMIN"].includes(userRole)) {
+        throw new Error("Solo SuperAdmin puede fusionar jugadores");
+    }
+
+    if (keepId === removeId) throw new Error("No puedes fusionar un jugador consigo mismo");
+
+    const [keepPlayer, removePlayer] = await Promise.all([
+        prisma.playerProfile.findUnique({
+            where: { id: keepId },
+            select: { id: true, firstName: true, lastName: true, tenantId: true, userId: true },
+        }),
+        prisma.playerProfile.findUnique({
+            where: { id: removeId },
+            select: { id: true, firstName: true, lastName: true, tenantId: true, userId: true },
+        }),
+    ]);
+
+    if (!keepPlayer) throw new Error("Jugador principal no encontrado");
+    if (!removePlayer) throw new Error("Jugador duplicado no encontrado");
+
+    const [keepRankings, removeRankings] = await Promise.all([
+        prisma.ranking.findMany({ where: { playerId: keepId }, select: { discipline: true, category: true } }),
+        prisma.ranking.findMany({ where: { playerId: removeId }, select: { id: true, discipline: true, category: true } }),
+    ]);
+
+    const keepRegs = await prisma.tournamentRegistration.findMany({
+        where: { playerId: keepId },
+        select: { tournamentId: true },
+    });
+    const removeRegs = await prisma.tournamentRegistration.findMany({
+        where: { playerId: removeId },
+        select: { id: true, tournamentId: true },
+    });
+
+    const keepRankingKeys = new Set(keepRankings.map(r => `${r.discipline}_${r.category}`));
+    const keepTournamentIds = new Set(keepRegs.map(r => r.tournamentId));
+
+    const adminId = session.user!.id as string;
+    const adminEmail = session.user!.email as string;
+    const adminRole = (session.user as any).role;
+
+    const dbAdmin = await prisma.user.upsert({
+        where: { id: adminId },
+        update: { email: adminEmail, role: adminRole },
+        create: { id: adminId, email: adminEmail, name: session.user!.name || "Admin SGF", role: adminRole, passwordHash: "external-auth" },
+        select: { id: true },
+    });
+
+    await prisma.$transaction(async (tx) => {
+        await tx.auditLog.create({
+            data: {
+                action: "PLAYER_MERGE",
+                userId: dbAdmin.id,
+                targetId: keepId,
+                details: `Fusión: conservar "${keepPlayer.firstName} ${keepPlayer.lastName}" (${keepId}), eliminar "${removePlayer.firstName} ${removePlayer.lastName}" (${removeId})`,
+            },
+        });
+
+        for (const r of removeRankings) {
+            const key = `${r.discipline}_${r.category}`;
+            if (keepRankingKeys.has(key)) {
+                await tx.ranking.delete({ where: { id: r.id } });
+            } else {
+                await tx.ranking.update({ where: { id: r.id }, data: { playerId: keepId } });
+                keepRankingKeys.add(key);
+            }
+        }
+
+        for (const reg of removeRegs) {
+            if (keepTournamentIds.has(reg.tournamentId)) {
+                await tx.tournamentRegistration.delete({ where: { id: reg.id } });
+            } else {
+                await tx.tournamentRegistration.update({ where: { id: reg.id }, data: { playerId: keepId } });
+                keepTournamentIds.add(reg.tournamentId);
+            }
+        }
+
+        await tx.match.updateMany({ where: { homePlayerId: removeId }, data: { homePlayerId: keepId } });
+        await tx.match.updateMany({ where: { awayPlayerId: removeId }, data: { awayPlayerId: keepId } });
+        await tx.match.updateMany({ where: { winnerId: removeId }, data: { winnerId: keepId } });
+
+        if (!keepPlayer.tenantId && removePlayer.tenantId) {
+            await tx.playerProfile.update({ where: { id: keepId }, data: { tenantId: removePlayer.tenantId } });
+        }
+
+        await tx.financeRecord.updateMany({ where: { playerId: removeId }, data: { playerId: null } });
+        await tx.transferRequest.deleteMany({ where: { playerId: removeId } });
+        await tx.rankingSnapshot.deleteMany({ where: { playerId: removeId } });
+        await tx.playerProfile.delete({ where: { id: removeId } });
+
+        if (removePlayer.userId) {
+            await tx.clubMember.updateMany({ where: { userId: removePlayer.userId }, data: { userId: null } });
+            await tx.tournament.updateMany({ where: { createdById: removePlayer.userId }, data: { createdById: null } });
+            await tx.tournamentRegistration.updateMany({ where: { validatorId: removePlayer.userId }, data: { validatorId: null } });
+            await tx.match.updateMany({ where: { refereeId: removePlayer.userId }, data: { refereeId: null } });
+            await tx.tournamentEnrollment.updateMany({ where: { validatedById: removePlayer.userId }, data: { validatedById: null } });
+            await tx.membership.updateMany({ where: { validatedById: removePlayer.userId }, data: { validatedById: null } });
+            await tx.membership.deleteMany({ where: { userId: removePlayer.userId } });
+            await tx.waitingList.deleteMany({ where: { userId: removePlayer.userId } });
+            await tx.tournamentEnrollment.deleteMany({ where: { userId: removePlayer.userId } });
+            await tx.tournamentAssignment.deleteMany({ where: { userId: removePlayer.userId } });
+            await tx.user.delete({ where: { id: removePlayer.userId } });
+        }
+    });
+
+    revalidatePath("/padron-nacional");
+    revalidatePath("/federacion/padron");
+    return { success: true };
+}
+
+/**
  * Busca jugadores por nombre, RUT o ID federativo para el selector de inscripciones.
  * Incluye Shadow Profiles (jugadores sin cuenta de usuario vinculada).
  */

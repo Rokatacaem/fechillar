@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, Users, Building, AlertTriangle, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { AssignClubButton } from "@/components/players/AssignClubButton";
 import { RankingEditButton } from "@/components/admin/RankingEditButton";
+import { MergePlayerButton } from "@/components/admin/MergePlayerButton";
 import { DeletePlayerButton } from "@/components/players/DeletePlayerButton";
 
 type SortKey = "nombre" | "club" | "ranking" | "promedio" | "puntos";
@@ -311,6 +312,7 @@ export function PadronTable({ players, clubs, isSuperAdmin }: PadronTableProps) 
                             <>
                               <AssignClubButton player={player} clubs={clubs} />
                               <RankingEditButton player={player as any} isSuper={isSuperAdmin} />
+                              <MergePlayerButton player={player} isSuper={isSuperAdmin} />
                             </>
                           )}
                           <DeletePlayerButton
