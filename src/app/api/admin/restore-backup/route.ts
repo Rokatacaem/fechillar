@@ -133,7 +133,7 @@ export async function POST(req: Request) {
         // 7. Restaurar Rankings
         if (data.rankings) {
             for (const rank of data.rankings) {
-                const { id, ...fields } = stripNested(rank);
+                const { id: _rankId, ...fields } = stripNested(rank);
                 await prisma.ranking.upsert({
                     where: {
                         playerId_discipline_category: {
@@ -143,7 +143,7 @@ export async function POST(req: Request) {
                         },
                     },
                     update: fields as any,
-                    create: { id, ...fields } as any,
+                    create: fields as any, // Sin forzar id para evitar conflictos por registros fusionados
                 });
             }
         }
