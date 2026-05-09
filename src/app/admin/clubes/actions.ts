@@ -4,8 +4,6 @@ import { UserRole, ClubMembershipStatus, ClubBoardRole } from "@prisma/client";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
-import fs from "fs/promises";
-import path from "path";
 
 /**
  * Sube un certificado de vigencia y sincroniza la directiva en un paso atómico.
@@ -39,22 +37,12 @@ export async function uploadClubCertificate(formData: FormData) {
             select: { id: true }
         });
 
-        // 1. Guardar el archivo físicamente
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-
-        const uploadDir = path.join(process.cwd(), "public", "uploads", "certificates");
-        try {
-            await fs.access(uploadDir);
-        } catch {
-            await fs.mkdir(uploadDir, { recursive: true });
-        }
-
-        const fileName = `cert-${clubId}-${Date.now()}.pdf`;
-        const filePath = path.join(uploadDir, fileName);
-        const relativeUrl = `/uploads/certificates/${fileName}`;
-
-        await fs.writeFile(filePath, buffer);
+        // 1. Guardar el archivo en Vercel Blob
+        const { put } = await import("@vercel/blob");
+        const blob = await put(`certificates/cert-${clubId}-${Date.now()}.pdf`, file, {
+            access: "public",
+        });
+        const relativeUrl = blob.url;
 
         // 2. Definir la directiva oficial
         const officialBoard = [
@@ -123,30 +111,19 @@ export async function uploadClubLogo(formData: FormData) {
     if (!file || !clubId) return { success: false, error: "Datos incompletos" };
 
     try {
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-
-        const uploadDir = path.join(process.cwd(), "public", "uploads", "logos");
-        try {
-            await fs.access(uploadDir);
-        } catch {
-            await fs.mkdir(uploadDir, { recursive: true });
-        }
-
+        const { put } = await import("@vercel/blob");
         const extension = file.type.split("/")[1] || "png";
-        const fileName = `logo-${clubId}-${Date.now()}.${extension}`;
-        const filePath = path.join(uploadDir, fileName);
-        const relativeUrl = `/uploads/logos/${fileName}`;
-
-        await fs.writeFile(filePath, buffer);
+        const blob = await put(`logos/logo-${clubId}-${Date.now()}.${extension}`, file, {
+            access: "public",
+        });
 
         await prisma.club.update({
             where: { id: clubId },
-            data: { logoUrl: relativeUrl }
+            data: { logoUrl: blob.url }
         });
 
         revalidatePath(`/admin/clubes/${clubId}`);
-        return { success: true, url: relativeUrl };
+        return { success: true, url: blob.url };
     } catch (error: any) {
         return { success: false, error: "Error al guardar el logotipo" };
     }
@@ -490,35 +467,17 @@ export async function upsertPlayerInClub(clubId: string, formData: FormData) {
             let finalPlayerId: string | null = playerId;
             let photoUrl = undefined;
 
-            // 1. Manejo de Foto (Híbrido: Vercel Blob -> Local Fallback)
+            // 1. Manejo de Foto (Vercel Blob)
             if (photoFile && photoFile.size > 0) {
-                try {
-                    const { put } = await import("@vercel/blob");
-                    const blob = await put(`players/profile-${Date.now()}.jpg`, photoFile, {
-                        access: "public",
-                        token: process.env.BLOB_READ_WRITE_TOKEN
-                    });
-                    photoUrl = blob.url;
-                } catch (blobError) {
-                    console.warn("⚠️ Vercel Blob no configurado o falló. Usando almacenamiento local.");
-                    
-                    const bytes = await photoFile.arrayBuffer();
-                    const buffer = Buffer.from(bytes);
-                    
-                    const uploadDir = path.join(process.cwd(), "public", "uploads", "players");
-                    try {
-                        await fs.access(uploadDir);
-                    } catch {
-                        await fs.mkdir(uploadDir, { recursive: true });
-                    }
-
-                    const extension = photoFile.type.split("/")[1] || "jpg";
-                    const fileName = `profile-${finalPlayerId || Date.now()}.${extension}`;
-                    const filePath = path.join(uploadDir, fileName);
-                    
-                    await fs.writeFile(filePath, buffer);
-                    photoUrl = `/uploads/players/${fileName}`;
+                if (!process.env.BLOB_READ_WRITE_TOKEN) {
+                    throw new Error("BLOB_READ_WRITE_TOKEN no está configurado. Agrega la imagen después de configurar el almacenamiento.");
                 }
+                const { put } = await import("@vercel/blob");
+                const extension = photoFile.type.split("/")[1] || "jpg";
+                const blob = await put(`players/profile-${Date.now()}.${extension}`, photoFile, {
+                    access: "public",
+                });
+                photoUrl = blob.url;
             }
 
             if (playerId) {
