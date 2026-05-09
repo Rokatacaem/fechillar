@@ -80,40 +80,47 @@ export async function generateGroups(tournamentId: string) {
         const groupDefs: GroupDef[] = [];
 
         if (groupFormat === 'RR_3') {
-            // ── Algoritmo nacional: 3 bloques de turno (T1/T2/T3), 6 grupos por bloque ──
+            // ── Algoritmo con turnos: N mesas × M turnos ──
+            const numTables: number = cfg?.tables ?? 6;
+            const numTurns: number = cfg?.turns ?? 3;
+            const TURN_LABELS = ['10:00 hrs', '13:00 hrs', '18:00 hrs', '16:00 hrs', '19:00 hrs'];
+
             const t1 = registrations.filter(r => r.preferred_turn === 'T1');
             const t2 = registrations.filter(r => r.preferred_turn === 'T2');
             const t3 = registrations.filter(r => r.preferred_turn === 'T3');
             const flex = registrations.filter(r => !['T1', 'T2', 'T3'].includes(r.preferred_turn || ''));
 
-            console.log(`[generateGroups RR_3] T1:${t1.length}, T2:${t2.length}, T3:${t3.length}, Flex:${flex.length}`);
+            console.log(`[generateGroups RR_3] ${numTables} mesas × ${numTurns} turnos — T1:${t1.length}, T2:${t2.length}, T3:${t3.length}, Flex:${flex.length}`);
 
-            const blocks = [
-                { label: '10:00 hrs', players: t1 },
-                { label: '13:00 hrs', players: t2 },
-                { label: '18:00 hrs', players: t3 },
-            ];
+            const turnPlayers = [t1, t2, t3].slice(0, numTurns);
+            // Rellenar con flex los turnos que tengan menos de numTables jugadores × 3
             let flexIdx = 0;
-            for (const b of blocks) {
-                while (b.players.length < 18 && flexIdx < flex.length) {
-                    b.players.push(flex[flexIdx++]);
+            const maxPerTurn = numTables * 3;
+            for (const tp of turnPlayers) {
+                while (tp.length < maxPerTurn && flexIdx < flex.length) {
+                    tp.push(flex[flexIdx++]);
                 }
             }
+            // Resto de flex va al primer turno con espacio
+            while (flexIdx < flex.length) {
+                turnPlayers[0]?.push(flex[flexIdx++]);
+            }
 
-            const GROUPS_PER_BLOCK = 6;
-            for (const block of blocks) {
-                const sorted = [...block.players].sort((a, b) => b.registered_points - a.registered_points);
-                const slots: typeof registrations[] = Array.from({ length: GROUPS_PER_BLOCK }, () => []);
+            for (let t = 0; t < numTurns; t++) {
+                const label = TURN_LABELS[t] ?? `Turno ${t + 1}`;
+                const players = turnPlayers[t] ?? [];
+                const sorted = [...players].sort((a, b) => b.registered_points - a.registered_points);
+                const slots: typeof registrations[] = Array.from({ length: numTables }, () => []);
                 sorted.forEach((p, idx) => {
-                    const row = Math.floor(idx / GROUPS_PER_BLOCK);
-                    const col = row % 2 === 0 ? idx % GROUPS_PER_BLOCK : GROUPS_PER_BLOCK - 1 - (idx % GROUPS_PER_BLOCK);
-                    slots[col].push(p);
+                    const row = Math.floor(idx / numTables);
+                    const col = row % 2 === 0 ? idx % numTables : numTables - 1 - (idx % numTables);
+                    if (col < numTables) slots[col].push(p);
                 });
-                slots.forEach(players => {
+                slots.forEach(groupPlayers => {
                     groupDefs.push({
                         letter: LETTERS[groupDefs.length] ?? String(groupDefs.length + 1),
-                        label: block.label,
-                        players,
+                        label,
+                        players: groupPlayers,
                     });
                 });
             }

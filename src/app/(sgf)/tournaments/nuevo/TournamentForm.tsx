@@ -50,7 +50,9 @@ export function TournamentForm({ canCreateNational }: TournamentFormProps) {
     
     // Configuración dinámica (JSON)
     const [config, setConfig] = useState<any>({
-        playerCount: 32,
+        tables: 6,
+        turns: 3,
+        playerCount: 54,  // tables × turns × playersPerGroup
         waitlistSize: 8,
         waitlistActivation: "AUTOMATIC",
         groupFormat: "RR_3",
@@ -130,7 +132,15 @@ export function TournamentForm({ canCreateNational }: TournamentFormProps) {
     }, [state, router]);
 
     const updateConfig = (key: string, value: any) => {
-        setConfig((prev: any) => ({ ...prev, [key]: value }));
+        setConfig((prev: any) => {
+            const next = { ...prev, [key]: value };
+            // Recalcular capacidad cuando cambian mesas, turnos o formato
+            if (key === 'tables' || key === 'turns' || key === 'groupFormat') {
+                const ppg = (next.groupFormat === 'RR_3') ? 3 : 4;
+                next.playerCount = (next.tables ?? 6) * (next.turns ?? 3) * ppg;
+            }
+            return next;
+        });
     };
 
     return (
@@ -485,26 +495,55 @@ export function TournamentForm({ canCreateNational }: TournamentFormProps) {
                             <h2 className="text-sm font-black text-white uppercase tracking-tighter">Parámetros 3 Bandas</h2>
                         </div>
 
+                        {/* Campo oculto para capacity (derivado de mesas × turnos × grupo) */}
+                        <input type="hidden" name="capacity" value={config.playerCount || 0} />
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {/* Jugadores */}
+                            {/* Mesas disponibles */}
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                    <Users className="w-3 h-3" /> Capacidad Total
+                                    <LayoutGrid className="w-3 h-3" /> Mesas Disponibles
                                 </label>
-                                <input 
-                                    type="number" 
-                                    name="capacity"
-                                    value={config.playerCount || ""}
-                                    onChange={(e) => updateConfig("playerCount", parseInt(e.target.value) || 0)}
+                                <input
+                                    type="number"
+                                    min={1}
+                                    value={config.tables ?? 6}
+                                    onChange={(e) => updateConfig("tables", parseInt(e.target.value) || 1)}
                                     className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:ring-1 focus:ring-emerald-500/50"
                                 />
+                            </div>
+
+                            {/* Número de turnos */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                    <Clock className="w-3 h-3" /> Número de Turnos (3 hrs c/u)
+                                </label>
+                                <select
+                                    value={config.turns ?? 3}
+                                    onChange={(e) => updateConfig("turns", parseInt(e.target.value))}
+                                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white outline-none cursor-pointer"
+                                >
+                                    <option value={1}>1 Turno</option>
+                                    <option value={2}>2 Turnos</option>
+                                    <option value={3}>3 Turnos</option>
+                                </select>
+                            </div>
+
+                            {/* Capacidad derivada (read-only) */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                    <Users className="w-3 h-3" /> Capacidad Total (calculada)
+                                </label>
+                                <div className="w-full bg-slate-950/60 border border-emerald-500/20 rounded-xl px-4 py-3 text-emerald-400 font-black text-sm flex items-center gap-2">
+                                    {config.tables ?? 6} mesas × {config.turns ?? 3} turnos × {config.groupFormat === "RR_3" ? 3 : 4} jug. = <span className="text-white">{config.playerCount} jugadores</span>
+                                </div>
                             </div>
 
                             {/* Lista Espera */}
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Lista de Espera</label>
-                                <input 
-                                    type="number" 
+                                <input
+                                    type="number"
                                     name="waitingListLimit"
                                     value={config.waitlistSize || ""}
                                     onChange={(e) => updateConfig("waitlistSize", parseInt(e.target.value) || 0)}
@@ -515,10 +554,10 @@ export function TournamentForm({ canCreateNational }: TournamentFormProps) {
                             {/* Activación Espera */}
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Activación Espera</label>
-                                <select 
+                                <select
                                     value={config.waitlistActivation}
                                     onChange={(e) => updateConfig("waitlistActivation", e.target.value)}
-                                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white outline-none cursor-pointer" 
+                                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white outline-none cursor-pointer"
                                 >
                                     <option value="AUTOMATIC">Automática</option>
                                     <option value="MANUAL">Manual (Admin)</option>
