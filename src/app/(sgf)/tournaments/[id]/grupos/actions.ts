@@ -38,7 +38,7 @@ export async function generateGroups(tournamentId: string) {
     try {
         const tournament = await prisma.tournament.findUnique({
             where: { id: tournamentId },
-            select: { id: true, config: true }
+            select: { id: true, config: true, modality: true, discipline: true, category: true }
         });
         if (!tournament) return { success: false, error: "Torneo no encontrado" };
 
@@ -174,7 +174,30 @@ export async function generateGroups(tournamentId: string) {
             `);
         }
 
-        // 8. Crear todos los partidos con 1 solo INSERT masivo
+        // 8. Cargar hándicaps individuales si el torneo es con hándicap
+        const isHandicap = tournament.modality === 'HANDICAP';
+        const matchDistance = isHandicap ? (cfg?.inningsPerPhase ?? 35) : 25;
+        const handicapMap = new Map<string, number>();
+
+        if (isHandicap) {
+            const playerIds = groupDefs.flatMap(d => d.players.map(p => p.player_id));
+            const rankings = await prisma.ranking.findMany({
+                where: {
+                    playerId: { in: playerIds },
+                    discipline: tournament.discipline as any,
+                    category: tournament.category as any,
+                },
+                select: { playerId: true, handicapTarget: true }
+            });
+            for (const r of rankings) {
+                if (r.handicapTarget != null) handicapMap.set(r.playerId, r.handicapTarget);
+            }
+        }
+
+        const getTarget = (playerId: string) =>
+            isHandicap ? (handicapMap.get(playerId) ?? matchDistance) : 25;
+
+        // 9. Crear todos los partidos con 1 solo INSERT masivo
         const matchData: Prisma.MatchCreateManyInput[] = [];
 
         groupDefs.forEach((def, gi) => {
@@ -191,22 +214,26 @@ export async function generateGroups(tournamentId: string) {
                 pairs.forEach(([home, away], idx) => {
                     matchData.push({ tournamentId, groupId, round: 1, matchOrder: idx + 1,
                         homePlayerId: home.player_id, awayPlayerId: away.player_id,
-                        homeTarget: 25, awayTarget: 25, matchDistance: 25 });
+                        homeTarget: getTarget(home.player_id), awayTarget: getTarget(away.player_id),
+                        matchDistance });
                 });
             } else {
-                // Round Robin 3 jugadores (RR_3 o DE_4 sin soporte completo aún)
+                // Round Robin 3 jugadores
                 if (p3) {
                     matchData.push({ tournamentId, groupId, round: 1, matchOrder: 1,
                         homePlayerId: p1.player_id, awayPlayerId: p3.player_id,
-                        homeTarget: 25, awayTarget: 25, matchDistance: 25 });
+                        homeTarget: getTarget(p1.player_id), awayTarget: getTarget(p3.player_id),
+                        matchDistance });
                 }
                 matchData.push({ tournamentId, groupId, round: 1, matchOrder: 2,
                     homePlayerId: p1.player_id, awayPlayerId: p2.player_id,
-                    homeTarget: 25, awayTarget: 25, matchDistance: 25 });
+                    homeTarget: getTarget(p1.player_id), awayTarget: getTarget(p2.player_id),
+                    matchDistance });
                 if (p3) {
                     matchData.push({ tournamentId, groupId, round: 1, matchOrder: 3,
                         homePlayerId: p3.player_id, awayPlayerId: p2.player_id,
-                        homeTarget: 25, awayTarget: 25, matchDistance: 25 });
+                        homeTarget: getTarget(p3.player_id), awayTarget: getTarget(p2.player_id),
+                        matchDistance });
                 }
             }
         });
@@ -458,12 +485,15 @@ export async function syncMatches(tournamentId: string) {
     }
 
     try {
-        // 1. Obtener torneo (para leer groupFormat) y grupos con jugadores
+        // 1. Obtener torneo (groupFormat, modality, discipline, category)
         const tournament = await prisma.tournament.findUnique({
             where: { id: tournamentId },
-            select: { config: true }
+            select: { config: true, modality: true, discipline: true, category: true }
         });
-        const groupFormat = (tournament?.config as any)?.groupFormat ?? 'RR_3';
+        const cfg2 = tournament?.config as any;
+        const groupFormat = cfg2?.groupFormat ?? 'RR_3';
+        const isHandicap = tournament?.modality === 'HANDICAP';
+        const matchDistance = isHandicap ? (cfg2?.inningsPerPhase ?? 35) : 25;
 
         const groups = await prisma.tournamentGroup.findMany({
             where: { tournamentId },
@@ -478,12 +508,30 @@ export async function syncMatches(tournamentId: string) {
 
         if (groups.length === 0) return { success: false, error: "No hay grupos creados" };
 
-        // 2. Borrar partidos actuales de fase de grupos
+        // 2. Cargar hándicaps individuales si aplica
+        const handicapMap2 = new Map<string, number>();
+        if (isHandicap) {
+            const playerIds = groups.flatMap(g => g.registrations.map(r => r.playerId));
+            const rankings = await prisma.ranking.findMany({
+                where: {
+                    playerId: { in: playerIds },
+                    discipline: tournament!.discipline as any,
+                    category: tournament!.category as any,
+                },
+                select: { playerId: true, handicapTarget: true }
+            });
+            for (const r of rankings) {
+                if (r.handicapTarget != null) handicapMap2.set(r.playerId, r.handicapTarget);
+            }
+        }
+        const getTarget2 = (pid: string) => isHandicap ? (handicapMap2.get(pid) ?? matchDistance) : 25;
+
+        // 3. Borrar partidos actuales de fase de grupos
         await prisma.match.deleteMany({
             where: { tournamentId, groupId: { not: null } }
         });
 
-        // 3. Crear nuevos partidos según formato
+        // 4. Crear nuevos partidos según formato
         const matchData: Prisma.MatchCreateManyInput[] = [];
 
         groups.forEach(group => {
@@ -501,7 +549,8 @@ export async function syncMatches(tournamentId: string) {
                     matchData.push({
                         tournamentId, groupId: group.id, round: 1, matchOrder: idx + 1,
                         homePlayerId: home.playerId, awayPlayerId: away.playerId,
-                        homeTarget: 25, awayTarget: 25, matchDistance: 25
+                        homeTarget: getTarget2(home.playerId), awayTarget: getTarget2(away.playerId),
+                        matchDistance
                     });
                 });
             } else {
@@ -510,19 +559,22 @@ export async function syncMatches(tournamentId: string) {
                     matchData.push({
                         tournamentId, groupId: group.id, round: 1, matchOrder: 1,
                         homePlayerId: p1.playerId, awayPlayerId: p3.playerId,
-                        homeTarget: 25, awayTarget: 25, matchDistance: 25
+                        homeTarget: getTarget2(p1.playerId), awayTarget: getTarget2(p3.playerId),
+                        matchDistance
                     });
                 }
                 matchData.push({
                     tournamentId, groupId: group.id, round: 1, matchOrder: 2,
                     homePlayerId: p1.playerId, awayPlayerId: p2.playerId,
-                    homeTarget: 25, awayTarget: 25, matchDistance: 25
+                    homeTarget: getTarget2(p1.playerId), awayTarget: getTarget2(p2.playerId),
+                    matchDistance
                 });
                 if (p3) {
                     matchData.push({
                         tournamentId, groupId: group.id, round: 1, matchOrder: 3,
                         homePlayerId: p3.playerId, awayPlayerId: p2.playerId,
-                        homeTarget: 25, awayTarget: 25, matchDistance: 25
+                        homeTarget: getTarget2(p3.playerId), awayTarget: getTarget2(p2.playerId),
+                        matchDistance
                     });
                 }
             }

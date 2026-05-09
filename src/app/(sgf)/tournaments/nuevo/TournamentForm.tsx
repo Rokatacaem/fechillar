@@ -707,10 +707,12 @@ export function TournamentForm({ canCreateNational }: TournamentFormProps) {
                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Distancia Final</label>
                                 <input type="number" name="distanceFinal" defaultValue={30} className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white text-xs" />
                             </div>
-                            <div className="space-y-2 flex items-center gap-3 pt-6">
-                                <input type="checkbox" name="finalUnlimitedInnings" defaultChecked id="finalUnlimited" className="w-4 h-4 rounded bg-slate-950 border-white/10 text-emerald-500" />
-                                <label htmlFor="finalUnlimited" className="text-[10px] font-bold text-slate-300 uppercase tracking-widest cursor-pointer">Final sin límite de entradas</label>
-                            </div>
+                            {config.modality !== "HANDICAP" && (
+                                <div className="space-y-2 flex items-center gap-3 pt-6">
+                                    <input type="checkbox" name="finalUnlimitedInnings" defaultChecked id="finalUnlimited" className="w-4 h-4 rounded bg-slate-950 border-white/10 text-emerald-500" />
+                                    <label htmlFor="finalUnlimited" className="text-[10px] font-bold text-slate-300 uppercase tracking-widest cursor-pointer">Final sin límite de entradas</label>
+                                </div>
+                            )}
 
 
                             {/* Control de Tiempo */}
