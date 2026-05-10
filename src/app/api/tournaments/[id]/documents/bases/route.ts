@@ -22,7 +22,7 @@ export async function GET(
 
     console.log('Torneo encontrado:', tournament.name);
 
-    const isHandicap = tournament.modality?.toLowerCase()?.includes('handicap') || false;
+    const isHandicap = tournament.modality === 'HANDICAP';
     console.log('Es con handicap:', isHandicap);
 
     console.log('Generando PDF...');

@@ -38,10 +38,11 @@ function SubmitButton() {
 export function TournamentForm({ canCreateNational }: TournamentFormProps) {
     const router = useRouter();
     const [state, formAction] = useFormState(createTournament, null);
-    
+
     // UI State
     const [discipline, setDiscipline] = useState("THREE_BAND");
     const [categoryMode, setCategoryMode] = useState("OPEN");
+    const [playerCountManual, setPlayerCountManual] = useState(false);
     const [clubs, setClubs] = useState<{id: string, name: string}[]>([]);
     const [prizeTemplates, setPrizeTemplates] = useState<any[]>([]);
     const [selectedPrizeTemplate, setSelectedPrizeTemplate] = useState<string>("");
@@ -134,14 +135,23 @@ export function TournamentForm({ canCreateNational }: TournamentFormProps) {
     const updateConfig = (key: string, value: any) => {
         setConfig((prev: any) => {
             const next = { ...prev, [key]: value };
-            // Recalcular capacidad cuando cambian mesas, turnos o formato
             if (key === 'tables' || key === 'turns' || key === 'groupFormat') {
                 const ppg = (next.groupFormat === 'RR_3') ? 3 : 4;
-                next.playerCount = (next.tables ?? 6) * (next.turns ?? 3) * ppg;
+                const calculated = (next.tables ?? 6) * (next.turns ?? 3) * ppg;
+                // Solo recalcular si el usuario no fijó un cupo manual
+                if (!playerCountManual) {
+                    next.playerCount = calculated;
+                }
+                next._calculatedCapacity = calculated;
             }
             return next;
         });
     };
+
+    const calculatedCapacity = (() => {
+        const ppg = (config.groupFormat === 'RR_3') ? 3 : 4;
+        return (config.tables ?? 6) * (config.turns ?? 3) * ppg;
+    })();
 
     return (
         <form action={formAction} className="bg-slate-900/40 border border-white/5 p-8 rounded-3xl backdrop-blur-md shadow-2xl space-y-10">
@@ -537,14 +547,42 @@ export function TournamentForm({ canCreateNational }: TournamentFormProps) {
                                 </select>
                             </div>
 
-                            {/* Capacidad derivada (read-only) */}
+                            {/* Cupo del torneo (editable, con referencia a capacidad física) */}
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                    <Users className="w-3 h-3" /> Capacidad Total (calculada)
+                                    <Users className="w-3 h-3" /> Cupo del Torneo
                                 </label>
-                                <div className="w-full bg-slate-950/60 border border-emerald-500/20 rounded-xl px-4 py-3 text-emerald-400 font-black text-sm flex items-center gap-2">
-                                    {config.tables ?? 6} mesas × {config.turns ?? 3} turnos × {config.groupFormat === "RR_3" ? 3 : 4} jug. = <span className="text-white">{config.playerCount} jugadores</span>
+                                <div className="flex gap-2 items-center">
+                                    <input
+                                        type="number"
+                                        title="Cupo del torneo"
+                                        value={config.playerCount}
+                                        min={2}
+                                        max={calculatedCapacity}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value) || 2;
+                                            setPlayerCountManual(true);
+                                            setConfig((prev: any) => ({ ...prev, playerCount: val }));
+                                        }}
+                                        className={`w-full bg-slate-950 rounded-xl px-4 py-3 text-white outline-none focus:ring-1 focus:ring-emerald-500/50 border ${playerCountManual ? "border-amber-500/50" : "border-white/10"}`}
+                                    />
+                                    {playerCountManual && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setPlayerCountManual(false);
+                                                setConfig((prev: any) => ({ ...prev, playerCount: calculatedCapacity }));
+                                            }}
+                                            title="Volver a capacidad calculada"
+                                            className="text-slate-400 hover:text-white text-xs whitespace-nowrap px-3 py-3 border border-white/10 rounded-xl"
+                                        >
+                                            ↺ Auto
+                                        </button>
+                                    )}
                                 </div>
+                                <p className="text-[10px] text-slate-600">
+                                    Capacidad física: {config.tables ?? 6} × {config.turns ?? 3} × {config.groupFormat === "RR_3" ? 3 : 4} = {calculatedCapacity} jug.{playerCountManual && config.playerCount < calculatedCapacity ? " · Cupo reducido (torneo por invitación)" : ""}
+                                </p>
                             </div>
 
                             {/* Lista Espera */}

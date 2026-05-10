@@ -61,22 +61,34 @@ export default async function TournamentDocumentsPage({
                                         datos de inscripción para jugadores.
                                     </p>
                                     <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-500 pt-2">
-                                        <span className="px-2 py-0.5 bg-slate-800 rounded">PDF</span>
+                                        <span className="px-2 py-0.5 bg-slate-800 rounded">DOCX</span>
                                         <span className="w-1 h-1 bg-slate-700 rounded-full" />
-                                        <span className="text-emerald-500/70">{isHandicap ? 'Con Handicap' : 'Sin Handicap'}</span>
+                                        <span className="px-2 py-0.5 bg-slate-800 rounded text-slate-500">PDF</span>
+                                        <span className="w-1 h-1 bg-slate-700 rounded-full" />
+                                        <span className="text-emerald-500/70">{isHandicap ? 'Con Hándicap' : 'Sin Hándicap'}</span>
                                     </div>
                                 </div>
                             </div>
-                            
-                            <a 
-                                href={`/api/tournaments/${tournament.id}/documents/bases`}
-                                target="_blank"
-                                download
-                                className="flex items-center gap-2 px-8 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 active:scale-95 shrink-0"
-                            >
-                                <Download className="h-4 w-4" />
-                                Descargar PDF
-                            </a>
+
+                            <div className="flex flex-col gap-2 shrink-0">
+                                <a
+                                    href={`/api/tournaments/${tournament.id}/documents/bases-docx`}
+                                    download
+                                    className="flex items-center gap-2 px-8 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
+                                >
+                                    <Download className="h-4 w-4" />
+                                    Descargar .docx
+                                </a>
+                                <a
+                                    href={`/api/tournaments/${tournament.id}/documents/bases`}
+                                    target="_blank"
+                                    download
+                                    className="flex items-center gap-2 px-8 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 font-black text-xs uppercase tracking-widest transition-all active:scale-95"
+                                >
+                                    <Download className="h-3 w-3" />
+                                    Descargar PDF
+                                </a>
+                            </div>
                         </div>
                     </div>
 
