@@ -2,7 +2,6 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { WarRoomSessionWidget } from "@/components/admin/WarRoomSessionWidget";
-import { PurificationTrigger } from "@/components/admin/PurificationTrigger";
 import { Toaster } from "sonner";
 
 export default async function SuperAdminWarRoom() {
@@ -46,7 +45,6 @@ export default async function SuperAdminWarRoom() {
                         )}
                     </div>
                     <div className="flex items-center gap-4">
-                        {!isSystemEmpty && <PurificationTrigger />}
                         <WarRoomSessionWidget name={name} role={role} />
                     </div>
                 </header>

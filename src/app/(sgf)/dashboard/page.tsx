@@ -9,7 +9,6 @@ import {
   ArrowLeftRight,
   Activity
 } from "lucide-react";
-import { PurificationTrigger } from "@/components/admin/PurificationTrigger";
 import { Toaster } from "sonner";
 
 export const dynamic = "force-dynamic";
@@ -73,11 +72,6 @@ export default async function SgfDashboardPage() {
           ) : null}
         </div>
         
-        {!(stats as any).isSystemEmpty && (
-            <div className="flex shrink-0">
-                <PurificationTrigger />
-            </div>
-        )}
       </div>
 
       {/* Metrics Grid */}

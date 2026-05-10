@@ -5,8 +5,13 @@ import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 
 export async function executeEnvironmentPurge() {
+    // Bloqueado permanentemente en producción
+    if (process.env.NODE_ENV === "production") {
+        return { success: false, error: "Purificación deshabilitada en producción." };
+    }
+
     const session = await auth();
-    
+
     // Normalización de email para evitar bloqueos por mayúsculas
     const userEmail = session?.user?.email?.toLowerCase();
     const adminEmail = "admin@fechillar.cl".toLowerCase();
