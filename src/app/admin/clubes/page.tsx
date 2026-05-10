@@ -2,7 +2,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Building2, ChevronRight, Users, Trophy, ShieldCheck, Plus } from "lucide-react";
+import { Building2, ChevronRight, Users, Trophy, ShieldCheck, Plus, ArrowLeft } from "lucide-react";
 import { CreateClubDialog } from "@/components/admin/CreateClubDialog";
 import { DeleteClubButton } from "@/components/admin/DeleteClubButton";
 
@@ -30,14 +30,22 @@ export default async function AdminClubsList() {
             <div className="max-w-[1400px] mx-auto space-y-8">
                 
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-slate-800 pb-8">
-                    <div>
-                        <h1 className="text-4xl font-black text-white tracking-tight uppercase">
-                            Inventario de <span className="text-blue-500">Sedes Federadas</span>
-                        </h1>
-                        <p className="text-slate-500 font-mono text-xs mt-2 tracking-widest uppercase flex items-center gap-2">
-                            <ShieldCheck className="w-3 h-3 text-emerald-500" />
-                            Gestión de activos físicos y autoridades regionales
-                        </p>
+                    <div className="flex items-center gap-4">
+                        <Link
+                            href="/admin/dashboard"
+                            className="p-3 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors shrink-0"
+                        >
+                            <ArrowLeft className="w-5 h-5" />
+                        </Link>
+                        <div>
+                            <h1 className="text-4xl font-black text-white tracking-tight uppercase">
+                                Inventario de <span className="text-blue-500">Sedes Federadas</span>
+                            </h1>
+                            <p className="text-slate-500 font-mono text-xs mt-2 tracking-widest uppercase flex items-center gap-2">
+                                <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                                Gestión de activos físicos y autoridades regionales
+                            </p>
+                        </div>
                     </div>
 
                     <CreateClubDialog />
