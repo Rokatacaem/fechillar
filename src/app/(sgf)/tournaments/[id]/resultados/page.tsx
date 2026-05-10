@@ -59,7 +59,7 @@ export default async function ResultadosPage({ params }: { params: Promise<{ id:
             {/* Header */}
             <div className="flex items-center gap-4">
                 <Link
-                    href={`/tournaments/${tournamentId}/inscripciones`}
+                    href="/tournaments"
                     className="p-3 rounded-2xl bg-slate-800 border border-white/5 text-slate-400 hover:text-white transition-all"
                 >
                     <ArrowLeft className="w-5 h-5" />

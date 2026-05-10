@@ -42,7 +42,7 @@ export default async function TournamentReportPage({ params }: { params: Promise
         <div className="min-h-screen bg-[#020617] text-white p-4 pb-20">
             {/* Header */}
             <div className="max-w-md mx-auto mb-6 flex items-center justify-between">
-                <Link href={`/tournaments/${tournamentId}/grupos`} className="p-2 bg-slate-900 rounded-full border border-white/5">
+                <Link href="/tournaments" className="p-2 bg-slate-900 rounded-full border border-white/5">
                     <ArrowLeft className="w-5 h-5 text-slate-400" />
                 </Link>
                 <div className="text-center">

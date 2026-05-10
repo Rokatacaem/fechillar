@@ -1,6 +1,8 @@
 import prisma from "@/lib/prisma"
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 import { BracketViewer } from "@/components/tournament/BracketViewer"
 import { matchesToBracket, getBracketProgress } from "@/lib/billiards/bracket-automation"
 
@@ -56,13 +58,21 @@ export default async function BracketPage({ params }: { params: Promise<{ id: st
     <div className="space-y-6 p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">
-            Llaves · <span className="text-amber-400">{tournament.name}</span>
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Fase eliminatoria — Eliminación directa
-          </p>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/tournaments"
+            className="p-3 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-extrabold text-white tracking-tight">
+              Llaves · <span className="text-amber-400">{tournament.name}</span>
+            </h1>
+            <p className="text-slate-500 text-sm mt-1">
+              Fase eliminatoria — Eliminación directa
+            </p>
+          </div>
         </div>
 
         {/* Badge de progreso */}

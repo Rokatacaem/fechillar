@@ -30,7 +30,7 @@ export default async function GruposPage({ params }: { params: Promise<{ id: str
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <Link
-                        href={`/tournaments/${tournamentId}/inscripciones`}
+                        href="/tournaments"
                         className="p-3 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
                     >
                         <ArrowLeft className="w-5 h-5" />

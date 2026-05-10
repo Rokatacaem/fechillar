@@ -118,14 +118,14 @@ export default async function ClubMasterFile({ params, searchParams }: { params:
                 
                 {/* Navegación Superior */}
                 <nav className="flex items-center gap-4">
-                    <Link 
-                        href="/dashboard" 
+                    <Link
+                        href="/admin/clubes"
                         className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-blue-400 transition-colors"
                     >
                         <div className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 group-hover:border-blue-500/30 transition-all">
                             <ArrowLeft className="w-3 h-3" />
                         </div>
-                        Volver al Home
+                        Volver a Clubes
                     </Link>
                 </nav>
 

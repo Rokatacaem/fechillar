@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import prisma from "@/lib/prisma";
 import TournamentManager from "@/components/tournament/TournamentManager";
 import { calculatePhaseStates } from "@/lib/tournament/phase-manager";
@@ -141,13 +143,23 @@ export default async function TournamentGestionPage({
   });
 
   return (
-    <TournamentManager
-      tournamentId={tournament.id}
-      tournamentName={tournament.name}
-      discipline={tournament.discipline}
-      venue={tournament.hostClub ? tournament.hostClub.name : "Sede Central"}
-      phases={enrichedPhases as any}
-      onGenerateBracket={undefined}
-    />
+    <>
+      <div className="flex items-center gap-4 mb-6 px-4 pt-4">
+        <Link
+          href="/tournaments"
+          className="p-3 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+      </div>
+      <TournamentManager
+        tournamentId={tournament.id}
+        tournamentName={tournament.name}
+        discipline={tournament.discipline}
+        venue={tournament.hostClub ? tournament.hostClub.name : "Sede Central"}
+        phases={enrichedPhases as any}
+        onGenerateBracket={undefined}
+      />
+    </>
   );
 }

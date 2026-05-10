@@ -91,6 +91,9 @@ export default async function SuperAdminWarRoom() {
                                 <a href="/admin/clubes" className="block w-full bg-indigo-600 text-white py-3 rounded-xl font-black text-sm text-center shadow-[0_4px_20px_rgba(79,70,229,0.3)] hover:bg-indigo-500 transition-all">
                                     Gestión de Clubes →
                                 </a>
+                                <a href="/bases-torneo" className="block w-full bg-violet-600/20 border border-violet-500/30 text-violet-400 py-3 rounded-xl font-black text-sm text-center hover:bg-violet-600 hover:text-white transition-all">
+                                    Generador de Bases →
+                                </a>
                             </div>
                         </section>
                     </div>
