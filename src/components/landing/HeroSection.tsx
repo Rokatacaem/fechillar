@@ -1,8 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
+import { unstable_noStore as noStore } from "next/cache";
 
 async function getStats() {
+    noStore();
     const [players, clubs] = await Promise.all([
         prisma.playerProfile.count({
             where: { NOT: { firstName: { startsWith: "ELIMINADO" } } },
