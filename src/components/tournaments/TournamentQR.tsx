@@ -48,10 +48,12 @@ export function TournamentQR({ tournamentId, tournamentName, showLabel = true, s
 
     return (
         <div className="flex flex-col items-center gap-4 p-4 bg-slate-900/40 border border-white/5 rounded-3xl backdrop-blur-xl">
-            {qrDataUrl && (
-                <div className="bg-white p-2 rounded-xl">
-                    <img src={qrDataUrl} alt="Tournament QR" className="w-full h-auto" style={{ width: size, height: size }} />
+            {qrDataUrl ? (
+                <div className="rounded-xl overflow-hidden">
+                    <img src={qrDataUrl} alt="QR Torneo" width={size} height={size} />
                 </div>
+            ) : (
+                <div className="rounded-xl bg-slate-800 animate-pulse" />
             )}
             
             {showLabel && (

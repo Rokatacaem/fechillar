@@ -131,8 +131,8 @@ export function LiveStandingsHeader({
             <div className="flex items-center gap-6">
                 {/* Dual Branding: Logo Federación (Static) + Logo Club (Dynamic) */}
                 <div className="flex items-center -space-x-3">
-                    <div className="w-14 h-14 rounded-2xl bg-white p-2 shadow-xl border border-white/10 z-10">
-                        <img src="/logo-fed.png" alt="Federación" className="w-full h-full object-contain" />
+                    <div className="w-14 h-14 rounded-2xl bg-slate-900 p-1.5 shadow-xl border border-white/10 z-10 overflow-hidden">
+                        <img src="/fechillar_logo_final_v5.jpg" alt="Fechillar" className="w-full h-full object-contain rounded-xl" />
                     </div>
                     {clubLogo && (
                         <div className="w-12 h-12 rounded-xl bg-slate-900 p-2 shadow-xl border border-white/5 rotate-6">
@@ -152,14 +152,17 @@ export function LiveStandingsHeader({
             </div>
             
             <div className="flex items-center gap-6">
-                <div className="hidden lg:block">
+                <div className="hidden lg:flex flex-col items-center gap-1">
                     {tournamentId && (
-                        <TournamentQR 
-                            tournamentId={tournamentId} 
-                            tournamentName={title} 
-                            showLabel={false}
-                            size={70} 
-                        />
+                        <>
+                            <TournamentQR
+                                tournamentId={tournamentId}
+                                tournamentName={title}
+                                showLabel={false}
+                                size={70}
+                            />
+                            <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Seguir en vivo</span>
+                        </>
                     )}
                 </div>
                 <div className="flex items-center gap-3 bg-slate-900/50 border border-white/5 p-4 py-3 rounded-2xl">
