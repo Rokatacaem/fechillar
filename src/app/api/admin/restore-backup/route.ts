@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -15,6 +15,12 @@ export async function POST(req: Request) {
     if (!syncSecret || req.headers.get("x-sync-secret") !== syncSecret) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Usar conexión directa (sin PgBouncer): los upserts masivos no persisten
+    // correctamente a través del pooler en modo transacción.
+    const prisma = new PrismaClient({
+        datasources: { db: { url: process.env.DIRECT_URL || process.env.DATABASE_URL } }
+    });
 
     try {
         const body = await req.json();
@@ -36,7 +42,7 @@ export async function POST(req: Request) {
             });
         }
 
-        // 2. Restaurar Usuarios (si el backup los incluye)
+        // 2. Restaurar Usuarios
         if (data.users) {
             for (const user of data.users) {
                 const { id, ...fields } = stripNested(user);
@@ -58,7 +64,6 @@ export async function POST(req: Request) {
                     create: { id, ...fields } as any,
                 });
             } catch (err: any) {
-                // Si falla por FK de userId (usuario no existe en esta DB), reintentar sin él
                 if (err.message?.includes('userId') || err.message?.includes('PlayerProfile_userId_fkey')) {
                     const { userId: _u, ...fieldsNoUser } = fields as any;
                     await prisma.playerProfile.upsert({
@@ -72,10 +77,8 @@ export async function POST(req: Request) {
             }
         }
 
-        // 4. Restaurar Torneos (delete + recreate para evitar conflictos de id)
-        if (data.tournaments) {
-            await prisma.tournament.deleteMany({});
-
+        // 4. Restaurar Torneos
+        if (data.tournaments && data.tournaments.length > 0) {
             const fieldsToRemove = [
                 'registrationFee', 'adjustmentPhaseConfig', 'playoffBracketSize',
                 'requiresAdjustment', 'tournamentStructure', 'prizeDistribution',
@@ -85,17 +88,18 @@ export async function POST(req: Request) {
                 'finalUnlimitedInnings', 'scheduleDay1Start', 'scheduleDay2Start',
                 'registrationContact', 'registrationPhone', 'registrationDeadline',
                 'groupsPublishDate', 'officializationStatus',
-                // relaciones anidadas
                 'hostClub', 'venueClub', 'creator', 'registrations', 'groups',
             ];
-
-            const cleanTournaments = data.tournaments.map((t: any) => {
+            for (const t of data.tournaments) {
                 const clean = stripNested(t);
                 fieldsToRemove.forEach(f => delete clean[f]);
-                return clean;
-            });
-
-            await prisma.tournament.createMany({ data: cleanTournaments, skipDuplicates: true });
+                const { id, ...fields } = clean;
+                await prisma.tournament.upsert({
+                    where: { id },
+                    update: fields as any,
+                    create: { id, ...fields } as any,
+                });
+            }
         }
 
         // 5. Restaurar Grupos
@@ -143,7 +147,7 @@ export async function POST(req: Request) {
                         },
                     },
                     update: fields as any,
-                    create: fields as any, // Sin forzar id para evitar conflictos por registros fusionados
+                    create: fields as any,
                 });
             }
         }
@@ -163,5 +167,7 @@ export async function POST(req: Request) {
     } catch (e: any) {
         console.error("Error en restauración:", e);
         return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+    } finally {
+        await prisma.$disconnect();
     }
 }
