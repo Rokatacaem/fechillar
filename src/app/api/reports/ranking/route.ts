@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
       club: { select: { name: true } },
       rankings: {
         where: { discipline: discipline as 'THREE_BAND' | 'THREE_BAND_ANNUAL' },
+        orderBy: { points: 'desc' },
         take: 1,
       },
     },

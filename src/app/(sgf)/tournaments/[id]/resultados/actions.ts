@@ -441,3 +441,116 @@ export async function generateKnockoutPhaseAction(tournamentId: string) {
         return { success: false, error: error.message };
     }
 }
+
+// ─────────────────────────────────────────────────────────
+// REPORTE WHATSAPP
+// ─────────────────────────────────────────────────────────
+
+export async function getTournamentWhatsAppReport(tournamentId: string): Promise<string> {
+    const tournament = await prisma.tournament.findUnique({
+        where: { id: tournamentId },
+        include: {
+            groups: {
+                include: {
+                    matches: {
+                        include: {
+                            homePlayer: { select: { firstName: true, lastName: true } },
+                            awayPlayer: { select: { firstName: true, lastName: true } },
+                        }
+                    },
+                    registrations: {
+                        include: {
+                            player: { select: { id: true, firstName: true, lastName: true } }
+                        }
+                    }
+                },
+                orderBy: { order: "asc" }
+            },
+            matches: {
+                include: {
+                    homePlayer: { select: { firstName: true, lastName: true } },
+                    awayPlayer: { select: { firstName: true, lastName: true } },
+                },
+                orderBy: [{ round: "asc" }, { matchOrder: "asc" }]
+            }
+        }
+    });
+
+    if (!tournament) return "Torneo no encontrado";
+
+    const allMatches = [
+        ...tournament.groups.flatMap(g => g.matches),
+        ...tournament.matches
+    ];
+    const totalMatches = allMatches.length;
+    const isPlayed = (m: any) => m.winnerId !== null || m.isWO || (m.homeInnings ?? 0) > 0;
+    const completedMatches = allMatches.filter(isPlayed).length;
+
+    // Calcular posiciones por grupo
+    const playerName = (p: any) => `${p?.firstName ?? ""} ${p?.lastName ?? ""}`.trim();
+
+    let groupLines = "";
+    for (const group of tournament.groups) {
+        const playerStats: Record<string, { name: string; pts: number; carom: number; innings: number; hr: number }> = {};
+        for (const reg of group.registrations) {
+            const id = reg.player.id;
+            playerStats[id] = { name: playerName(reg.player), pts: 0, carom: 0, innings: 0, hr: 0 };
+        }
+
+        for (const m of group.matches) {
+            if (!isPlayed(m) || !m.homePlayerId || !m.awayPlayerId) continue;
+            const h = m.homePlayerId;
+            const a = m.awayPlayerId;
+            if (playerStats[h] && playerStats[a]) {
+                if (m.winnerId === h) playerStats[h].pts += 2;
+                else if (m.winnerId === a) playerStats[a].pts += 2;
+                playerStats[h].carom += m.homeScore ?? 0;
+                playerStats[h].innings += m.homeInnings ?? 0;
+                playerStats[h].hr = Math.max(playerStats[h].hr, m.homeHighRun ?? 0);
+                playerStats[a].carom += m.awayScore ?? 0;
+                playerStats[a].innings += m.awayInnings ?? 0;
+                playerStats[a].hr = Math.max(playerStats[a].hr, m.awayHighRun ?? 0);
+            }
+        }
+
+        const sorted = Object.values(playerStats).sort((a, b) => {
+            if (b.pts !== a.pts) return b.pts - a.pts;
+            const avgA = a.innings > 0 ? a.carom / a.innings : 0;
+            const avgB = b.innings > 0 ? b.carom / b.innings : 0;
+            return avgB - avgA;
+        });
+
+        const completedInGroup = group.matches.filter(isPlayed).length;
+        groupLines += `\n*${group.name}* (${completedInGroup}/${group.matches.length})\n`;
+        sorted.forEach((p, i) => {
+            const avg = p.innings > 0 ? (p.carom / p.innings).toFixed(3) : "0.000";
+            groupLines += `${i + 1}. ${p.name} — ${p.pts}pts | pg: ${avg}\n`;
+        });
+    }
+
+    // Eliminatorias (si hay)
+    const knockoutMatches = tournament.matches.filter(m => m.groupId === null);
+    let knockoutLines = "";
+    if (knockoutMatches.length > 0) {
+        const recent = knockoutMatches.filter(isPlayed).slice(-4);
+        if (recent.length > 0) {
+            knockoutLines = "\n*🏆 ELIMINATORIAS*\n";
+            for (const m of recent) {
+                const winner = m.winnerId === m.homePlayerId ? playerName(m.homePlayer) : playerName(m.awayPlayer);
+                knockoutLines += `✅ ${playerName(m.homePlayer)} ${m.homeScore}-${m.awayScore} ${playerName(m.awayPlayer)} → *${winner}*\n`;
+            }
+        }
+    }
+
+    const pct = totalMatches > 0 ? Math.round((completedMatches / totalMatches) * 100) : 0;
+    const now = new Date().toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" });
+
+    return `🎱 *${tournament.name.toUpperCase()}*
+📅 FECHILLAR | ${now}
+
+📊 *POSICIONES*${groupLines}${knockoutLines}
+▶️ Partidas: ${completedMatches}/${totalMatches} completadas (${pct}%)
+
+🔗 Seguimiento en vivo:
+fechillar-three.vercel.app/torneos/${tournamentId}`;
+}

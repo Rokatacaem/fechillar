@@ -7,6 +7,7 @@ import { MatchResultForm } from "./MatchResultForm";
 import { CloseTournamentButton } from "./CloseTournamentButton";
 import GenerateBracketButton from "./GenerateBracketButton";
 import { GroupFilterBar } from "./GroupFilterBar";
+import { ShareWhatsApp } from "./ShareWhatsApp";
 import { generateRoundRobinMatches, generateMatchesByGroup } from "./actions";
 
 export default async function ResultadosPage({
@@ -219,6 +220,28 @@ export default async function ResultadosPage({
                             </Link>
                         </div>
                     )}
+
+                    {/* Difusión */}
+                    <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-5 space-y-3">
+                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Difusión</h3>
+                        <Link
+                            href={`/torneos/${tournamentId}/streaming`}
+                            target="_blank"
+                            className="flex items-center justify-between w-full py-3 px-4 rounded-xl bg-slate-800 border border-white/5 hover:bg-slate-700 transition-all"
+                        >
+                            <span className="text-[10px] font-black text-white uppercase tracking-widest">📺 Pantalla TV</span>
+                            <span className="text-[9px] text-slate-500 font-bold">↗</span>
+                        </Link>
+                        <Link
+                            href={`/torneos/${tournamentId}`}
+                            target="_blank"
+                            className="flex items-center justify-between w-full py-3 px-4 rounded-xl bg-slate-800 border border-white/5 hover:bg-slate-700 transition-all"
+                        >
+                            <span className="text-[10px] font-black text-white uppercase tracking-widest">🌐 Página Pública</span>
+                            <span className="text-[9px] text-slate-500 font-bold">↗</span>
+                        </Link>
+                        <ShareWhatsApp tournamentId={tournamentId} />
+                    </div>
                 </div>
 
                 {/* Panel derecho: lista de partidas */}
