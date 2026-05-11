@@ -6,13 +6,21 @@ import { ArrowLeft, Shuffle, Trophy, CheckCircle, Clock, AlertCircle } from "luc
 import { MatchResultForm } from "./MatchResultForm";
 import { CloseTournamentButton } from "./CloseTournamentButton";
 import GenerateBracketButton from "./GenerateBracketButton";
+import { GroupFilterBar } from "./GroupFilterBar";
 import { generateRoundRobinMatches, generateMatchesByGroup } from "./actions";
 
-export default async function ResultadosPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ResultadosPage({
+    params,
+    searchParams,
+}: {
+    params: Promise<{ id: string }>;
+    searchParams: Promise<{ group?: string }>;
+}) {
     const session = await auth();
     if (!session) redirect("/login");
 
     const { id: tournamentId } = await params;
+    const { group: selectedGroup } = await searchParams;
 
     const tournament = await prisma.tournament.findUnique({
         where: { id: tournamentId },
@@ -46,8 +54,31 @@ export default async function ResultadosPage({ params }: { params: Promise<{ id:
     const isApproved = true; // Por defecto asumimos aprobado
 
 
+    // Construir mapa de grupos
+    const groupsMap: Record<string, typeof tournament.matches> = {};
+    tournament.matches.forEach(m => {
+        let groupName = (m as any).group?.name;
+        if (!groupName) groupName = m.id.includes("_W") || m.id.includes("_L") ? "Eliminatorias" : "Sin Grupo";
+        if (!groupsMap[groupName]) groupsMap[groupName] = [];
+        groupsMap[groupName].push(m);
+    });
+
+    // Metadatos de grupos para el filtro
+    const isPlayed = (m: any) => m.winnerId !== null || m.isWO || (m.homeInnings ?? 0) > 0;
+    const groupsInfo = Object.entries(groupsMap).map(([name, matches]) => ({
+        name,
+        label: name === "Eliminatorias" ? "Eliminatorias" : name === "Sin Grupo" ? "Sin Grupo" : name,
+        total: matches.length,
+        completed: matches.filter(isPlayed).length,
+    }));
+
+    // Aplicar filtro por grupo seleccionado
+    const filteredEntries = selectedGroup
+        ? Object.entries(groupsMap).filter(([name]) => name === selectedGroup)
+        : Object.entries(groupsMap);
+
     const totalMatches = tournament.matches.length;
-    const completedMatches = tournament.matches.filter(m => m.winnerId !== null || m.isWO || (m.homeInnings ?? 0) > 0).length;
+    const completedMatches = tournament.matches.filter(isPlayed).length;
     const pendingMatches = totalMatches - completedMatches;
 
     const playerName = (player: any) =>
@@ -204,77 +235,72 @@ export default async function ResultadosPage({ params }: { params: Promise<{ id:
                     {totalMatches === 0 ? (
                         <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-12 text-center">
                             <Shuffle className="w-10 h-10 text-slate-700 mx-auto mb-4" />
-                            <p className="text-slate-500 text-sm font-bold">
-                                No hay partidas generadas.
-                            </p>
+                            <p className="text-slate-500 text-sm font-bold">No hay partidas generadas.</p>
                             <p className="text-slate-600 text-xs mt-1">
                                 Selecciona un método de generación para comenzar a ingresar resultados.
                             </p>
                         </div>
                     ) : (
-                        (() => {
-                             // Agrupar partidas por nombre de grupo o fase
-                             const groupsMap: Record<string, any[]> = {};
-                             tournament.matches.forEach(m => {
-                                 let groupName = (m as any).group?.name;
-                                 if (!groupName) {
-                                     groupName = m.id.startsWith(tournament.id) ? "Eliminatorias" : "Sin Grupo";
-                                 }
-                                 if (!groupsMap[groupName]) groupsMap[groupName] = [];
-                                 groupsMap[groupName].push(m);
-                             });
+                        <>
+                            {/* Filtro de grupos */}
+                            <GroupFilterBar
+                                groups={groupsInfo}
+                                selectedGroup={selectedGroup ?? null}
+                            />
 
-                             return Object.entries(groupsMap).map(([groupName, matches]) => {
-                                 const isKnockout = groupName === "Eliminatorias";
-                                 const label = isKnockout ? "Cuadro de Eliminación Directa" : (groupName === "Sin Grupo" ? "Otras Partidas" : `Fase de Grupos: ${groupName}`);
+                            {filteredEntries.map(([groupName, matches]) => {
+                                const isKnockout = groupName === "Eliminatorias";
+                                const label = isKnockout
+                                    ? "Cuadro de Eliminación Directa"
+                                    : groupName === "Sin Grupo"
+                                    ? "Otras Partidas"
+                                    : `Fase de Grupos: ${groupName}`;
 
-                                 return (
-                                     <div key={groupName} className="space-y-3 mb-8">
-                                         <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-lg inline-block ${isKnockout ? "text-amber-500 bg-amber-500/5" : "text-emerald-500 bg-emerald-500/5"}`}>
-                                             {label}
-                                         </h4>
-                                    {matches.map(match => {
-                                        if (!match.homePlayer || !match.awayPlayer) return null;
+                                return (
+                                    <div key={groupName} className="space-y-3 mb-8">
+                                        <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-lg inline-block ${isKnockout ? "text-amber-500 bg-amber-500/5" : "text-emerald-500 bg-emerald-500/5"}`}>
+                                            {label}
+                                        </h4>
+                                        {matches.map(match => {
+                                            if (!match.homePlayer || !match.awayPlayer) return null;
+                                            const isMatchPlayed = isPlayed(match);
+                                            const isMatchKnockout = match.id.includes("_W") || match.id.includes("_L");
+                                            const existingResult = isMatchPlayed ? {
+                                                homeScore: match.homeScore ?? 0,
+                                                awayScore: match.awayScore ?? 0,
+                                                homeInnings: match.homeInnings ?? inningLimit,
+                                                awayInnings: match.awayInnings ?? inningLimit,
+                                                homeHighRun: match.homeHighRun ?? 0,
+                                                awayHighRun: match.awayHighRun ?? 0,
+                                                winnerId: match.winnerId,
+                                                refereeName: match.refereeName,
+                                            } : null;
 
-                                        const isMatchPlayed = match.winnerId !== null || match.isWO || (match.homeInnings ?? 0) > 0;
-                                        // Las partidas de eliminación directa tienen IDs generados con prefijo del torneo + _W o _L
-                                        const isKnockout = match.id.startsWith(tournament.id);
-                                        const existingResult = isMatchPlayed ? {
-                                            homeScore: match.homeScore ?? 0,
-                                            awayScore: match.awayScore ?? 0,
-                                            homeInnings: match.homeInnings ?? inningLimit,
-                                            awayInnings: match.awayInnings ?? inningLimit,
-                                            homeHighRun: match.homeHighRun ?? 0,
-                                            awayHighRun: match.awayHighRun ?? 0,
-                                            winnerId: match.winnerId,
-                                            refereeName: match.refereeName,
-                                        } : null;
-
-                                        return (
-                                            <MatchResultForm
-                                                key={match.id}
-                                                matchId={match.id}
-                                                homePlayer={{
-                                                    id: match.homePlayer.id,
-                                                    name: playerName(match.homePlayer),
-                                                    club: playerClub(match.homePlayer),
-                                                }}
-                                                awayPlayer={{
-                                                    id: match.awayPlayer.id,
-                                                    name: playerName(match.awayPlayer),
-                                                    club: playerClub(match.awayPlayer),
-                                                }}
-                                                inningLimit={inningLimit}
-                                                allowDraws={!isKnockout}
-                                                groupId={match.groupId}
-                                                existingResult={existingResult}
-                                            />
-                                        );
-                                    })}
-                                     </div>
-                                 );
-                             });
-                         })()
+                                            return (
+                                                <MatchResultForm
+                                                    key={match.id}
+                                                    matchId={match.id}
+                                                    homePlayer={{
+                                                        id: match.homePlayer.id,
+                                                        name: playerName(match.homePlayer),
+                                                        club: playerClub(match.homePlayer),
+                                                    }}
+                                                    awayPlayer={{
+                                                        id: match.awayPlayer.id,
+                                                        name: playerName(match.awayPlayer),
+                                                        club: playerClub(match.awayPlayer),
+                                                    }}
+                                                    inningLimit={inningLimit}
+                                                    allowDraws={!isMatchKnockout}
+                                                    groupId={match.groupId}
+                                                    existingResult={existingResult}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })}
+                        </>
                     )}
                 </div>
             </div>
