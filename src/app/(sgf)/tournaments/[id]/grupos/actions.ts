@@ -6,6 +6,33 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 
 // ─────────────────────────────────────────────────────────
+// ACTUALIZAR FORMATO DE GRUPOS EN EL CONFIG DEL TORNEO
+// ─────────────────────────────────────────────────────────
+
+export async function updateGroupFormat(tournamentId: string, groupFormat: string) {
+    const session = await auth();
+    const role = (session?.user as any)?.role;
+    if (!["SUPERADMIN", "FEDERATION_ADMIN"].includes(role)) {
+        return { success: false, error: "No autorizado" };
+    }
+
+    const tournament = await prisma.tournament.findUnique({
+        where: { id: tournamentId },
+        select: { config: true }
+    });
+    if (!tournament) return { success: false, error: "Torneo no encontrado" };
+
+    const newConfig = { ...(tournament.config as object), groupFormat };
+    await prisma.tournament.update({
+        where: { id: tournamentId },
+        data: { config: newConfig }
+    });
+
+    revalidatePath(`/tournaments/${tournamentId}/grupos`);
+    return { success: true };
+}
+
+// ─────────────────────────────────────────────────────────
 // GENERACIÓN Y RESETEO DE GRUPOS
 // ─────────────────────────────────────────────────────────
 
