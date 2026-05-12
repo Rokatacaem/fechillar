@@ -32,41 +32,43 @@ export function GroupFilterBar({ groups, selectedGroup }: Props) {
 
     if (groups.length <= 1) return null;
 
-    return (
-        <div className="flex flex-wrap gap-2 pb-3 border-b border-white/5">
-            {/* Botón "Todos" */}
-            <button
-                onClick={() => select(null)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                    !selectedGroup
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                        : "bg-slate-800 text-slate-500 border border-white/5 hover:text-slate-300"
-                }`}
-            >
-                Todos ({groups.reduce((a, g) => a + g.total, 0)})
-            </button>
+    const sorted = [...groups].sort((a, b) => a.name.localeCompare(b.name));
+    const totalMatches = groups.reduce((a, g) => a + g.total, 0);
+    const completedMatches = groups.reduce((a, g) => a + g.completed, 0);
+    const selectedInfo = sorted.find(g => g.name === selectedGroup);
 
-            {groups.map((g) => {
-                const isActive = selectedGroup === g.name;
-                const isDone = g.completed === g.total && g.total > 0;
-                return (
-                    <button
-                        key={g.name}
-                        onClick={() => select(g.name)}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 ${
-                            isActive
-                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                                : "bg-slate-800 text-slate-500 border border-white/5 hover:text-slate-300"
-                        }`}
-                    >
-                        {isDone && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />}
-                        {g.label}
-                        <span className={`text-[9px] font-bold ${isDone ? "text-emerald-600" : "text-slate-600"}`}>
-                            {g.completed}/{g.total}
-                        </span>
-                    </button>
-                );
-            })}
+    return (
+        <div className="flex items-center gap-3 pb-3 border-b border-white/5">
+            <select
+                value={selectedGroup ?? ""}
+                onChange={(e) => select(e.target.value || null)}
+                aria-label="Filtrar por grupo"
+                className="flex-1 bg-slate-800 border border-white/10 text-white text-xs font-bold uppercase tracking-widest rounded-lg px-3 py-2 appearance-none cursor-pointer focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
+            >
+                <option value="">Todos los grupos ({totalMatches} partidas)</option>
+                {sorted.map((g) => {
+                    const isDone = g.completed === g.total && g.total > 0;
+                    return (
+                        <option key={g.name} value={g.name}>
+                            {isDone ? "✓ " : ""}{g.label} — {g.completed}/{g.total}
+                        </option>
+                    );
+                })}
+            </select>
+
+            {selectedInfo && (
+                <div className="shrink-0 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    {selectedInfo.completed}/{selectedInfo.total}
+                    {selectedInfo.completed === selectedInfo.total && selectedInfo.total > 0 && (
+                        <span className="ml-1.5 text-emerald-500">✓</span>
+                    )}
+                </div>
+            )}
+            {!selectedGroup && (
+                <div className="shrink-0 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    {completedMatches}/{totalMatches}
+                </div>
+            )}
         </div>
     );
 }
