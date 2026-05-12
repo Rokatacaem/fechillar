@@ -33,7 +33,7 @@ export default function GenerateBracketButton({
       
       if (result.success) {
         toast.success("Cuadro generado exitosamente con Fase de Ajuste.");
-        router.push(`/tournaments/${tournamentId}/llaves`);
+        router.push(`/tournaments/${tournamentId}/bracket`);
         router.refresh();
       } else {
         toast.error(result.error || "Error al generar el cuadro.");
