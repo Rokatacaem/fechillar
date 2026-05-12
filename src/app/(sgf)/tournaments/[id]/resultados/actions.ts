@@ -410,12 +410,9 @@ export async function generateKnockoutPhaseAction(tournamentId: string) {
         const bracketSize = playerIds.length <= 8 ? 8 : 16;
         const bracket = generateBracketWithAdjustment(tournamentId, playerResults, bracketSize);
 
+        // Eliminar TODOS los cruces de llave anteriores (cualquier ronda, sin grupo)
         await prisma.match.deleteMany({
-            where: {
-                tournamentId,
-                groupId: null,
-                round: { gt: 1 }
-            }
+            where: { tournamentId, groupId: null }
         });
 
         await prisma.match.createMany({
@@ -427,8 +424,8 @@ export async function generateKnockoutPhaseAction(tournamentId: string) {
                 round: m.round,
                 matchOrder: m.position + 1,
                 matchDistance: (tournament.config as any)?.inningsPerPhase ?? 30,
-                status: m.status as any,
                 winnerId: m.winnerId,
+                isWO: m.isBye,
             }))
         });
 
