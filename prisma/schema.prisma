@@ -96,7 +96,7 @@ model PlayerProfile {
   matchHome        Match[]                  @relation("HomePlayer")
   matchWinner      Match[]                  @relation("WinnerPlayer")
   club             Club?                    @relation(fields: [tenantId], references: [id])
-  user             User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User?                    @relation(fields: [userId], references: [id], onDelete: SetNull)
   rankings         Ranking[]
   rankSnapshots    RankingSnapshot[]
   registrations    TournamentRegistration[]
