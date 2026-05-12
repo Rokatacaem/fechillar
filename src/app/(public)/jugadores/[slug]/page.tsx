@@ -27,13 +27,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const topRanking = profile.rankings[0];
     const rankingInfo = topRanking ? `- Ranking ${topRanking.discipline} (${topRanking.points} pts)` : '';
     const clubInfo = profile.club ? `representando a ${profile.club.name}` : 'Jugador Independiente';
+    const displayName = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || profile.user?.name || 'Jugador';
 
     return {
-        title: `Perfil de Billarista Profesional: ${profile.user?.name || 'Jugador'} ${rankingInfo}`,
-        description: `Consulta el perfil oficial de ${profile.user?.name || 'Jugador'} en FECHILLAR. Historial de torneos, promedio PGP y logros ${clubInfo}.`,
+        title: `Perfil de Billarista Profesional: ${displayName} ${rankingInfo}`,
+        description: `Consulta el perfil oficial de ${displayName} en FECHILLAR. Historial de torneos, promedio PGP y logros ${clubInfo}.`,
         openGraph: {
-            title: `${profile.user?.name || 'Jugador'} - Ficha Oficial FECHILLAR`,
-            description: `Rendimiento y estadísticas de ${profile.user?.name || 'Jugador'} en el ecosistema nacional de billar.`,
+            title: `${displayName} - Ficha Oficial FECHILLAR`,
+            description: `Rendimiento y estadísticas de ${displayName} en el ecosistema nacional de billar.`,
             images: profile.photoUrl ? [profile.photoUrl] : []
         }
     };
@@ -119,14 +120,14 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
                                 <Image src={player.photoUrl} alt="📸" width={128} height={128} className="object-cover w-full h-full" />
                             ) : (
                                 <span className="text-4xl font-black text-slate-400">
-                                    {player.user?.name?.substring(0, 2).toUpperCase() || "JG"}
+                                    {([player.firstName, player.lastName].filter(Boolean).join(' ') || player.user?.name || "JG").substring(0, 2).toUpperCase()}
                                 </span>
                             )}
                         </div>
 
                         <div className="pt-4 md:pt-16">
                             <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight">
-                                {player.user?.name || "Jugador"}
+                                {[player.firstName, player.lastName].filter(Boolean).join(' ') || player.user?.name || "Jugador"}
                             </h1>
                             <div className="flex items-center justify-center md:justify-start gap-4 mt-2">
                                 <span className="flex items-center gap-1.5 text-emerald-400 font-medium text-sm">
@@ -144,7 +145,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 
                     {/* BOTÓN DE COMPARTIR Y MÉTRICA */}
                     <div className="flex flex-col items-center md:items-end gap-4 shrink-0 mt-4 md:mt-0">
-                        <ShareProfileButton playerName={player.user?.name || "Jugador"} />
+                        <ShareProfileButton playerName={[player.firstName, player.lastName].filter(Boolean).join(' ') || player.user?.name || "Jugador"} />
 
                         <div className="bg-[#020817] border border-white/10 rounded-2xl p-4 flex items-center gap-4 text-left">
                             <Trophy className="w-10 h-10 text-yellow-500" />

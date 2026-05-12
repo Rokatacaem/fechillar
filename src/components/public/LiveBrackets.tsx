@@ -5,7 +5,9 @@ import { Swords, Radio } from "lucide-react";
 
 interface Player {
     id: string;
-    user: { name: string };
+    firstName?: string | null;
+    lastName?: string | null;
+    user?: { name?: string | null } | null;
 }
 
 interface Match {
@@ -67,14 +69,14 @@ export function LiveBrackets({ matches }: { matches: Match[] }) {
                                         {/* Home */}
                                         <div className={`flex justify-between items-center p-3 px-4 ${match.winnerId === match.homePlayerId ? 'bg-emerald-500/10' : ''}`}>
                                             <p className={`text-[11px] font-black uppercase truncate max-w-[140px] ${match.winnerId === match.homePlayerId ? 'text-emerald-500' : 'text-white'}`}>
-                                                {match.homePlayer?.user?.name || "TBD"}
+                                                {[match.homePlayer?.firstName, match.homePlayer?.lastName].filter(Boolean).join(' ') || match.homePlayer?.user?.name || "TBD"}
                                             </p>
                                             <span className="font-mono text-sm font-black text-white">{match.homeScore ?? "-"}</span>
                                         </div>
                                         {/* Away */}
                                         <div className={`flex justify-between items-center p-3 px-4 border-t border-white/5 ${match.winnerId === match.awayPlayerId ? 'bg-emerald-500/10' : ''}`}>
                                             <p className={`text-[11px] font-black uppercase truncate max-w-[140px] ${match.winnerId === match.awayPlayerId ? 'text-emerald-500' : 'text-white'}`}>
-                                                {match.awayPlayer?.user?.name || "???"}
+                                                {[match.awayPlayer?.firstName, match.awayPlayer?.lastName].filter(Boolean).join(' ') || match.awayPlayer?.user?.name || "???"}
                                             </p>
                                             <span className="font-mono text-sm font-black text-white">{match.awayScore ?? "-"}</span>
                                         </div>
