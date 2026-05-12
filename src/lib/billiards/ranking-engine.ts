@@ -32,11 +32,19 @@ export function calculateStandings(matches: Match[], playerIds: string[]): Playe
         };
     });
 
+    const initPlayer = (id: string) => {
+        if (!stats[id]) {
+            stats[id] = { playerId: id, matchPoints: 0, totalCarambolas: 0, totalInnings: 0, highRun: 0, particularAverage: 0, generalAverage: 0 };
+        }
+    };
+
     matches.forEach(match => {
         if (!match.homePlayerId || !match.awayPlayerId) return;
 
         const homeId = match.homePlayerId;
         const awayId = match.awayPlayerId;
+        initPlayer(homeId);
+        initPlayer(awayId);
         const homeScore = match.homeScore || 0;
         const awayScore = match.awayScore || 0;
         const homeInnings = match.homeInnings || 1;
