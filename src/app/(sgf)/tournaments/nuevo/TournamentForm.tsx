@@ -58,7 +58,14 @@ export function TournamentForm({ canCreateNational }: TournamentFormProps) {
         waitlistActivation: "AUTOMATIC",
         groupFormat: "RR_3",
         advancingCount: 2,
-        inningsPerPhase: 30,
+        // Distancias (carambolas objetivo por fase)
+        distanceGroups: 30,
+        distancePlayoffs: 35,
+        distanceFinal: 35,
+        // Topes de entradas por fase
+        inningsGroups: 35,
+        inningsPlayoffs: 40,
+        finalUnlimitedInnings: true,
         bracketSize: 16,
         timeControl: "NONE",
         modality: "NO_HANDICAP"
@@ -752,52 +759,78 @@ export function TournamentForm({ canCreateNational }: TournamentFormProps) {
                                 );
                             })()}
 
-                            {/* Entradas */}
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                    <Hash className="w-3 h-3" /> Entradas por Fase
-                                    {(config.modality === "HANDICAP") && (
-                                        <span className="text-[8px] text-violet-400 bg-violet-500/10 border border-violet-500/20 px-1.5 py-0.5 rounded-md font-black tracking-widest">
-                                            FIJO · No cambia en torneo
-                                        </span>
-                                    )}
-                                </label>
-                                <input 
-                                    type="number" 
-                                    value={config.inningsPerPhase || ""}
-                                    onChange={(e) => updateConfig("inningsPerPhase", parseInt(e.target.value) || 0)}
-                                    className={`w-full bg-slate-950 border rounded-xl px-4 py-3 text-white outline-none focus:ring-1 transition-all ${
-                                        config.modality === "HANDICAP"
-                                            ? "border-violet-500/30 focus:ring-violet-500/50"
-                                            : "border-white/10 focus:ring-emerald-500/50"
-                                    }`}
-                                />
-                                {config.modality === "HANDICAP" && (
-                                    <p className="text-[9px] text-violet-400/60 italic">
-                                        Con hándicap, este valor se aplica a todas las fases y no puede modificarse durante el torneo.
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* Distancias */}
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Distancia Grupos</label>
-                                <input type="number" name="distanceGroups" defaultValue={25} className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white text-xs" />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Distancia Playoffs</label>
-                                <input type="number" name="distancePlayoffs" defaultValue={25} className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white text-xs" />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Distancia Final</label>
-                                <input type="number" name="distanceFinal" defaultValue={30} className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white text-xs" />
-                            </div>
-                            {config.modality !== "HANDICAP" && (
-                                <div className="space-y-2 flex items-center gap-3 pt-6">
-                                    <input type="checkbox" name="finalUnlimitedInnings" defaultChecked id="finalUnlimited" className="w-4 h-4 rounded bg-slate-950 border-white/10 text-emerald-500" />
-                                    <label htmlFor="finalUnlimited" className="text-[10px] font-bold text-slate-300 uppercase tracking-widest cursor-pointer">Final sin límite de entradas</label>
+                            {/* Tabla de distancias y entradas por fase */}
+                            <div className="md:col-span-3 bg-slate-950/60 border border-white/5 rounded-2xl overflow-hidden">
+                                <div className="px-4 py-2 border-b border-white/5 flex items-center gap-2">
+                                    <Hash className="w-3 h-3 text-emerald-500" />
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        Reglamento por Fase
+                                        {config.modality === "HANDICAP" && (
+                                            <span className="ml-2 text-[8px] text-violet-400 bg-violet-500/10 border border-violet-500/20 px-1.5 py-0.5 rounded-md">FIJO en Hándicap</span>
+                                        )}
+                                    </span>
                                 </div>
-                            )}
+                                <div className="grid grid-cols-4 gap-px bg-white/5">
+                                    {/* Header */}
+                                    <div className="bg-slate-950 px-3 py-2 text-[9px] font-black text-slate-600 uppercase">Fase</div>
+                                    <div className="bg-slate-950 px-3 py-2 text-[9px] font-black text-slate-600 uppercase text-center">Carambolas</div>
+                                    <div className="bg-slate-950 px-3 py-2 text-[9px] font-black text-slate-600 uppercase text-center">Tope Entradas</div>
+                                    <div className="bg-slate-950 px-3 py-2 text-[9px] font-black text-slate-600 uppercase text-center">Sin Límite</div>
+                                    {/* Grupos */}
+                                    <div className="bg-slate-900/40 px-3 py-2 text-[10px] font-bold text-slate-300 flex items-center">Grupos</div>
+                                    <div className="bg-slate-900/40 px-2 py-1.5">
+                                        <input type="number" min={1} title="Carambolas fase de grupos" value={config.distanceGroups ?? 30}
+                                            onChange={(e) => updateConfig("distanceGroups", parseInt(e.target.value) || 30)}
+                                            className="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs text-center outline-none focus:ring-1 focus:ring-emerald-500/50" />
+                                    </div>
+                                    <div className="bg-slate-900/40 px-2 py-1.5">
+                                        <input type="number" min={1} title="Tope de entradas fase de grupos" value={config.inningsGroups ?? 35}
+                                            onChange={(e) => updateConfig("inningsGroups", parseInt(e.target.value) || 35)}
+                                            className="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs text-center outline-none focus:ring-1 focus:ring-emerald-500/50" />
+                                    </div>
+                                    <div className="bg-slate-900/40 px-2 py-1.5 flex items-center justify-center">
+                                        <span className="text-[9px] text-slate-600">—</span>
+                                    </div>
+                                    {/* Playoffs */}
+                                    <div className="bg-slate-900/40 px-3 py-2 text-[10px] font-bold text-slate-300 flex items-center">QF / SF</div>
+                                    <div className="bg-slate-900/40 px-2 py-1.5">
+                                        <input type="number" min={1} title="Carambolas QF/SF" value={config.distancePlayoffs ?? 35}
+                                            onChange={(e) => updateConfig("distancePlayoffs", parseInt(e.target.value) || 35)}
+                                            className="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs text-center outline-none focus:ring-1 focus:ring-emerald-500/50" />
+                                    </div>
+                                    <div className="bg-slate-900/40 px-2 py-1.5">
+                                        <input type="number" min={1} title="Tope de entradas QF/SF" value={config.inningsPlayoffs ?? 40}
+                                            onChange={(e) => updateConfig("inningsPlayoffs", parseInt(e.target.value) || 40)}
+                                            className="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs text-center outline-none focus:ring-1 focus:ring-emerald-500/50" />
+                                    </div>
+                                    <div className="bg-slate-900/40 px-2 py-1.5 flex items-center justify-center">
+                                        <span className="text-[9px] text-slate-600">—</span>
+                                    </div>
+                                    {/* Final */}
+                                    <div className="bg-slate-900/40 px-3 py-2 text-[10px] font-bold text-amber-400 flex items-center">Gran Final</div>
+                                    <div className="bg-slate-900/40 px-2 py-1.5">
+                                        <input type="number" min={1} title="Carambolas Gran Final" value={config.distanceFinal ?? 35}
+                                            onChange={(e) => updateConfig("distanceFinal", parseInt(e.target.value) || 35)}
+                                            className="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs text-center outline-none focus:ring-1 focus:ring-emerald-500/50" />
+                                    </div>
+                                    <div className="bg-slate-900/40 px-2 py-1.5 flex items-center justify-center">
+                                        {config.finalUnlimitedInnings
+                                            ? <span className="text-[9px] text-slate-500 italic">Sin límite</span>
+                                            : <input type="number" min={1} title="Tope de entradas Gran Final" value={config.inningsFinal ?? 50}
+                                                onChange={(e) => updateConfig("inningsFinal", parseInt(e.target.value) || 50)}
+                                                className="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs text-center outline-none" />
+                                        }
+                                    </div>
+                                    {config.modality !== "HANDICAP" && (
+                                        <div className="bg-slate-900/40 px-2 py-1.5 flex items-center justify-center">
+                                            <input type="checkbox" id="finalUnlimited"
+                                                checked={config.finalUnlimitedInnings ?? true}
+                                                onChange={(e) => updateConfig("finalUnlimitedInnings", e.target.checked)}
+                                                className="w-4 h-4 rounded bg-slate-950 border-white/10 accent-emerald-500 cursor-pointer" />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
 
 
                             {/* Control de Tiempo */}

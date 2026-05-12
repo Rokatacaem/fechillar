@@ -62,7 +62,6 @@ export async function createTournament(prevState: any, formData: FormData) {
     const capacity = parseInt(formData.get("capacity") as string) || 32;
     const waitingListLimit = parseInt(formData.get("waitingListLimit") as string) || 0;
     const qualifiedPerGroup = parseInt(formData.get("qualifiedPerGroup") as string) || 2;
-    const inningsPerPhase = parseInt(formData.get("inningsPerPhase") as string) || 30;
 
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
@@ -87,10 +86,7 @@ export async function createTournament(prevState: any, formData: FormData) {
     const bankAccountNumber = formData.get("bankAccountNumber") as string;
     const bankAccountEmail = formData.get("bankAccountEmail") as string;
     
-    const distanceGroups = parseInt(formData.get("distanceGroups") as string) || 25;
-    const distancePlayoffs = parseInt(formData.get("distancePlayoffs") as string) || 25;
-    const distanceFinal = parseInt(formData.get("distanceFinal") as string) || 30;
-    const finalUnlimitedInnings = formData.get("finalUnlimitedInnings") === "on";
+    // distanceGroups / distancePlayoffs / distanceFinal vienen del config JSON (baseConfig)
     
     const scheduleDay1Start = formData.get("scheduleDay1Start") as string;
     const scheduleDay2Start = formData.get("scheduleDay2Start") as string;
@@ -166,6 +162,7 @@ export async function createTournament(prevState: any, formData: FormData) {
         };
     }
 
+    const bc = baseConfig as any;
     const config = {
         ...baseConfig,
         registrationFee,
@@ -174,7 +171,16 @@ export async function createTournament(prevState: any, formData: FormData) {
         groupFormat,
         qualifiedPerGroup,
         bracketSize: playoffBracketSize,
-        inningsPerPhase,
+        // Distancias y entradas por fase (vienen del config JSON del formulario)
+        distanceGroups:    bc.distanceGroups    ?? 30,
+        distancePlayoffs:  bc.distancePlayoffs  ?? 35,
+        distanceFinal:     bc.distanceFinal     ?? 35,
+        inningsGroups:     bc.inningsGroups     ?? 35,
+        inningsPlayoffs:   bc.inningsPlayoffs   ?? 40,
+        inningsFinal:      bc.inningsFinal      ?? null,
+        finalUnlimitedInnings: bc.finalUnlimitedInnings ?? true,
+        // Compatibilidad con código existente que usa inningsPerPhase
+        inningsPerPhase:   bc.inningsGroups     ?? 35,
         timeControl: {
             mode: timeControlMode,
             secondsPerShot,
