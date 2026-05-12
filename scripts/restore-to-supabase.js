@@ -16,7 +16,7 @@ function stripNested(obj) {
 }
 
 async function restore() {
-    const backupPath = path.join(__dirname, '..', 'backups', 'backup_2026-05-10T21-12-29.json');
+    const backupPath = path.join(__dirname, '..', 'backups', 'backup_2026-05-12T16-08-09.json');
     const backup = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
     const { data } = backup;
 

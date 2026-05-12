@@ -438,11 +438,11 @@ export default function TournamentManager({
                                 <span className="text-[10px] text-slate-500 uppercase tracking-wider bg-slate-800 px-2 py-0.5 rounded">
                                   {group.matches.length} Partidas
                                 </span>
-                                <TournamentQR 
-                                    tournamentId={tournamentId} 
+                                <TournamentQR
+                                    tournamentId={tournamentId}
                                     tournamentName={tournamentName}
                                     showLabel={false}
-                                    size={24}
+                                    size={64}
                                     groupName={group.name}
                                     standingsSummary={(() => {
                                         // Cálculo rápido de 1° y 2° para el reporte
