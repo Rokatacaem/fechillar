@@ -415,16 +415,19 @@ export async function generateKnockoutPhaseAction(tournamentId: string) {
             where: { tournamentId, groupId: null }
         });
 
+        const isRealId = (id: string | null) =>
+            !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
         await prisma.match.createMany({
             data: bracket.matches.map(m => ({
                 id: m.id,
                 tournamentId,
-                homePlayerId: m.homePlayerId,
-                awayPlayerId: m.awayPlayerId,
+                homePlayerId: isRealId(m.homePlayerId) ? m.homePlayerId : null,
+                awayPlayerId: isRealId(m.awayPlayerId) ? m.awayPlayerId : null,
                 round: m.round,
                 matchOrder: m.position + 1,
                 matchDistance: (tournament.config as any)?.inningsPerPhase ?? 30,
-                winnerId: m.winnerId,
+                winnerId: isRealId(m.winnerId) ? m.winnerId : null,
                 isWO: m.isBye,
             }))
         });
