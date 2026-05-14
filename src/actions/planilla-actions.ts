@@ -14,6 +14,7 @@ export async function getPlanillaData(tournamentId: string, phase: string): Prom
 
         const tournamentTitle = tournament.name;
         const clubSede = tournament.hostClub?.name || tournament.venue || "Club Sede";
+        const clubLogoUrl = tournament.hostClub?.logoUrl || tournament.venueLogoUrl || undefined;
         const dateStr = tournament.startDate ? new Date(tournament.startDate).toLocaleDateString('es-CL', { month: 'long', year: 'numeric' }) : "";
         const fullSede = `${clubSede} ${dateStr}`;
 
@@ -54,6 +55,7 @@ export async function getPlanillaData(tournamentId: string, phase: string): Prom
                         scoreSheets.push({
                             tournamentTitle,
                             clubSede: fullSede,
+                            clubLogoUrl,
                             phase: "Fase de Grupos",
                             player1: players[i],
                             player2: players[j],
@@ -91,6 +93,7 @@ export async function getPlanillaData(tournamentId: string, phase: string): Prom
             scoreSheets = matches.map((m, idx) => ({
                 tournamentTitle,
                 clubSede: fullSede,
+                clubLogoUrl,
                 phase: phase,
                 player1: {
                     name: m.homePlayer?.user?.name || (m.homePlayer ? `${m.homePlayer.firstName} ${m.homePlayer.lastName}` : "TBD"),

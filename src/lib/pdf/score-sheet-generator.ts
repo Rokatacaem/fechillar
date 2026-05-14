@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 export interface ScoreSheetData {
     tournamentTitle: string;
     clubSede: string;
+    clubLogoUrl?: string;
     phase: string;
     player1: { name: string; club: string };
     player2: { name: string; club: string };
@@ -59,7 +60,9 @@ export const generateScoreSheetPDF = async (dataList: ScoreSheetData[]) => {
         const headerY = margin;
         const maxH = 18;
         addLogoProportional('/assets/logos/fechillar.png', margin, headerY, 22, maxH, 'left');
-        addLogoProportional('/assets/logos/club santiago.jpg', pageWidth / 2, headerY, 18, maxH, 'center');
+        if (data.clubLogoUrl) {
+            addLogoProportional(data.clubLogoUrl, pageWidth / 2, headerY, 18, maxH, 'center');
+        }
         addLogoProportional('/assets/logos/Instituto-nacional-de-deportes.png', pageWidth - margin, headerY, 32, maxH, 'right');
 
         // 2. TOURNAMENT INFO
