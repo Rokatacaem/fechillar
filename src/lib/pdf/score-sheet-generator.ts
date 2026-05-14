@@ -27,27 +27,19 @@ export const generateScoreSheetPDF = async (dataList: ScoreSheetData[]) => {
 
     const addLogoProportional = (url: string, x: number, y: number, w: number, maxH: number, align: 'left' | 'center' | 'right' = 'left') => {
         try {
-            // Usamos 0 en height para que jsPDF mantenga el ratio automáticamente
             let posX = x;
             if (align === 'center') posX = x - w / 2;
             if (align === 'right') posX = x - w;
-            
-            // Para centrado vertical "visual", estimamos que la mayoría de los logos
-            // tienen un ratio similar, pero el del IND es más ancho.
-            // Si h es 0, jsPDF lo escala. Ponemos un y un poco más abajo para logos anchos.
-            const isIND = url.includes('Instituto-nacional-de-deportes');
-            const yOffset = isIND ? 2 : 0; 
 
-            doc.addImage(url, 'PNG', posX, y + yOffset, w, 0);
+            const isIND = url.includes('Instituto-nacional-de-deportes');
+            const yOffset = isIND ? 2 : 0;
+
+            const lower = url.toLowerCase();
+            const fmt = (lower.includes('.jpg') || lower.includes('.jpeg')) ? 'JPEG' : 'PNG';
+
+            doc.addImage(url, fmt, posX, y + yOffset, w, 0);
         } catch (e) {
-            try {
-                let posX = x;
-                if (align === 'center') posX = x - w / 2;
-                if (align === 'right') posX = x - w;
-                doc.addImage(url, 'JPEG', posX, y, w, 0);
-            } catch (e2) {
-                console.warn(`Could not load logo: ${url}`, e2);
-            }
+            console.warn(`Could not load logo: ${url}`, e);
         }
     };
 
