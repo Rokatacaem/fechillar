@@ -317,6 +317,7 @@ const StandingsTemplate = ({
     startDate,
     participants,
     fechillarLogoUrl,
+    clubLogoUrl,
     indLogoUrl,
 }: {
     tournamentName: string;
@@ -326,6 +327,7 @@ const StandingsTemplate = ({
     startDate: string;
     participants: any[];
     fechillarLogoUrl: string;
+    clubLogoUrl?: string;
     indLogoUrl?: string;
 }) => {
     const sorted = [...participants].sort((a, b) => a.rank - b.rank);
@@ -337,17 +339,20 @@ const StandingsTemplate = ({
       <Document>
         <Page size="A4" style={{ ...styles.page, paddingBottom: 60 }}>
 
-          {/* ── Header ── */}
+          {/* ── Header: Fechillar + Club | Título | IND ── */}
           <View style={{
               flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
               borderBottomWidth: 3, borderBottomColor: '#1e3a8a',
               paddingBottom: 12, marginBottom: 8,
           }}>
-            {/* Fechillar logo */}
-            <Image src={fechillarLogoUrl} style={{ width: 70, height: 70 }} />
+            {/* Izquierda: Fechillar + Club organizador */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Image src={fechillarLogoUrl} style={{ width: 65, height: 65 }} />
+              {clubLogoUrl && <Image src={clubLogoUrl} style={{ width: 65, height: 65 }} />}
+            </View>
 
-            {/* Title */}
-            <View style={{ flex: 1, alignItems: 'center', paddingHorizontal: 10 }}>
+            {/* Centro: Título */}
+            <View style={{ flex: 1, alignItems: 'center', paddingHorizontal: 8 }}>
               <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1e3a8a', letterSpacing: 2, textAlign: 'center' }}>
                 CUADRO DE HONOR
               </Text>
@@ -356,7 +361,7 @@ const StandingsTemplate = ({
               </Text>
             </View>
 
-            {/* IND logo */}
+            {/* Derecha: IND */}
             {indLogoUrl
               ? <Image src={indLogoUrl} style={{ width: 70, height: 70 }} />
               : <View style={{ width: 70 }} />
@@ -440,7 +445,7 @@ export async function generateTournamentStandingsPDF(
     tournament: any,
     participants: any[],
     fechillarLogoUrl: string,
-    _venueLogoUrl?: string,
+    clubLogoUrl?: string,
     indLogoUrl?: string,
 ) {
     const startDate = tournament.startDate
@@ -456,6 +461,7 @@ export async function generateTournamentStandingsPDF(
             startDate={startDate}
             participants={participants}
             fechillarLogoUrl={fechillarLogoUrl}
+            clubLogoUrl={clubLogoUrl}
             indLogoUrl={indLogoUrl}
         />
     );

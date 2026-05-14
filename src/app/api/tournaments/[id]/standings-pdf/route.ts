@@ -25,22 +25,36 @@ export async function GET(
 
         const participants = await getTournamentStandings(tournamentId);
 
-        // 2. Resolver Logos
-        const publicDir = path.join(process.cwd(), "public");
-        // Use transparent version: has "FECHILLAR" text, works on white PDF background
-        const fechillarLogoPath = path.join(publicDir, "logo_fechillar_transparent_v13.png");
+        // 2. Resolver Logos (todos desde public/assets/logos/)
+        const logosDir = path.join(process.cwd(), "public", "assets", "logos");
 
-        // IND logo — place ind_logo.png in /public to enable
-        const indLogoPath = path.join(publicDir, "ind_logo.png");
-        const indLogoExists = fs.existsSync(indLogoPath);
+        const fechillarLogoPath = path.join(logosDir, "SoloEscudoLogo3DAzul.png");
+        const indLogoPath       = path.join(logosDir, "Instituto-nacional-de-deportes.png");
+
+        // Club organizador: intentar desde logoUrl del venueClub, si no buscar en assets/logos
+        let clubLogoPath: string | undefined;
+        if (tournament.venueClub?.logoUrl) {
+            const raw = tournament.venueClub.logoUrl;
+            const resolved = raw.startsWith("/")
+                ? path.join(process.cwd(), "public", raw)
+                : raw;
+            if (fs.existsSync(resolved)) clubLogoPath = resolved;
+        }
+        if (!clubLogoPath) {
+            // Fallback: buscar en assets/logos/ un archivo que contenga el nombre del club
+            const clubName = (tournament.venueClub?.name ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+            const files = fs.existsSync(logosDir) ? fs.readdirSync(logosDir) : [];
+            const match = files.find(f => f.toLowerCase().includes(clubName.split(" ")[0] ?? ""));
+            if (match) clubLogoPath = path.join(logosDir, match);
+        }
 
         // 3. Generar PDF
         const pdfStream = await generateTournamentStandingsPDF(
             tournament,
             participants,
             fechillarLogoPath,
-            undefined,
-            indLogoExists ? indLogoPath : undefined
+            clubLogoPath,
+            fs.existsSync(indLogoPath) ? indLogoPath : undefined
         );
 
         // 4. Retornar Stream
