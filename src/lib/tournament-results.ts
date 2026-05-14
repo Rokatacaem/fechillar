@@ -86,7 +86,7 @@ export async function getTournamentStandings(tournamentId: string) {
 }
 
 async function getStandingsFromBracket(tournamentId: string) {
-    const matches = await prisma.match.findMany({
+    const knockoutMatches = await prisma.match.findMany({
         where: { tournamentId, groupId: null },
         include: {
             homePlayer: { include: { user: true, club: true } },
@@ -94,45 +94,82 @@ async function getStandingsFromBracket(tournamentId: string) {
         }
     });
 
-    if (matches.length === 0) return [];
+    if (knockoutMatches.length === 0) return [];
 
-    const playedMatches = matches.filter(
+    const playedKnockout = knockoutMatches.filter(
         m => m.winnerId && m.homePlayerId && m.awayPlayerId
     );
-    if (playedMatches.length === 0) return [];
+    if (playedKnockout.length === 0) return [];
 
-    const maxRound = Math.max(...playedMatches.map(m => m.round));
+    // All matches (group + knockout) for per-player stats
+    const allMatches = await prisma.match.findMany({
+        where: { tournamentId },
+        select: {
+            homePlayerId: true, awayPlayerId: true,
+            homeScore: true, awayScore: true,
+            homeInnings: true, awayInnings: true,
+            homeHighRun: true, awayHighRun: true
+        }
+    });
 
+    const statsMap: Record<string, {
+        totalCaroms: number; totalInnings: number;
+        highRun: number; particularAvg: number;
+    }> = {};
+
+    const init = (id: string) => {
+        if (!statsMap[id]) statsMap[id] = { totalCaroms: 0, totalInnings: 0, highRun: 0, particularAvg: 0 };
+    };
+
+    allMatches.forEach(m => {
+        if (!m.homePlayerId || !m.awayPlayerId || m.homeScore === null) return;
+        init(m.homePlayerId); init(m.awayPlayerId);
+
+        const h = statsMap[m.homePlayerId];
+        h.totalCaroms  += m.homeScore || 0;
+        h.totalInnings += m.homeInnings || 0;
+        if ((m.homeHighRun || 0) > h.highRun) h.highRun = m.homeHighRun || 0;
+        const hpa = m.homeInnings ? (m.homeScore || 0) / m.homeInnings : 0;
+        if (hpa > h.particularAvg) h.particularAvg = hpa;
+
+        const a = statsMap[m.awayPlayerId];
+        a.totalCaroms  += m.awayScore || 0;
+        a.totalInnings += m.awayInnings || 0;
+        if ((m.awayHighRun || 0) > a.highRun) a.highRun = m.awayHighRun || 0;
+        const apa = m.awayInnings ? (m.awayScore || 0) / m.awayInnings : 0;
+        if (apa > a.particularAvg) a.particularAvg = apa;
+    });
+
+    const maxRound = Math.max(...playedKnockout.map(m => m.round));
     const playerName = (p: any) =>
         p?.user?.name || `${p?.firstName || ""} ${p?.lastName || ""}`.trim() || "Jugador";
     const playerClub = (p: any) => p?.club?.name || "Independiente";
 
-    const standings: { id: string; name: string; rank: number; club?: string }[] = [];
+    const buildStats = (id: string | null) => {
+        const s = id ? statsMap[id] : null;
+        return {
+            generalAverage:    s && s.totalInnings > 0 ? parseFloat((s.totalCaroms / s.totalInnings).toFixed(3)) : 0,
+            highRun:           s?.highRun || 0,
+            particularAverage: s ? parseFloat(s.particularAvg.toFixed(3)) : 0,
+        };
+    };
 
-    playedMatches.forEach(m => {
+    const standings: {
+        id: string; name: string; rank: number; club?: string;
+        generalAverage: number; highRun: number; particularAverage: number;
+    }[] = [];
+
+    playedKnockout.forEach(m => {
         const winnerPlayer = m.homePlayerId === m.winnerId ? m.homePlayer : m.awayPlayer;
         const loserPlayer  = m.homePlayerId === m.winnerId ? m.awayPlayer  : m.homePlayer;
         const loserId      = m.homePlayerId === m.winnerId ? m.awayPlayerId : m.homePlayerId;
-
-        // Loser rank: 2^(maxRound - round) + 1, except Final loser = 2
-        const loserRank = m.round === maxRound ? 2 : Math.pow(2, maxRound - m.round) + 1;
+        const loserRank    = m.round === maxRound ? 2 : Math.pow(2, maxRound - m.round) + 1;
 
         if (m.round === maxRound && m.winnerId) {
-            standings.push({
-                id: m.winnerId,
-                name: playerName(winnerPlayer),
-                rank: 1,
-                club: playerClub(winnerPlayer)
-            });
+            standings.push({ id: m.winnerId, name: playerName(winnerPlayer), rank: 1, club: playerClub(winnerPlayer), ...buildStats(m.winnerId) });
         }
-
         if (loserId && loserPlayer) {
-            standings.push({
-                id: loserId,
-                name: playerName(loserPlayer),
-                rank: loserRank,
-                club: playerClub(loserPlayer)
-            });
+            standings.push({ id: loserId, name: playerName(loserPlayer), rank: loserRank, club: playerClub(loserPlayer), ...buildStats(loserId) });
         }
     });
 

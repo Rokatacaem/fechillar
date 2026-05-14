@@ -25,26 +25,22 @@ export async function GET(
 
         const participants = await getTournamentStandings(tournamentId);
 
-        // 2. Resolver Logos (Paths Locales para react-pdf)
+        // 2. Resolver Logos
         const publicDir = path.join(process.cwd(), "public");
-        const fechillarLogoPath = path.join(publicDir, "fechillar_logo_final.png");
-        
-        let venueLogoPath: string | undefined = undefined;
-        if (tournament.venueClub?.logoUrl) {
-            // Si el logo es una URL externa, react-pdf la manejará, 
-            // pero si es local o relativa, la resolvemos.
-            venueLogoPath = tournament.venueClub.logoUrl;
-            if (venueLogoPath.startsWith("/")) {
-                venueLogoPath = path.join(publicDir, venueLogoPath);
-            }
-        }
+        // Use transparent version: has "FECHILLAR" text, works on white PDF background
+        const fechillarLogoPath = path.join(publicDir, "logo_fechillar_transparent_v13.png");
+
+        // IND logo — place ind_logo.png in /public to enable
+        const indLogoPath = path.join(publicDir, "ind_logo.png");
+        const indLogoExists = fs.existsSync(indLogoPath);
 
         // 3. Generar PDF
         const pdfStream = await generateTournamentStandingsPDF(
             tournament,
             participants,
             fechillarLogoPath,
-            venueLogoPath
+            undefined,
+            indLogoExists ? indLogoPath : undefined
         );
 
         // 4. Retornar Stream

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Image, renderToStream, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image, renderToStream } from '@react-pdf/renderer';
 import QRCode from 'qrcode';
 
 // Register custom fonts (Optional but highly recommended for a professional look)
@@ -305,88 +305,158 @@ const CertificateTemplate = ({ playerName, clubName, qrCodeUrl }: { playerName: 
 );
 
 // ============== TEMPLATE 3: CUADRO DE HONOR =================
-const StandingsTemplate = ({ 
-    tournamentName, 
-    venueName, 
-    participants, 
-    fechillarLogoUrl, 
-    venueLogoUrl 
-}: { 
-    tournamentName: string, 
-    venueName: string, 
-    participants: any[], 
-    fechillarLogoUrl: string, 
-    venueLogoUrl?: string 
-}) => (
-  <Document>
-    <Page size="A4" style={styles.page}>
-      
-      {/* Dual Logo Header */}
-      <View style={[styles.header, { borderBottomColor: '#0f172a' }]}>
-        <View style={{ flexDirection: 'row', gap: 15 }}>
-            <Image src={fechillarLogoUrl} style={{ width: 50, height: 50, borderRadius: 8 }} />
-            {venueLogoUrl && <Image src={venueLogoUrl} style={{ width: 50, height: 50, borderRadius: 8 }} />}
-        </View>
-        <View style={styles.titleContainer}>
-          <Text style={[styles.documentTitle, { fontSize: 22 }]}>CUADRO DE HONOR</Text>
-          <Text style={styles.documentSubtitle}>{tournamentName}</Text>
-        </View>
-      </View>
 
-      <View style={{ marginBottom: 20 }}>
-          <Text style={{ fontSize: 12, color: '#64748b', fontWeight: 'bold' }}>Sede: {venueName}</Text>
-          <Text style={{ fontSize: 9, color: '#94a3b8', marginTop: 4 }}>Certificación de Resultados Oficiales - Sistema Base FECHILLAR</Text>
-      </View>
+const RANK_COLORS: Record<number, string> = { 1: '#ca8a04', 2: '#6b7280', 3: '#b45309' };
+const RANK_BG:     Record<number, string> = { 1: '#fefce8', 2: '#f8fafc', 3: '#fff7ed' };
 
-      {/* Standings Table */}
-      <View style={{ borderTopWidth: 1, borderTopColor: '#e2e8f0' }}>
-          {/* Header Row */}
-          <View style={{ flexDirection: 'row', backgroundColor: '#f8fafc', padding: 10, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
-              <Text style={{ width: '10%', fontSize: 10, fontWeight: 'bold', color: '#64748b' }}>RK</Text>
-              <Text style={{ width: '50%', fontSize: 10, fontWeight: 'bold', color: '#64748b' }}>DEPORTISTA</Text>
-              <Text style={{ width: '15%', fontSize: 10, fontWeight: 'bold', color: '#64748b', textAlign: 'center' }}>HDCP</Text>
-              <Text style={{ width: '25%', fontSize: 10, fontWeight: 'bold', color: '#64748b', textAlign: 'right' }}>CLUB</Text>
+const StandingsTemplate = ({
+    tournamentName,
+    venueName,
+    discipline,
+    category,
+    startDate,
+    participants,
+    fechillarLogoUrl,
+    indLogoUrl,
+}: {
+    tournamentName: string;
+    venueName: string;
+    discipline: string;
+    category: string;
+    startDate: string;
+    participants: any[];
+    fechillarLogoUrl: string;
+    indLogoUrl?: string;
+}) => {
+    const sorted = [...participants].sort((a, b) => a.rank - b.rank);
+
+    // Player with best particular average gets the star
+    const bestPartAvg = Math.max(...sorted.map(p => p.particularAverage ?? 0));
+
+    return (
+      <Document>
+        <Page size="A4" style={{ ...styles.page, paddingBottom: 60 }}>
+
+          {/* ── Header ── */}
+          <View style={{
+              flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+              borderBottomWidth: 3, borderBottomColor: '#1e3a8a',
+              paddingBottom: 12, marginBottom: 8,
+          }}>
+            {/* Fechillar logo */}
+            <Image src={fechillarLogoUrl} style={{ width: 70, height: 70 }} />
+
+            {/* Title */}
+            <View style={{ flex: 1, alignItems: 'center', paddingHorizontal: 10 }}>
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1e3a8a', letterSpacing: 2, textAlign: 'center' }}>
+                CUADRO DE HONOR
+              </Text>
+              <Text style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 3, textAlign: 'center' }}>
+                {tournamentName}
+              </Text>
+            </View>
+
+            {/* IND logo */}
+            {indLogoUrl
+              ? <Image src={indLogoUrl} style={{ width: 70, height: 70 }} />
+              : <View style={{ width: 70 }} />
+            }
           </View>
 
-          {/* Data Rows */}
-          {participants.map((p, i) => (
-              <View key={i} style={{ 
-                  flexDirection: 'row', 
-                  padding: 8, 
-                  borderBottomWidth: 1, 
-                  borderBottomColor: '#f1f5f9',
-                  backgroundColor: p.rank <= 3 ? '#f0fdf4' : 'transparent'
-              }}>
-                  <Text style={{ width: '10%', fontSize: 10, fontWeight: 'bold', color: p.rank <= 3 ? '#166534' : '#0f172a' }}>{p.rank}°</Text>
-                  <Text style={{ width: '50%', fontSize: 10, color: '#0f172a', fontWeight: p.rank <= 3 ? 'bold' : 'normal' }}>{p.name.toUpperCase()}</Text>
-                  <Text style={{ width: '15%', fontSize: 10, color: '#64748b', textAlign: 'center' }}>{p.handicap}</Text>
-                  <Text style={{ width: '25%', fontSize: 9, color: '#64748b', textAlign: 'right' }}>{p.club || '...'}</Text>
-              </View>
-          ))}
-      </View>
+          {/* ── Sub-header: meta ── */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14, backgroundColor: '#1e3a8a', padding: 8, borderRadius: 4 }}>
+            <Text style={{ fontSize: 8, color: '#ffffff' }}>SEDE: {venueName.toUpperCase()}</Text>
+            <Text style={{ fontSize: 8, color: '#ffffff' }}>{discipline} / {category}</Text>
+            <Text style={{ fontSize: 8, color: '#ffffff' }}>{startDate}</Text>
+            <Text style={{ fontSize: 8, color: '#ffffff' }}>CERTIFICACIÓN OFICIAL FECHILLAR</Text>
+          </View>
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          Este portal de resultados electrónicos es propiedad de FECHILLAR. Cualquier alteración de este documento invalida su legitimidad deportiva ante el Comité Olímpico y organismos internacionales.
-        </Text>
-      </View>
-    </Page>
-  </Document>
-);
+          {/* ── Table ── */}
+          <View style={{ borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 4, overflow: 'hidden' }}>
+
+            {/* Table header */}
+            <View style={{ flexDirection: 'row', backgroundColor: '#1e3a8a', padding: 7 }}>
+              <Text style={{ width: '8%',  fontSize: 8, fontWeight: 'bold', color: '#ffffff', textAlign: 'center' }}>POS</Text>
+              <Text style={{ width: '32%', fontSize: 8, fontWeight: 'bold', color: '#ffffff' }}>DEPORTISTA</Text>
+              <Text style={{ width: '24%', fontSize: 8, fontWeight: 'bold', color: '#ffffff' }}>CLUB</Text>
+              <Text style={{ width: '15%', fontSize: 8, fontWeight: 'bold', color: '#ffffff', textAlign: 'center' }}>PROM. GRAL</Text>
+              <Text style={{ width: '15%', fontSize: 8, fontWeight: 'bold', color: '#ffffff', textAlign: 'center' }}>MEJOR TACADA</Text>
+              <Text style={{ width: '6%',  fontSize: 8, fontWeight: 'bold', color: '#fbbf24',  textAlign: 'center' }}>★</Text>
+            </View>
+
+            {/* Data rows */}
+            {sorted.map((p, i) => {
+                const isTop3  = p.rank <= 3;
+                const hasStar = bestPartAvg > 0 && (p.particularAverage ?? 0) === bestPartAvg;
+                const rowBg   = isTop3 ? (RANK_BG[p.rank] ?? '#f0f9ff') : (i % 2 === 0 ? '#ffffff' : '#f8fafc');
+                const nameColor = isTop3 ? (RANK_COLORS[p.rank] ?? '#0f172a') : '#0f172a';
+                return (
+                  <View key={p.id ?? i} style={{ flexDirection: 'row', backgroundColor: rowBg, paddingVertical: 6, paddingHorizontal: 7, borderTopWidth: 1, borderTopColor: '#e2e8f0' }}>
+                    <Text style={{ width: '8%',  fontSize: 9, fontWeight: isTop3 ? 'bold' : 'normal', color: nameColor, textAlign: 'center' }}>
+                      {p.rank}°
+                    </Text>
+                    <Text style={{ width: '32%', fontSize: 9, fontWeight: isTop3 ? 'bold' : 'normal', color: nameColor }}>
+                      {(p.name ?? '').toUpperCase()}
+                    </Text>
+                    <Text style={{ width: '24%', fontSize: 8, color: '#475569' }}>
+                      {p.club ?? '—'}
+                    </Text>
+                    <Text style={{ width: '15%', fontSize: 9, color: '#0f172a', textAlign: 'center', fontWeight: 'bold' }}>
+                      {p.generalAverage != null ? p.generalAverage.toFixed(3) : '—'}
+                    </Text>
+                    <Text style={{ width: '15%', fontSize: 9, color: '#0f172a', textAlign: 'center' }}>
+                      {p.highRun ?? '—'}
+                    </Text>
+                    <Text style={{ width: '6%',  fontSize: 11, color: '#f59e0b', textAlign: 'center' }}>
+                      {hasStar ? '★' : ''}
+                    </Text>
+                  </View>
+                );
+            })}
+          </View>
+
+          {/* ── Legend ── */}
+          <View style={{ flexDirection: 'row', gap: 16, marginTop: 10 }}>
+            <Text style={{ fontSize: 7, color: '#64748b' }}>★ Mejor promedio particular del torneo</Text>
+            <Text style={{ fontSize: 7, color: '#64748b' }}>  Prom. Gral = Total carambolas / Total entradas</Text>
+          </View>
+
+          {/* ── Footer ── */}
+          <View style={{ position: 'absolute', bottom: 24, left: 40, right: 40, borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 8, flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={{ fontSize: 7, color: '#94a3b8' }}>
+              Documento oficial — Federación Chilena de Juegos de Billar (FECHILLAR)
+            </Text>
+            <Text style={{ fontSize: 7, color: '#94a3b8' }}>
+              Generado: {new Date().toLocaleDateString('es-CL')}
+            </Text>
+          </View>
+
+        </Page>
+      </Document>
+    );
+};
 
 export async function generateTournamentStandingsPDF(
-    tournament: any, 
-    participants: any[], 
-    fechillarLogoUrl: string, 
-    venueLogoUrl?: string
+    tournament: any,
+    participants: any[],
+    fechillarLogoUrl: string,
+    _venueLogoUrl?: string,
+    indLogoUrl?: string,
 ) {
-  return await renderToStream(
-      <StandingsTemplate 
-        tournamentName={tournament.name} 
-        venueName={tournament.venue || "TBD"} 
-        participants={participants} 
-        fechillarLogoUrl={fechillarLogoUrl}
-        venueLogoUrl={venueLogoUrl}
-      />
-  );
+    const startDate = tournament.startDate
+        ? new Date(tournament.startDate).toLocaleDateString('es-CL')
+        : '';
+
+    return await renderToStream(
+        <StandingsTemplate
+            tournamentName={tournament.name}
+            venueName={tournament.venue || tournament.venueClub?.name || 'Por confirmar'}
+            discipline={tournament.discipline ?? ''}
+            category={tournament.category ?? ''}
+            startDate={startDate}
+            participants={participants}
+            fechillarLogoUrl={fechillarLogoUrl}
+            indLogoUrl={indLogoUrl}
+        />
+    );
 }
