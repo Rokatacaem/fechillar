@@ -239,6 +239,7 @@ export async function commitTournamentRanking(tournamentId: string, forceNationa
 
     if (!tournament) return { success: false, error: "Torneo no encontrado" };
 
+    const alreadyFinished = tournament.status === "FINISHED";
     const matches = tournament.matches;
     const pendingMatches = matches.filter(m => m.homePlayerId && m.awayPlayerId && m.homeScore === null);
     if (pendingMatches.length > 0) {
@@ -248,7 +249,16 @@ export async function commitTournamentRanking(tournamentId: string, forceNationa
         };
     }
 
-    const playerIds = tournament.registrations.map(r => r.playerId);
+    let playerIds = tournament.registrations.map(r => r.playerId);
+    if (playerIds.length === 0) {
+        // Fallback: derive players from match participants (for tournaments without formal registrations)
+        const matchPlayerIds = new Set<string>();
+        matches.forEach(m => {
+            if (m.homePlayerId) matchPlayerIds.add(m.homePlayerId);
+            if (m.awayPlayerId) matchPlayerIds.add(m.awayPlayerId);
+        });
+        playerIds = Array.from(matchPlayerIds);
+    }
     if (playerIds.length === 0) return { success: false, error: "No hay jugadores inscritos" };
 
     const standings = calculateStandings(matches, playerIds);
@@ -274,7 +284,7 @@ export async function commitTournamentRanking(tournamentId: string, forceNationa
             const nationalPoints = getPositionPoints(position, played);
             const generalAverage = stat.generalAverage;
 
-            if (applyNational) {
+            if (applyNational && !alreadyFinished) {
                 const existing = await tx.ranking.findFirst({
                     where: {
                         playerId: stat.playerId,

@@ -59,17 +59,17 @@ export async function getTournamentStandings(tournamentId: string) {
     const registrations = await prisma.tournamentRegistration.findMany({
         where: { tournamentId },
         include: {
-            player: { 
-                include: { 
+            player: {
+                include: {
                     user: true,
-                    club: true 
-                } 
+                    club: true
+                }
             }
         },
         orderBy: { registeredRank: 'asc' }
     });
 
-    return registrations
+    const fromRegistrations = registrations
         .filter(r => r.registeredRank && r.registeredRank > 0)
         .map(r => ({
             id: r.id,
@@ -78,6 +78,65 @@ export async function getTournamentStandings(tournamentId: string) {
             handicap: (r as any).registeredHandicap || 30,
             club: r.player.club?.name || "Independiente"
         }));
+
+    if (fromRegistrations.length > 0) return fromRegistrations;
+
+    // Fallback: derive final positions from knockout bracket results
+    return getStandingsFromBracket(tournamentId);
+}
+
+async function getStandingsFromBracket(tournamentId: string) {
+    const matches = await prisma.match.findMany({
+        where: { tournamentId, groupId: null },
+        include: {
+            homePlayer: { include: { user: true, club: true } },
+            awayPlayer: { include: { user: true, club: true } }
+        }
+    });
+
+    if (matches.length === 0) return [];
+
+    const playedMatches = matches.filter(
+        m => m.winnerId && m.homePlayerId && m.awayPlayerId
+    );
+    if (playedMatches.length === 0) return [];
+
+    const maxRound = Math.max(...playedMatches.map(m => m.round));
+
+    const playerName = (p: any) =>
+        p?.user?.name || `${p?.firstName || ""} ${p?.lastName || ""}`.trim() || "Jugador";
+    const playerClub = (p: any) => p?.club?.name || "Independiente";
+
+    const standings: { id: string; name: string; rank: number; club?: string }[] = [];
+
+    playedMatches.forEach(m => {
+        const winnerPlayer = m.homePlayerId === m.winnerId ? m.homePlayer : m.awayPlayer;
+        const loserPlayer  = m.homePlayerId === m.winnerId ? m.awayPlayer  : m.homePlayer;
+        const loserId      = m.homePlayerId === m.winnerId ? m.awayPlayerId : m.homePlayerId;
+
+        // Loser rank: 2^(maxRound - round) + 1, except Final loser = 2
+        const loserRank = m.round === maxRound ? 2 : Math.pow(2, maxRound - m.round) + 1;
+
+        if (m.round === maxRound && m.winnerId) {
+            standings.push({
+                id: m.winnerId,
+                name: playerName(winnerPlayer),
+                rank: 1,
+                club: playerClub(winnerPlayer)
+            });
+        }
+
+        if (loserId && loserPlayer) {
+            standings.push({
+                id: loserId,
+                name: playerName(loserPlayer),
+                rank: loserRank,
+                club: playerClub(loserPlayer)
+            });
+        }
+    });
+
+    return standings;
 }
 
 export async function getTournamentStats(tournamentId: string) {

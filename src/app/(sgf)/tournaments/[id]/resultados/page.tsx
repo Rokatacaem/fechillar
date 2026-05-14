@@ -191,13 +191,15 @@ export default async function ResultadosPage({
                     )}
 
                     {/* Cierre */}
-                    {totalMatches > 0 && tournament.status !== "FINISHED" && (
+                    {totalMatches > 0 && (
                         <div className="space-y-4">
-                            <GenerateBracketButton 
-                                tournamentId={tournamentId}
-                                hasPendingMatches={pendingMatches > 0}
-                                hasExistingBracket={tournament.matches.some(m => m.id.includes("_W") || m.id.includes("_L"))}
-                            />
+                            {tournament.status !== "FINISHED" && (
+                                <GenerateBracketButton
+                                    tournamentId={tournamentId}
+                                    hasPendingMatches={pendingMatches > 0}
+                                    hasExistingBracket={tournament.matches.some(m => m.groupId === null)}
+                                />
+                            )}
 
                             <CloseTournamentButton
                                 tournamentId={tournamentId}
