@@ -20,8 +20,8 @@ Sistema de gestión de torneos y padrón nacional para la Federación Chilena de
 - **UI:** Tailwind CSS + shadcn
 
 ## 📊 Estado Actual
-**Última actualización:** 2026-05-11
-**Estado:** ✅ DB producción migrada a Supabase. 160 jugadores + 739 rankings restaurados. Pantalla TV de torneo, página pública y botón WhatsApp implementados. Problema de persistencia de datos resuelto definitivamente.
+**Última actualización:** 2026-05-12
+**Estado:** ✅ DB limpia en Supabase. Torneo Nacional Mayo 2026 con 18 grupos y 54 jugadores. Simulacro eliminado. Pendiente: cargar resultados de partidos del torneo.
 
 ---
 
@@ -165,6 +165,37 @@ npm run db:merge        # Fusionar duplicados
 2. **Integrar resultados de torneo con cálculo de ranking** — definir flujo automático o manual
 3. **Auditoría de datos:** revisar CSV de rankings 2025 y corregir promedios
 4. **Limpieza opcional:** eliminar endpoint `/api/admin/db-check` una vez estabilizado
+
+---
+
+### [2026-05-12] - 🔵 CLAUDE - Limpieza torneo simulacro + estado listo para resultados
+
+**Tareas completadas:**
+
+1. **Eliminación del torneo SIMULACRO_NACIONAL_MAYO_RODRIGO**
+   - Era un torneo de pruebas con 18 grupos y 54 inscripciones
+   - Eliminado en cascada (matches → registrations → groups → tournament)
+
+2. **Restauración desde backup correcto**
+   - El restore anterior usó backup del 10-May 21:12 (sin grupos del torneo Mayo)
+   - Restaurado desde backup 11-May 00:13 que tenía los 18 grupos y 54 inscripciones reales
+   - Descubierto: el cascade delete de Users borra PlayerProfiles, pero el paso de jugadores los restaura inmediatamente después (comportamiento esperado)
+
+3. **Estado verificado del Torneo Nacional Club Santiago Mayo 2026**
+   - 18 grupos (A–R), 3 jugadores por grupo, 0 partidos cargados
+   - Fredy Mejias confirmado en GRUPO J (13:00 hrs) junto a Mario Díaz y Cristian Rioja
+   - Alfredo Álamos no estaba inscrito en este torneo (estaba solo en el simulacro)
+
+4. **Backup limpio generado**
+   - `backups/backup_2026-05-11T20-00-07.json` — 2 torneos, 160 jugadores, 739 rankings
+
+**Pendiente:**
+
+- Cargar resultados de partidos del torneo (usuario proveerá planilla/datos)
+
+**Archivos modificados:**
+
+- `scripts/restore-to-supabase.js` — actualizado para usar backup de medianoche
 
 ---
 
@@ -609,6 +640,22 @@ npx prisma db push
 
 ---
 
+### [2026-05-12 10:35] - 🟢 ANTIGRAVITY - Mantenimiento de Padrón y Saneamiento de Administrador
+
+**Tarea completada:**
+- Actualización del contexto de base de datos y documentación del stack tecnológico completo del proyecto.
+- Revisión de herramientas de mantenimiento de la base de datos, enfocadas en la limpieza y restauración del padrón de jugadores perdidos.
+- Análisis del script `src/scripts/cleanup-admin.ts`, encargado de escanear y purgar perfiles duplicados del Administrador Maestro (Rodrigo), unificando rankings y eliminando usuarios redundantes.
+
+**Decisiones técnicas/Hallazgos:**
+- El script de saneamiento `cleanup-admin.ts` detecta duplicados del admin por coincidencia parcial de nombre o RUT, reasigna sus rankings al ID del perfil principal y elimina los usuarios duplicados de forma limpia.
+
+**Siguiente paso para CLAUDE / USUARIO:**
+- Ejecutar `npx tsx src/scripts/cleanup-admin.ts` para consolidar al admin, en caso de no haberse ejecutado aún.
+- Continuar con la migración definitiva de la base de datos de producción a Supabase para evitar mayores pérdidas de datos tras cada deploy en Vercel.
+
+---
+
 ## 📝 Notas Importantes
 
 - Ambos AIs deben leer este archivo ANTES de cada tarea
@@ -631,4 +678,135 @@ npx prisma db push
 
 ---
 
-**Última sincronización:** 2026-05-07 (Resumen actualizado con estado actual del proyecto y arquitectura DB)
+---
+
+### [2026-05-12] - 🔵 CLAUDE - Pantallas TV, fixes bracket, formulario torneo y backup
+
+#### Tareas completadas
+
+**1. Corrección nombres "JUGADOR" en pantalla TV**
+- `src/lib/standings.ts` usaba `player.user?.name` — la mayoría de jugadores no tienen User vinculado
+- Fix: `[player.firstName, player.lastName].filter(Boolean).join(' ') || player.user?.name || "Jugador"`
+
+**2. Rediseño pantalla TV — LiveGroupsGrid**
+- Grid `grid-cols-3 lg:grid-cols-6`, PAGE_SIZE=9 grupos por página
+- Paginación automática cada 8 segundos con indicador dot
+- Logos Fechillar y club a ambos lados del título (ambos `w-16`, sin overlap ni rotación)
+- Fix accesibilidad: `type="button"` y `aria-label` en botones de paginación
+
+**3. LiveGeneralRanking — filas compactas para TV 1080p**
+- Header reducido: `mb-8 → mb-2`, iconos/texto más pequeños
+- Filas: `py-2 → py-[3px]`, fonts `text-[10px]` con `leading-tight`
+- 54 jugadores en 2 columnas sin scroll
+
+**4. LiveBrackets — layout mariposa (butterfly)**
+- Final en el centro de la pantalla
+- Mitad superior de cada ronda → columnas izquierdas (R1 → SF)
+- Mitad inferior → columnas derechas (SF → R1), fan outward desde el centro
+- Etiquetas automáticas: "Semis", "Cuartos", "Ronda N"
+
+**5. Fix "GENERAR CUADRO" — tres bugs consecutivos corregidos**
+- Bug 1: campo `status` no existe en modelo `Match` → eliminado del `createMany`
+- Bug 2: `deleteMany` solo borraba `round > 1`, dejando barrage/ronda-1 → cambiado a borrar todos los matches sin `groupId`
+- Bug 3: IDs ficticios `"GANADOR_B1"`, `"BYE"` fallan FK constraint → validación UUID antes de insertar (regex), ficticios → `null`
+
+**6. Fix redirect post-generación**
+- `GenerateBracketButton` redirigía a `/llaves` (404) → corregido a `/bracket`
+
+**7. Formulario de torneo — tabla de reglamento por fase**
+- Reemplaza el único campo "Entradas por Fase" con tabla Grupos / QF-SF / Gran Final
+- Columnas: Carambolas, Tope Entradas, Sin Límite (checkbox final)
+- Defaults 3 bandas: grupos 30car/35ent, playoffs 35car/40ent, final 35car/sin límite
+- Fix bug en action: `inningsPerPhase` siempre quedaba en 30 (ignoraba config JSON) → ahora lee de `baseConfig`
+
+**8. `updateGroupFormat` action**
+- Nueva server action en `grupos/actions.ts` para actualizar el `groupFormat` del config del torneo sin regenerar grupos
+
+**9. Torneo Nacional Club Santiago Mayo 2026**
+- Se descubrió que fue creado con `groupFormat: RR_3` (3 jugadores/grupo) cuando debía ser `RR_4` (4 jugadores, todos vs todos)
+- Los 54 partidos ya estaban completados → datos preservados
+- Usuario decidió **eliminar y recrear el torneo** con la configuración correcta
+- Backup previo: `backup_2026-05-12T22-03-01.json` (160 jugadores, 2 torneos, 732 rankings)
+
+**10. Seguridad crítica — endpoint sin autenticación eliminado**
+- `/api/purge-players/route.ts` era un GET sin auth que borraba TODA la DB → **eliminado**
+- Era la causa raíz de las pérdidas de datos recurrentes
+- Fix adicional: `onDelete: Cascade → SetNull` en `PlayerProfile.userId`
+
+#### Archivos modificados
+- `src/lib/standings.ts` — fix nombres
+- `src/components/public/LiveGroupsGrid.tsx` — grid, paginación, logos
+- `src/components/public/LiveGeneralRanking.tsx` — filas compactas TV
+- `src/components/public/LiveBrackets.tsx` — layout mariposa completo
+- `src/lib/billiards/ranking-engine.ts` — fix crash `totalCarambolas` undefined
+- `src/app/(sgf)/tournaments/[id]/resultados/actions.ts` — fixes FK, deleteMany, IDs ficticios
+- `src/app/(sgf)/tournaments/[id]/resultados/GenerateBracketButton.tsx` — fix redirect
+- `src/app/(sgf)/tournaments/nuevo/TournamentForm.tsx` — tabla reglamento por fase
+- `src/app/(sgf)/tournaments/nuevo/actions.ts` — fix inningsPerPhase bug
+- `src/app/(sgf)/tournaments/[id]/grupos/actions.ts` — nueva acción updateGroupFormat
+- `prisma/schema.prisma` — onDelete: SetNull en PlayerProfile.userId
+
+#### Estado de datos en producción
+- 160 jugadores, 7 clubes, 9 usuarios, 732 rankings, 2 torneos
+- Último backup: `backup_2026-05-12T22-03-01.json` (520 KB)
+
+#### Pendiente
+- Usuario va a **eliminar y recrear** el Torneo Nacional Mayo 2026 con `groupFormat: RR_4` (4 jugadores/grupo, todos vs todos)
+- Al crear, seleccionar: Formato Grupos = "Round Robin (4 Jugadores - Todos vs Todos)", Clasifican = 2, cupo ajustado
+- Commits en `main` hasta `f92bfa9`
+
+---
+
+---
+
+### [2026-05-14] - 🔵 CLAUDE - Carga completa de resultados Torneo Nacional Mayo 2026
+
+#### Tareas completadas
+
+**1. Análisis comparativo Excel vs DB (archivo: `OPEN MAYO26.xlsx`)**
+- 18 grupos con jugadores y resultados coincidían perfectamente (DB Grupo A-R = Excel Grupo 1-18)
+- Fase eliminatoria completamente distinta: el bracket auto-generado usaba un algoritmo diferente al Excel
+- El Excel usa promedio ponderado como criterio de seeding; la DB usó orden de grupos
+- Consecuencia: pairings del barrage y 16VOS incorrectos, rondas 8VOS+ con jugadores NULL
+
+**2. Discrepancias de nombres encontradas y resueltas**
+- `NARANJO Brisley` [eecf3ebc] → renombrado a `José Brisley Naranjo` (mismo jugador que "NARANJO Jose" en Excel)
+- `Gallardo Emiliano` [6919dc29] → renombrado a `Emilio Gallardo` (nombre real)
+- Duplicado `Gallardo Emilio` [d4d5c09b] → eliminado (tenía 7 rankings pero 0 partidos)
+
+**3. Corrección del bracket — 35 partidos eliminatorios recreados**
+- Borrados 35 partidos incorrectos (groupId=null)
+- Creados 35 nuevos con datos exactos del Excel:
+  - **Barrage (4)**: Guerra-RodríguezJosé, DíazMario-Naranjo, Duarte-Ponce(WO), Matus-Roa
+  - **16VOS (16)**: pairings por seeding ponderado; CARVAJAL salió por WO → OLAYA clasifica
+  - **8VOS (8)**, **Cuartos (4)**, **Semis (2)**, **Final (1)**: completos con scores
+- Todos los resultados incluyen carambolas, entradas, serie mayor y ganador
+
+**4. Resultados finales del torneo**
+- 🥇 Campeón: **SOBARZO Marco** (VAL) — Final 30-11 en 23 entradas
+- 🥈 Subcampeón: **TORO Juan Carlos** (LAC)
+- Semifinalistas: **BAHAMONDES Luis** (LAC) y **ARENAS Bladimir** (SMG)
+
+**5. Estado del torneo actualizado a `FINISHED`**
+
+#### Archivos creados/usados (scripts de diagnóstico y ejecución)
+- `scripts/check-torneo-mayo.js`
+- `scripts/check-knockout-matches.js`
+- `scripts/check-players-mayo.js`
+- `scripts/check-name-conflicts.js`
+- `scripts/fix-names-and-bracket.js` ← script principal de corrección
+- `scripts/verify-bracket.js`
+- `scripts/complete-tournament.js`
+
+#### Estado de datos en producción
+- Torneo Nacional Club Santiago Mayo 2026: FINISHED ✅
+- 89 partidos totales (54 grupos + 35 eliminatoria), todos con resultados
+- Jugadores: 160, Rankings: 725 (se eliminaron 7 del duplicado Gallardo)
+
+#### Pendiente
+- Integrar resultados del torneo con cálculo de ranking (actualizar promedios y puntos de los 54 jugadores)
+- Definir flujo: ¿automático desde resultados o importación manual?
+
+---
+
+**Última sincronización:** 2026-05-14 12:00 CHL
