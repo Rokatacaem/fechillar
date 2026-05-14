@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect, useTransition } from "react";
-import { Search, X, UserPlus, CheckCircle, Clock, Loader2, Library, ChevronRight, Square, CheckSquare } from "lucide-react";
+import { Search, X, UserPlus, CheckCircle, Clock, Loader2, Library, ChevronRight, Square, CheckSquare, ListOrdered } from "lucide-react";
 import { PaymentValidateButton } from "@/components/tournaments/PaymentValidateButton";
 import { RemoveRegistrationButton } from "@/components/tournaments/RemoveRegistrationButton";
 import { searchPlayers, getPlayersByClub } from "@/app/(sgf)/players/actions";
@@ -11,12 +11,14 @@ import { useRouter } from "next/navigation";
 
 interface InscritoData {
     id: string;
+    playerId: string;
     status: string;
     paymentStatus: string;
     amountPaid: number | null;
     paymentRef: string | null;
     registeredPoints: number;
     preferredTurn: string;
+    isWaitingList: boolean;
     rankingAverage: number | null;
     player: {
         user: { name: string } | null;
@@ -40,15 +42,15 @@ interface InscritosListClientProps {
     tournamentId: string;
     allClubs: { id: string, name: string }[];
     hasGroups?: boolean;
-    // registrationFee?: number;
+    registrationFee?: number;
 }
 
-export function InscritosListClient({ 
-    registrations, 
-    tournamentId, 
-    allClubs, 
+export function InscritosListClient({
+    registrations,
+    tournamentId,
+    allClubs,
     hasGroups = false,
-    // registrationFee = 30000 
+    registrationFee = 30000
 }: InscritosListClientProps) {
     const router = useRouter();
     const [query, setQuery] = useState("");
@@ -60,6 +62,7 @@ export function InscritosListClient({
     const [searching, setSearching] = useState(false);
     const [addingId, setAddingId] = useState<string | null>(null);
     const [selectedTurn, setSelectedTurn] = useState("T1");
+    const [addToWaitingList, setAddToWaitingList] = useState(false);
 
     // Modo Masivo (Bulk)
     const [selectedClubId, setSelectedClubId] = useState("");
@@ -90,9 +93,12 @@ export function InscritosListClient({
             .sort((a, b) => a.name.localeCompare(b.name));
     }, [registrations]);
 
+    const confirmed = useMemo(() => registrations.filter(r => !r.isWaitingList), [registrations]);
+    const waitingList = useMemo(() => registrations.filter(r => r.isWaitingList), [registrations]);
+
     const filtered = useMemo(() => {
-        if (mode === "add") return registrations; // en modo add no filtrar
-        return registrations.filter(reg => {
+        if (mode === "add") return confirmed;
+        return confirmed.filter(reg => {
             const name = getDisplayName(reg);
             if (query && !name.toLowerCase().includes(query.toLowerCase())) return false;
             if (selectedClubs.length > 0) {
@@ -101,7 +107,7 @@ export function InscritosListClient({
             }
             return true;
         });
-    }, [registrations, query, selectedClubs, mode]);
+    }, [confirmed, query, selectedClubs, mode]);
 
     // --- Búsqueda en padrón nacional (modo add) ---
     useEffect(() => {
@@ -121,7 +127,7 @@ export function InscritosListClient({
 
     // IDs ya inscritos para excluirlos
     const registeredPlayerIds = useMemo(() => new Set(
-        registrations.map(r => (r as any).playerId)
+        registrations.map(r => r.playerId)
     ), [registrations]);
 
     // Cambiar modo limpia la query
@@ -156,9 +162,9 @@ export function InscritosListClient({
     const handleAdd = async (playerId: string) => {
         setAddingId(playerId);
         try {
-            const res = await registerPlayer(tournamentId, playerId, selectedTurn);
+            const res = await registerPlayer(tournamentId, playerId, selectedTurn, addToWaitingList);
             if (res.success) {
-                toast.success("Jugador inscrito correctamente");
+                toast.success(addToWaitingList ? "Jugador agregado a lista de espera" : "Jugador inscrito correctamente");
                 setQuery("");
                 setSearchResults([]);
                 startTransition(() => router.refresh());
@@ -235,7 +241,8 @@ export function InscritosListClient({
                         </button>
                     </div>
                     <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest ml-auto">
-                        {filtered.length} / {registrations.length} jugadores
+                        {filtered.length} / {confirmed.length} inscritos
+                        {waitingList.length > 0 && <span className="ml-1 text-amber-600"> · {waitingList.length} en espera</span>}
                     </span>
                 </div>
 
@@ -283,6 +290,28 @@ export function InscritosListClient({
                                     </button>
                                 ))}
                             </div>
+                        </div>
+
+                        {/* Toggle Lista de Espera */}
+                        <div className="mt-2">
+                            <button
+                                type="button"
+                                onClick={() => setAddToWaitingList(v => !v)}
+                                className={["flex items-center gap-2 px-3 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all w-full",
+                                    addToWaitingList
+                                        ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                                        : "bg-slate-900/40 border-white/5 text-slate-500 hover:text-slate-300"
+                                ].join(" ")}
+                            >
+                                {addToWaitingList
+                                    ? <CheckSquare className="w-3.5 h-3.5 shrink-0" />
+                                    : <Square className="w-3.5 h-3.5 shrink-0" />
+                                }
+                                Agregar a lista de espera
+                                <span className="ml-auto text-slate-600 normal-case font-normal">
+                                    {addToWaitingList ? "Se inscribirá en espera" : "Se inscribirá como confirmado"}
+                                </span>
+                            </button>
                         </div>
 
                         {/* Dropdown resultados modo ADD - Mejorado para no entorpecer visualización */}
@@ -448,8 +477,8 @@ export function InscritosListClient({
             {filtered.length === 0 ? (
                 <div className="p-12 text-center">
                     <p className="text-slate-500 text-sm">
-                        {registrations.length === 0 
-                            ? "Aún no hay jugadores inscritos. Usa el botón 'Agregar participante' para comenzar." 
+                        {confirmed.length === 0
+                            ? "Aún no hay jugadores inscritos. Usa el botón 'Agregar participante' para comenzar."
                             : "No se encontraron jugadores inscritos con los filtros aplicados."}
                     </p>
                 </div>
@@ -526,9 +555,9 @@ export function InscritosListClient({
                                         ) : (
                                             <div className="flex flex-col items-end gap-1">
                                                 <p className="text-yellow-500 font-bold text-[10px] uppercase tracking-widest">PENDIENTE</p>
-                                                <PaymentValidateButton 
-                                                    registrationId={reg.id} 
-                                                    amount={30000}
+                                                <PaymentValidateButton
+                                                    registrationId={reg.id}
+                                                    amount={registrationFee}
                                                 />
                                             </div>
                                         )}
@@ -551,6 +580,48 @@ export function InscritosListClient({
                             </div>
                         );
                     })}
+                </div>
+            )}
+
+            {/* ── Lista de Espera ── */}
+            {waitingList.length > 0 && (
+                <div className="border-t border-amber-500/20">
+                    <div className="px-5 py-3 flex items-center gap-2 bg-amber-500/5">
+                        <ListOrdered className="w-4 h-4 text-amber-500" />
+                        <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">
+                            Lista de Espera — {waitingList.length} jugador{waitingList.length !== 1 ? "es" : ""}
+                        </span>
+                    </div>
+                    <div className="divide-y divide-white/5">
+                        {waitingList.map((reg, idx) => {
+                            const name = getDisplayName(reg);
+                            const initial = (reg.player.user?.name || reg.player.firstName || "?").charAt(0).toUpperCase();
+                            return (
+                                <div key={reg.id}
+                                    className="px-6 py-4 flex items-center justify-between hover:bg-amber-500/[0.03] transition-colors opacity-80">
+                                    <div className="flex items-center gap-4">
+                                        <span className="text-[10px] font-black text-amber-800 w-5 text-right shrink-0">{idx + 1}</span>
+                                        <div className="w-9 h-9 rounded-full bg-amber-900/30 flex items-center justify-center font-bold text-amber-300 border border-amber-500/20 shrink-0 text-sm">
+                                            {initial}
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-300 font-bold text-sm leading-tight">{name}</p>
+                                            <p className="text-[10px] uppercase font-bold tracking-widest text-slate-600 mt-0.5">
+                                                {reg.player.club?.name || "JUGADOR LIBRE"}
+                                                {reg.player.rut ? ` · RUT ${reg.player.rut}` : ""}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest border border-amber-500/30 bg-amber-500/10 px-2 py-1 rounded-lg">
+                                            En espera
+                                        </span>
+                                        <RemoveRegistrationButton registrationId={reg.id} />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
         </div>

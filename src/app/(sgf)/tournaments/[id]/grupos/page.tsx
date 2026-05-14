@@ -23,6 +23,8 @@ export default async function GruposPage({ params }: { params: Promise<{ id: str
     const totalRegistered = await prisma.tournamentRegistration.count({
         where: { tournamentId, status: "APPROVED" }
     });
+    const cfg = (tournament.config as any) ?? {};
+    const groupFormat = cfg?.groupFormat ?? (cfg?.groups?.size === 4 ? 'RR_4' : 'RR_3');
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700 max-w-7xl mx-auto">
@@ -104,6 +106,7 @@ export default async function GruposPage({ params }: { params: Promise<{ id: str
                 groups={groups as any}
                 unassigned={unassigned as any}
                 isAdmin={isAdmin}
+                groupFormat={groupFormat}
             />
         </div>
     );

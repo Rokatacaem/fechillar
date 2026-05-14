@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 
-export async function registerPlayer(tournamentId: string, playerId: string, preferredTurn: string = "T1") {
+export async function registerPlayer(tournamentId: string, playerId: string, preferredTurn: string = "T1", isWaitingList = false) {
     const session = await auth();
     
     if (!session?.user?.id) {
@@ -57,6 +57,7 @@ export async function registerPlayer(tournamentId: string, playerId: string, pre
                 registeredAverage: averageToFreeze ?? undefined,
                 preferredTurn: preferredTurn as any,
                 status: "APPROVED",
+                isWaitingList,
                 paid: false,
                 paymentStatus: "PENDING"
             }

@@ -25,7 +25,7 @@ export default async function EditTournamentPage({ params }: { params: Promise<{
 
     if (!tournament) return notFound();
 
-    const config = (tournament.config as any) ?? {};
+    const cfg = (tournament.config as any) ?? {};
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700 max-w-3xl mx-auto">
@@ -52,7 +52,8 @@ export default async function EditTournamentPage({ params }: { params: Promise<{
                 initialData={{
                     name: tournament.name,
                     description: tournament.description ?? "",
-                    location: tournament.location ?? "",
+                    venueAddress: tournament.venue ?? "",
+                    venueClubId: tournament.venueClubId ?? "",
                     startDate: tournament.startDate.toISOString().split("T")[0],
                     endDate: tournament.endDate?.toISOString().split("T")[0] ?? "",
                     status: tournament.status,
@@ -63,12 +64,37 @@ export default async function EditTournamentPage({ params }: { params: Promise<{
                     maxTables: tournament.maxTables,
                     hasTimeLimit: tournament.hasTimeLimit,
                     secondsPerShot: tournament.secondsPerShot,
-                    // Config JSON
-                    groupSize: config?.groups?.size ?? 4,
-                    advancingCount: config?.groups?.advance ?? 2,
-                    inningsPerPhase: config?.inningsPerPhase ?? 30,
-                    playerCount: config?.playerCount ?? 32,
-                    hasHandicap: config?.hasHandicap ?? false,
+                    // Config
+                    groupFormat:      cfg?.groupFormat      ?? "RR_3",
+                    advancingCount:   cfg?.advancingCount   ?? cfg?.groups?.advance ?? 2,
+                    inningsPerPhase:  cfg?.inningsPerPhase  ?? 30,
+                    playerCount:      cfg?.playerCount      ?? 32,
+                    hasHandicap:      cfg?.hasHandicap      ?? false,
+                    registrationFee:  cfg?.registrationFee  ?? 30000,
+                    tables:           cfg?.tables           ?? 6,
+                    turns:            cfg?.turns            ?? 3,
+                    bracketSize:      cfg?.bracketSize      ?? 16,
+                    distanceGroups:   cfg?.distanceGroups   ?? 30,
+                    distancePlayoffs: cfg?.distancePlayoffs ?? 35,
+                    distanceFinal:    cfg?.distanceFinal    ?? 35,
+                    inningsGroups:    cfg?.inningsGroups    ?? 35,
+                    inningsPlayoffs:  cfg?.inningsPlayoffs  ?? 40,
+                    bankAccountName:  cfg?.bankAccountName  ?? "",
+                    bankAccountRut:   cfg?.bankAccountRut   ?? "",
+                    bankName:         cfg?.bankName         ?? "",
+                    bankAccountType:  cfg?.bankAccountType  ?? "Corriente",
+                    bankAccountNumber: cfg?.bankAccountNumber ?? "",
+                    bankAccountEmail:  cfg?.bankAccountEmail  ?? "",
+                    // Lista de espera y contacto
+                    waitlistSize:        cfg?.waitlistSize        ?? cfg?.waitingListLimit ?? 0,
+                    waitlistActivation:  cfg?.waitlistActivation  ?? "AUTOMATIC",
+                    registrationContact: cfg?.registrationContact ?? "",
+                    registrationPhone:   cfg?.registrationPhone   ?? "",
+                    registrationDeadline: cfg?.registrationDeadline ?? "",
+                    groupsPublishDate:   cfg?.groupsPublishDate   ?? "",
+                    // Control de tiempo
+                    timeControlMode:     cfg?.timeControl?.mode   ?? (tournament.hasTimeLimit ? "SHOT_CLOCK" : "NONE"),
+                    extensionsPerPlayer: tournament.extensionsPerPlayer ?? 2,
                 }}
                 clubs={clubs}
             />

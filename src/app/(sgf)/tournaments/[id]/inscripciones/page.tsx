@@ -82,6 +82,8 @@ export default async function TournamentRegistrationsPage({ params }: { params: 
           })
         : 0;
 
+    const registrationFee = (tournament.config as any)?.registrationFee ?? 30000;
+
     // Normalizar para el componente cliente
     const inscritosData = registrations.map(r => ({
         id: r.id,
@@ -92,6 +94,7 @@ export default async function TournamentRegistrationsPage({ params }: { params: 
         paymentRef: r.paymentRef,
         registeredPoints: r.registeredPoints,
         preferredTurn: r.preferredTurn || "T1",
+        isWaitingList: (r as any).isWaitingList ?? false,
         rankingAverage: r.player.rankings?.[0]?.average ?? null,
         player: {
             user: r.player.user ? { name: r.player.user.name || "Sin nombre" } : null,
@@ -180,11 +183,12 @@ export default async function TournamentRegistrationsPage({ params }: { params: 
                     <h3 className="font-bold text-white">Padrón de Inscritos</h3>
                 </div>
 
-                <InscritosListClient 
-                    registrations={inscritosData} 
-                    tournamentId={tournamentId} 
-                    allClubs={allClubs} 
+                <InscritosListClient
+                    registrations={inscritosData}
+                    tournamentId={tournamentId}
+                    allClubs={allClubs}
                     hasGroups={tournament.groups.length > 0}
+                    registrationFee={registrationFee}
                 />
             </div>
         </div>

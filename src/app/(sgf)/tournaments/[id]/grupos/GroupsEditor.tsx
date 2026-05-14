@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Shuffle, Loader2, GripVertical, Edit2, Check, X, Users, AlertTriangle, ArrowRightLeft, ChevronUp, ChevronDown } from "lucide-react";
-import { movePlayerToGroup, renameGroup, movePlayerOrder, generateGroups, resetGroups, syncMatches } from "./actions";
+import { movePlayerToGroup, renameGroup, movePlayerOrder, generateGroups, resetGroups, syncMatches, updateGroupFormat } from "./actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
@@ -33,13 +33,15 @@ interface Props {
     groups: GroupData[];
     unassigned: RegData[];
     isAdmin: boolean;
+    groupFormat: string;
 }
 
-export function GroupsEditorClient({ tournamentId, groups: initialGroups, unassigned: initialUnassigned, isAdmin }: Props) {
+export function GroupsEditorClient({ tournamentId, groups: initialGroups, unassigned: initialUnassigned, isAdmin, groupFormat: initialGroupFormat }: Props) {
     const router = useRouter();
     const [groups, setGroups] = useState<GroupData[]>(initialGroups);
     const [unassigned, setUnassigned] = useState<RegData[]>(initialUnassigned);
     const [generating, setGenerating] = useState(false);
+    const [currentFormat, setCurrentFormat] = useState(initialGroupFormat);
     const [isPending, startTransition] = useTransition();
 
     // Estado para mover jugador
@@ -173,12 +175,50 @@ export function GroupsEditorClient({ tournamentId, groups: initialGroups, unassi
     ];
     const gc = (idx: number) => groupColors[idx % groupColors.length];
 
+    const handleFormatChange = async (newFormat: string) => {
+        setCurrentFormat(newFormat);
+        const res = await updateGroupFormat(tournamentId, newFormat);
+        if (res.success) {
+            toast.success("Formato de grupos actualizado");
+        } else {
+            toast.error(res.error ?? "Error al actualizar formato");
+        }
+    };
+
+    const formatLabel: Record<string, string> = {
+        RR_3: "Round Robin · 3 jug.",
+        RR_4: "Round Robin · 4 jug.",
+        DE_4: "Doble Eliminación · 4 jug.",
+    };
+
     return (
         <div className="space-y-6">
             {/* Toolbar */}
             {isAdmin && (
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-3">
+                        {/* Selector de formato — solo editable sin grupos */}
+                        <div className="flex items-center gap-2 bg-slate-900/60 border border-white/5 rounded-2xl px-4 py-2.5">
+                            <Users className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Formato:</span>
+                            {groups.length === 0 ? (
+                                <select
+                                    title="Formato de grupos"
+                                    value={currentFormat}
+                                    onChange={e => handleFormatChange(e.target.value)}
+                                    className="bg-transparent border-0 text-[10px] font-black text-violet-300 uppercase tracking-widest focus:outline-none cursor-pointer"
+                                >
+                                    <option value="RR_3">Round Robin · 3 jug.</option>
+                                    <option value="RR_4">Round Robin · 4 jug.</option>
+                                    <option value="DE_4">Doble Eliminación · 4 jug.</option>
+                                </select>
+                            ) : (
+                                <span className="text-[10px] font-black text-violet-300 uppercase tracking-widest">
+                                    {formatLabel[currentFormat] ?? currentFormat}
+                                </span>
+                            )}
+                        </div>
+
                         {moving && (
                             <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-xs font-bold">
                                 <ArrowRightLeft className="w-4 h-4" />

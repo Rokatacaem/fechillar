@@ -92,7 +92,9 @@ export async function generateGroups(tournamentId: string) {
         }
 
         const cfg = tournament.config as any;
-        const groupFormat: string = cfg?.groupFormat ?? 'RR_3';
+        // Fallback: if groupFormat is missing, derive from groups.size (set by old edit form)
+        const groupFormat: string = cfg?.groupFormat
+            ?? (cfg?.groups?.size === 4 ? 'RR_4' : cfg?.groups?.size === 3 ? 'RR_3' : 'RR_3');
         const playersPerGroup = groupFormat === 'RR_3' ? 3 : 4;
 
         // 4. Limpiar datos anteriores
@@ -525,7 +527,8 @@ export async function syncMatches(tournamentId: string) {
             select: { config: true, modality: true, discipline: true, category: true }
         });
         const cfg2 = tournament?.config as any;
-        const groupFormat = cfg2?.groupFormat ?? 'RR_3';
+        const groupFormat = cfg2?.groupFormat
+            ?? (cfg2?.groups?.size === 4 ? 'RR_4' : cfg2?.groups?.size === 3 ? 'RR_3' : 'RR_3');
         const isHandicap = tournament?.modality === 'HANDICAP';
         const matchDistance = isHandicap ? (cfg2?.inningsPerPhase ?? 35) : 25;
 
