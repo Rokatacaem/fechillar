@@ -154,24 +154,38 @@ async function getStandingsFromBracket(tournamentId: string) {
         };
     };
 
-    const standings: {
-        id: string; name: string; rank: number; club?: string;
-        generalAverage: number; highRun: number; particularAverage: number;
-    }[] = [];
+    type Entry = { id: string; name: string; baseRank: number; club?: string; generalAverage: number; highRun: number; particularAverage: number; };
+
+    // Collect entries grouped by base rank (all eliminated in same round share a base rank)
+    const byBaseRank: Record<number, Entry[]> = {};
+
+    const addEntry = (id: string, player: any, baseRank: number) => {
+        if (!byBaseRank[baseRank]) byBaseRank[baseRank] = [];
+        byBaseRank[baseRank].push({ id, name: playerName(player), baseRank, club: playerClub(player), ...buildStats(id) });
+    };
 
     playedKnockout.forEach(m => {
         const winnerPlayer = m.homePlayerId === m.winnerId ? m.homePlayer : m.awayPlayer;
         const loserPlayer  = m.homePlayerId === m.winnerId ? m.awayPlayer  : m.homePlayer;
         const loserId      = m.homePlayerId === m.winnerId ? m.awayPlayerId : m.homePlayerId;
-        const loserRank    = m.round === maxRound ? 2 : Math.pow(2, maxRound - m.round) + 1;
+        const loserBase    = m.round === maxRound ? 2 : Math.pow(2, maxRound - m.round) + 1;
 
-        if (m.round === maxRound && m.winnerId) {
-            standings.push({ id: m.winnerId, name: playerName(winnerPlayer), rank: 1, club: playerClub(winnerPlayer), ...buildStats(m.winnerId) });
-        }
-        if (loserId && loserPlayer) {
-            standings.push({ id: loserId, name: playerName(loserPlayer), rank: loserRank, club: playerClub(loserPlayer), ...buildStats(loserId) });
-        }
+        if (m.round === maxRound && m.winnerId) addEntry(m.winnerId, winnerPlayer, 1);
+        if (loserId && loserPlayer)             addEntry(loserId, loserPlayer, loserBase);
     });
+
+    // Within each base-rank group, sort by general average desc, then assign sequential positions
+    const standings: { id: string; name: string; rank: number; club?: string; generalAverage: number; highRun: number; particularAverage: number; }[] = [];
+
+    for (const [baseStr, group] of Object.entries(byBaseRank)) {
+        const base = parseInt(baseStr);
+        if (base === 1) {
+            standings.push({ ...group[0], rank: 1 });
+            continue;
+        }
+        const sorted = [...group].sort((a, b) => b.generalAverage - a.generalAverage || b.highRun - a.highRun);
+        sorted.forEach((entry, i) => standings.push({ ...entry, rank: base + i }));
+    }
 
     return standings;
 }
