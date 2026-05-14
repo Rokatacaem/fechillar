@@ -8,6 +8,7 @@ import { InscritosListClient } from "@/components/tournaments/InscritosListClien
 import { auth } from "@/auth";
 import TournamentPhaseNavigator from "@/components/tournament/TournamentPhaseNavigator";
 import { calculatePhaseStates } from "@/lib/tournament/phase-manager";
+import { SeedFromRankingButton } from "./SeedFromRankingButton";
 
 export default async function TournamentRegistrationsPage({ params }: { params: Promise<{ id: string }> }) {
     const session = await auth();
@@ -73,6 +74,13 @@ export default async function TournamentRegistrationsPage({ params }: { params: 
         select: { id: true, name: true },
         orderBy: { name: "asc" }
     });
+
+    // Para torneos Master: contar jugadores en el Ranking Nacional
+    const rankedCount = tournament.category === "MASTER"
+        ? await prisma.ranking.count({
+              where: { discipline: tournament.discipline as any, category: "MASTER", points: { gt: 0 } }
+          })
+        : 0;
 
     // Normalizar para el componente cliente
     const inscritosData = registrations.map(r => ({
@@ -155,6 +163,15 @@ export default async function TournamentRegistrationsPage({ params }: { params: 
                     ESTADO: {tournament.status}
                 </span>
             </div>
+
+            {/* Siembra Master — solo visible en torneos categoría MASTER */}
+            {tournament.category === "MASTER" && (
+                <SeedFromRankingButton
+                    tournamentId={tournamentId}
+                    rankedCount={rankedCount}
+                    alreadyRegistered={registrations.length}
+                />
+            )}
 
             {/* Padrón full-width */}
             <div className="bg-slate-900/40 border border-white/5 rounded-3xl backdrop-blur-md overflow-hidden">

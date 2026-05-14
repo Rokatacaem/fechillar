@@ -113,6 +113,83 @@ export async function updatePlayerAvailability(registrationId: string, preferred
 }
 
 /**
+ * Torneo Master: inscribe masivamente a todos los jugadores del Ranking Nacional
+ * (discipline=THREE_BAND, category=MASTER) ordenados por posición/puntos.
+ * Solo disponible para torneos con category=MASTER.
+ */
+export async function seedFromNationalRanking(tournamentId: string) {
+    const session = await auth();
+    const userRole = (session?.user as any)?.role;
+    if (!["SUPERADMIN", "FEDERATION_ADMIN"].includes(userRole)) {
+        return { success: false, error: "No autorizado" };
+    }
+
+    const tournament = await prisma.tournament.findUnique({
+        where: { id: tournamentId },
+        select: { id: true, category: true, discipline: true }
+    });
+
+    if (!tournament) return { success: false, error: "Torneo no encontrado" };
+    if (tournament.category !== "MASTER") {
+        return { success: false, error: "Solo disponible para torneos categoría MASTER" };
+    }
+
+    // Jugadores rankeados en la disciplina del torneo, categoría MASTER
+    const rankings = await prisma.ranking.findMany({
+        where: {
+            discipline: tournament.discipline as any,
+            category: "MASTER",
+            points: { gt: 0 },
+        },
+        orderBy: [{ rankPosition: "asc" }, { points: "desc" }],
+    });
+
+    if (rankings.length === 0) {
+        return { success: false, error: "No hay jugadores en el Ranking Nacional para esta disciplina" };
+    }
+
+    // Evitar duplicados
+    const existing = await prisma.tournamentRegistration.findMany({
+        where: { tournamentId },
+        select: { playerId: true },
+    });
+    const existingIds = new Set(existing.map((r) => r.playerId));
+    const toRegister = rankings.filter((r) => !existingIds.has(r.playerId));
+
+    if (toRegister.length === 0) {
+        return { success: false, error: "Todos los jugadores del ranking ya están inscritos" };
+    }
+
+    await prisma.$transaction(
+        async (tx) => {
+            for (let i = 0; i < toRegister.length; i++) {
+                const r = toRegister[i];
+                await tx.tournamentRegistration.create({
+                    data: {
+                        tournamentId,
+                        playerId: r.playerId,
+                        registeredPoints:  r.points,
+                        registeredAverage: r.average ?? 0,
+                        registeredRank:    r.rankPosition ?? i + 1,
+                        status:        "APPROVED",
+                        paid:          false,
+                        paymentStatus: "PENDING",
+                    },
+                });
+            }
+        },
+        { timeout: 30000 }
+    );
+
+    revalidatePath(`/tournaments/${tournamentId}/inscripciones`);
+    return {
+        success: true,
+        count: toRegister.length,
+        message: `${toRegister.length} jugadores sembrados desde el Ranking Nacional`,
+    };
+}
+
+/**
  * Elimina la inscripción de un jugador en un torneo.
  * Bloqueado si el jugador ya tiene partidas con resultados registrados.
  */
