@@ -82,6 +82,10 @@ export default async function ResultadosPage({
     const completedMatches = tournament.matches.filter(isPlayed).length;
     const pendingMatches = totalMatches - completedMatches;
 
+    // Para habilitar la generación del cuadro solo se requiere que los grupos estén completos
+    const groupMatches = tournament.matches.filter((m: any) => m.groupId !== null);
+    const pendingGroupMatches = groupMatches.filter((m: any) => !isPlayed(m)).length;
+
     const playerName = (player: any) =>
         player?.user?.name || `${player?.firstName || ""} ${player?.lastName || ""}`.trim() || "Sin nombre";
     const playerClub = (player: any) => player?.club?.name || "Libre";
@@ -196,7 +200,7 @@ export default async function ResultadosPage({
                             {tournament.status !== "FINISHED" && (
                                 <GenerateBracketButton
                                     tournamentId={tournamentId}
-                                    hasPendingMatches={pendingMatches > 0}
+                                    hasPendingMatches={pendingGroupMatches > 0}
                                     hasExistingBracket={tournament.matches.some(m => m.groupId === null)}
                                 />
                             )}
