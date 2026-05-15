@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { Radio, Trophy } from "lucide-react";
 
 interface Player {
@@ -39,7 +39,6 @@ function MatchCard({ match, isFinal = false }: { match: Match; isFinal?: boolean
             ${isLive ? 'border-emerald-500 shadow-[0_0_16px_rgba(16,185,129,0.2)] animate-pulse' : 'border-white/5'}
             ${match.winnerId ? 'opacity-50 grayscale-[0.4]' : ''}
         `}>
-            {/* Header */}
             <div className="px-3 py-1 border-b border-white/5 bg-black/20 flex justify-between items-center">
                 <span className="text-[8px] uppercase font-bold text-slate-500 tracking-widest">
                     Mesa {match.tableNumber || "—"}
@@ -52,7 +51,6 @@ function MatchCard({ match, isFinal = false }: { match: Match; isFinal?: boolean
                 )}
             </div>
 
-            {/* Home */}
             <div className={`flex justify-between items-center px-3 py-1.5 ${match.winnerId === match.homePlayerId ? 'bg-emerald-500/10' : ''}`}>
                 <p className={`text-[10px] font-black uppercase truncate max-w-[120px] ${match.winnerId === match.homePlayerId ? 'text-emerald-400' : 'text-white'}`}>
                     {playerName(match.homePlayer, 'TBD')}
@@ -60,7 +58,6 @@ function MatchCard({ match, isFinal = false }: { match: Match; isFinal?: boolean
                 <span className="font-mono text-xs font-black text-white ml-2">{match.homeScore ?? "—"}</span>
             </div>
 
-            {/* Away */}
             <div className={`flex justify-between items-center px-3 py-1.5 border-t border-white/5 ${match.winnerId === match.awayPlayerId ? 'bg-emerald-500/10' : ''}`}>
                 <p className={`text-[10px] font-black uppercase truncate max-w-[120px] ${match.winnerId === match.awayPlayerId ? 'text-emerald-400' : 'text-white'}`}>
                     {playerName(match.awayPlayer, '???')}
@@ -87,6 +84,38 @@ function BracketColumn({ matches, label }: { matches: Match[]; label: string }) 
 }
 
 export function LiveBrackets({ matches }: { matches: Match[] }) {
+    const outerRef = useRef<HTMLDivElement>(null);
+    const innerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const fit = () => {
+            const outer = outerRef.current;
+            const inner = innerRef.current;
+            if (!outer || !inner) return;
+
+            // Medir tamaño natural (sin escala aplicada)
+            inner.style.transform = 'scale(1)';
+            const natW = inner.scrollWidth;
+            const natH = inner.scrollHeight;
+            const aw = outer.clientWidth;
+            const ah = outer.clientHeight;
+
+            const s = Math.min(aw / natW, ah / natH, 1);
+            inner.style.transform = `scale(${s})`;
+            inner.style.transformOrigin = 'top center';
+        };
+
+        // rAF asegura que el DOM ya fue pintado antes de medir
+        const raf = requestAnimationFrame(fit);
+        const ro = new ResizeObserver(fit);
+        if (outerRef.current) ro.observe(outerRef.current);
+
+        return () => {
+            cancelAnimationFrame(raf);
+            ro.disconnect();
+        };
+    }, [matches]);
+
     const rounds = Array.from(new Set(matches.map(m => m.round))).sort((a, b) => a - b);
 
     if (rounds.length === 0) return (
@@ -95,22 +124,22 @@ export function LiveBrackets({ matches }: { matches: Match[] }) {
         </div>
     );
 
-    // If only one round, show it linearly
     if (rounds.length === 1) {
         const roundMatches = matches.filter(m => m.round === rounds[0]).sort((a, b) => a.matchOrder - b.matchOrder);
         return (
-            <div className="flex gap-8 overflow-x-auto p-8 items-start justify-center">
-                <BracketColumn matches={roundMatches} label="Gran Final" />
+            <div ref={outerRef} className="w-full h-full overflow-hidden flex items-start justify-center pt-4">
+                <div ref={innerRef}>
+                    <BracketColumn matches={roundMatches} label="Gran Final" />
+                </div>
             </div>
         );
     }
 
-    const finalRound = rounds[rounds.length - 1];
+    const finalRound  = rounds[rounds.length - 1];
     const finalMatches = matches.filter(m => m.round === finalRound).sort((a, b) => a.matchOrder - b.matchOrder);
     const preFinalRounds = rounds.slice(0, -1);
 
-    // Build left and right column arrays
-    const leftColumns: { matches: Match[]; round: number }[] = [];
+    const leftColumns:  { matches: Match[]; round: number }[] = [];
     const rightColumns: { matches: Match[]; round: number }[] = [];
 
     preFinalRounds.forEach(r => {
@@ -120,12 +149,11 @@ export function LiveBrackets({ matches }: { matches: Match[] }) {
         rightColumns.push({ matches: roundMatches.slice(half), round: r });
     });
 
-    // Right side renders closest-to-final first (reversed), fanning outward
     const rightColumnsDisplay = [...rightColumns].reverse();
 
     const roundLabel = (r: number, maxRound: number) => {
         const preFinals = maxRound - 1;
-        if (r === preFinals) return 'Semis';
+        if (r === preFinals)     return 'Semis';
         if (r === preFinals - 1) return 'Cuartos';
         return `Ronda ${r}`;
     };
@@ -133,48 +161,48 @@ export function LiveBrackets({ matches }: { matches: Match[] }) {
     const maxRound = rounds[rounds.length - 2] ?? 0;
 
     return (
-        <div className="flex gap-6 overflow-x-auto p-6 items-center justify-center min-h-[500px]">
-            {/* LEFT columns: R1 → SF (farthest to closest) */}
-            {leftColumns.map((col) => (
-                <BracketColumn
-                    key={`left-${col.round}`}
-                    matches={col.matches}
-                    label={roundLabel(col.round, maxRound + 1)}
-                />
-            ))}
+        <div ref={outerRef} className="w-full h-full overflow-hidden flex items-start justify-center pt-4">
+            <div ref={innerRef} className="flex gap-6 p-6 items-center justify-center">
+                {/* LEFT: primera ronda → semis */}
+                {leftColumns.map((col) => (
+                    <BracketColumn
+                        key={`left-${col.round}`}
+                        matches={col.matches}
+                        label={roundLabel(col.round, maxRound + 1)}
+                    />
+                ))}
 
-            {/* Connector lines visual hint */}
-            <div className="flex flex-col items-center gap-2 shrink-0">
-                <div className="w-6 h-px bg-white/10" />
-            </div>
-
-            {/* CENTER: FINAL */}
-            <div className="flex flex-col items-center gap-3 shrink-0 px-2">
-                <div className="flex items-center gap-2 pb-1 border-b border-yellow-500/30">
-                    <Trophy className="w-3 h-3 text-yellow-500" />
-                    <h3 className="text-[10px] font-black text-yellow-500 uppercase tracking-[0.3em]">Gran Final</h3>
-                    <Trophy className="w-3 h-3 text-yellow-500" />
+                <div className="flex flex-col items-center gap-2 shrink-0">
+                    <div className="w-6 h-px bg-white/10" />
                 </div>
-                <div className="flex flex-col gap-3">
-                    {finalMatches.map(match => (
-                        <MatchCard key={match.id} match={match} isFinal />
-                    ))}
+
+                {/* CENTER: Gran Final */}
+                <div className="flex flex-col items-center gap-3 shrink-0 px-2">
+                    <div className="flex items-center gap-2 pb-1 border-b border-yellow-500/30">
+                        <Trophy className="w-3 h-3 text-yellow-500" />
+                        <h3 className="text-[10px] font-black text-yellow-500 uppercase tracking-[0.3em]">Gran Final</h3>
+                        <Trophy className="w-3 h-3 text-yellow-500" />
+                    </div>
+                    <div className="flex flex-col gap-3">
+                        {finalMatches.map(match => (
+                            <MatchCard key={match.id} match={match} isFinal />
+                        ))}
+                    </div>
                 </div>
-            </div>
 
-            {/* Connector lines visual hint */}
-            <div className="flex flex-col items-center gap-2 shrink-0">
-                <div className="w-6 h-px bg-white/10" />
-            </div>
+                <div className="flex flex-col items-center gap-2 shrink-0">
+                    <div className="w-6 h-px bg-white/10" />
+                </div>
 
-            {/* RIGHT columns: SF → R1 (closest to farthest) */}
-            {rightColumnsDisplay.map((col) => (
-                <BracketColumn
-                    key={`right-${col.round}`}
-                    matches={col.matches}
-                    label={roundLabel(col.round, maxRound + 1)}
-                />
-            ))}
+                {/* RIGHT: semis → primera ronda */}
+                {rightColumnsDisplay.map((col) => (
+                    <BracketColumn
+                        key={`right-${col.round}`}
+                        matches={col.matches}
+                        label={roundLabel(col.round, maxRound + 1)}
+                    />
+                ))}
+            </div>
         </div>
     );
 }
