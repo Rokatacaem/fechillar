@@ -10,18 +10,26 @@ export interface ScoreSheetData {
     group: string;
     matchNo: string;
     tableNo: string;
+    maxInnings?: number;
 }
 
+// Oficio = 8.5 × 13 pulgadas en mm
+const OFICIO_MM: [number, number] = [215.9, 330.2];
+
 export const generateScoreSheetPDF = async (dataList: ScoreSheetData[]) => {
+    // Todas las planillas de una misma fase comparten el mismo tope de entradas
+    const maxInnings = dataList[0]?.maxInnings ?? 35;
+    const useOficio  = maxInnings > 35;
+
     const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'letter'
+        format: useOficio ? OFICIO_MM : 'letter'
     });
 
-    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageWidth  = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 10; 
+    const margin = 10;
 
     const primaryColor = [26, 77, 46]; // Verde Institucional
 
@@ -95,7 +103,7 @@ export const generateScoreSheetPDF = async (dataList: ScoreSheetData[]) => {
         doc.setFont("helvetica", "bold");
         doc.text(`GRUPO: ${data.group}   |   PARTIDO: ${data.matchNo}   |   MESA: ${data.tableNo}`, pageWidth / 2, infoY + 11, { align: 'center' });
 
-        // 4. MATRIZ DE ANOTACIÓN (35 entradas)
+        // 4. MATRIZ DE ANOTACIÓN (dinámica según tope de entradas de la fase)
         const tableStartY = infoY + 16;
         const colWidth = (pageWidth - 2 * margin - 10) / 2; 
         const rowHeight = 4.3; 
@@ -136,7 +144,7 @@ export const generateScoreSheetPDF = async (dataList: ScoreSheetData[]) => {
             doc.setTextColor(0, 0, 0);
             doc.setFont("helvetica", "normal");
             doc.setDrawColor(180);
-            for (let r = 1; r <= 35; r++) {
+            for (let r = 1; r <= maxInnings; r++) {
                 const rowY = subHeaderY + r * rowHeight;
                 doc.rect(startX, rowY, w1, rowHeight);
                 doc.rect(startX + w1, rowY, w2, rowHeight);
@@ -145,7 +153,7 @@ export const generateScoreSheetPDF = async (dataList: ScoreSheetData[]) => {
                 doc.text(r.toString(), startX + w1 / 2, rowY + 3, { align: 'center' });
             }
 
-            const footerY = subHeaderY + 36 * rowHeight;
+            const footerY = subHeaderY + (maxInnings + 1) * rowHeight;
             const footerLabels = ["TOTAL", "ENTRADAS", "S. MAYOR"];
             footerLabels.forEach((label, idx) => {
                 const fy = footerY + idx * rowHeight;

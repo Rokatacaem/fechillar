@@ -13,10 +13,23 @@ export async function getPlanillaData(tournamentId: string, phase: string): Prom
         if (!tournament) return { success: false, error: "Torneo no encontrado" };
 
         const tournamentTitle = tournament.name;
-        const clubSede = tournament.hostClub?.name || tournament.venue || "Club Sede";
+        const clubSede    = tournament.hostClub?.name || tournament.venue || "Club Sede";
         const clubLogoUrl = tournament.hostClub?.logoUrl || tournament.venueLogoUrl || undefined;
-        const dateStr = tournament.startDate ? new Date(tournament.startDate).toLocaleDateString('es-CL', { month: 'long', year: 'numeric' }) : "";
-        const fullSede = `${clubSede} ${dateStr}`;
+        const dateStr     = tournament.startDate ? new Date(tournament.startDate).toLocaleDateString('es-CL', { month: 'long', year: 'numeric' }) : "";
+        const fullSede    = `${clubSede} ${dateStr}`;
+
+        const cfg = (tournament.config as any) ?? {};
+
+        // Tope de entradas por fase — determina si se imprime en carta (≤35) u oficio (>35)
+        const getPhaseMaxInnings = (phaseName: string): number => {
+            const lower = phaseName.toLowerCase();
+            if (lower.includes("grupo")) return cfg.inningsGroups ?? 35;
+            const isGranFinal = lower.includes("final")
+                && !lower.includes("cuarto") && !lower.includes("16")
+                && !lower.includes("octavo") && !lower.includes("semi");
+            if (isGranFinal) return cfg.inningsFinal ?? 50;
+            return cfg.inningsPlayoffs ?? 40;
+        };
 
         let scoreSheets: ScoreSheetData[] = [];
 
@@ -56,6 +69,7 @@ export async function getPlanillaData(tournamentId: string, phase: string): Prom
                             tournamentTitle,
                             clubSede: fullSede,
                             clubLogoUrl,
+                            maxInnings: getPhaseMaxInnings("Fase de Grupos"),
                             phase: "Fase de Grupos",
                             player1: players[i],
                             player2: players[j],
@@ -90,10 +104,12 @@ export async function getPlanillaData(tournamentId: string, phase: string): Prom
                 orderBy: { matchOrder: 'asc' }
             });
 
+            const maxInnings = getPhaseMaxInnings(phase);
             scoreSheets = matches.map((m, idx) => ({
                 tournamentTitle,
                 clubSede: fullSede,
                 clubLogoUrl,
+                maxInnings,
                 phase: phase,
                 player1: {
                     name: m.homePlayer?.user?.name || (m.homePlayer ? `${m.homePlayer.firstName} ${m.homePlayer.lastName}` : "TBD"),
