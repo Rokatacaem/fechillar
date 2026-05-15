@@ -142,40 +142,44 @@ export default async function TournamentsListPage() {
                                 </div>
                             </div>
 
-                            <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between relative z-10 pointer-events-none">
-                                <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-500 tracking-widest group-hover:translate-x-1 transition-transform pointer-events-none">
-                                    Ver Detalles <Plus className="w-3 h-3" />
+                            <div className="mt-6 pt-4 border-t border-white/5 relative z-10">
+                                {/* Fila 1: Ver Detalles */}
+                                <div className="flex items-center justify-between mb-3 pointer-events-none">
+                                    <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-500 tracking-widest group-hover:translate-x-1 transition-transform">
+                                        Ver Detalles <Plus className="w-3 h-3" />
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2 pointer-events-auto">
+                                {/* Fila 2: Accesos rápidos */}
+                                <div className="flex flex-wrap items-center gap-2 pointer-events-auto">
                                     {isAdmin && tournament.status !== "FINISHED" && (
                                         <>
-                                            <Link 
-                                                href={`/tournaments/${tournament.id}/documentos`}
-                                                className="px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-[9px] font-black uppercase text-indigo-400 hover:bg-indigo-500/20 transition-colors flex items-center gap-1.5"
-                                            >
-                                                <FileText className="w-3 h-3" /> Documentos
-                                            </Link>
-                                            <Link 
+                                            <Link
                                                 href={`/tournaments/${tournament.id}/inscripciones`}
                                                 className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-[9px] font-black uppercase text-emerald-400 hover:bg-emerald-500/20 transition-colors flex items-center gap-1.5"
                                             >
                                                 <Users className="w-3 h-3" /> Inscritos
                                             </Link>
-                                            <Link 
+                                            <Link
                                                 href={`/tournaments/${tournament.id}/grupos`}
                                                 className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-lg text-[9px] font-black uppercase text-blue-400 hover:bg-blue-500/20 transition-colors flex items-center gap-1.5"
                                             >
                                                 <Plus className="w-3 h-3" /> Grupos
                                             </Link>
-                                            <Link 
+                                            <Link
                                                 href={`/tournaments/${tournament.id}/resultados`}
                                                 className="px-3 py-1.5 bg-violet-500/10 border border-violet-500/20 rounded-lg text-[9px] font-black uppercase text-violet-400 hover:bg-violet-500/20 transition-colors flex items-center gap-1.5"
                                             >
-                                                <Plus className="w-3 h-3" /> Resultados
+                                                <FileText className="w-3 h-3" /> Resultados
+                                            </Link>
+                                            <Link
+                                                href={`/tournaments/${tournament.id}/documentos`}
+                                                className="px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-[9px] font-black uppercase text-indigo-400 hover:bg-indigo-500/20 transition-colors flex items-center gap-1.5"
+                                            >
+                                                <FileText className="w-3 h-3" /> Docs
                                             </Link>
                                         </>
                                     )}
-                                    <Link 
+                                    <Link
                                         href={`/tournaments/${tournament.id}/ranking`}
                                         className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[9px] font-black uppercase text-amber-500 hover:bg-amber-500/20 transition-colors flex items-center gap-1.5"
                                     >
