@@ -76,8 +76,8 @@ export default async function TournamentsListPage() {
                             className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-md relative overflow-hidden group hover:border-emerald-500/30 hover:bg-slate-900/60 transition-all"
                         >
                             {/* Link de capa completa para navegación principal */}
-                            <Link 
-                                href={`/tournaments/${tournament.id}/cuadros`}
+                            <Link
+                                href={`/tournaments/${tournament.id}/gestion`}
                                 className="absolute inset-0 z-0"
                             />
 
@@ -142,7 +142,7 @@ export default async function TournamentsListPage() {
                                 </div>
                             </div>
 
-                            <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between relative z-10">
+                            <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between relative z-10 pointer-events-none">
                                 <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-500 tracking-widest group-hover:translate-x-1 transition-transform pointer-events-none">
                                     Ver Detalles <Plus className="w-3 h-3" />
                                 </div>

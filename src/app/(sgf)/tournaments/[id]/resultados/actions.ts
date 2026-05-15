@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { calculateStandings } from "@/lib/billiards/ranking-engine";
 import { Discipline, Category } from "@prisma/client";
-import { generateBracketWithAdjustment } from "@/lib/billiards/bracket-automation";
+import { generateSingleEliminationBracket } from "@/lib/billiards/bracket-automation";
 
 // ─────────────────────────────────────────────────────────
 // GENERACIÓN DE CRUCES ROUND ROBIN
@@ -385,40 +385,46 @@ export async function generateKnockoutPhaseAction(tournamentId: string) {
         const tournament = await prisma.tournament.findUnique({
             where: { id: tournamentId },
             include: {
+                groups: {
+                    include: {
+                        registrations: {
+                            where: { status: "APPROVED" },
+                            select: { playerId: true }
+                        }
+                    }
+                },
                 matches: {
                     where: { groupId: { not: null } }
-                },
-                registrations: {
-                    where: { status: "APPROVED" },
-                    include: { player: true }
                 }
             }
         });
 
         if (!tournament) return { success: false, error: "Torneo no encontrado" };
 
-        const playerIds = tournament.registrations.map(r => r.playerId);
-        const standings = calculateStandings(tournament.matches, playerIds);
+        const cfg = (tournament.config as any) ?? {};
+        const advancingCount: number = cfg.advancingCount ?? 2;
 
-        const playerResults = standings.map(s => ({
-            playerId: s.playerId,
-            groupId: "TOTAL",
-            matchesPlayed: 0, 
-            won: 0,
-            drawn: 0,
-            lost: 0,
-            points: s.matchPoints,
-            totalScorePonderado: 0,
-            totalInnings: s.totalInnings,
-            pgp: s.generalAverage,
-            pm: 0,
-            pp: s.particularAverage,
-            pg: s.generalAverage,
-            sm: s.highRun
-        }));
+        // Collect top advancingCount players from each group based on group standings
+        const advancingPlayerIds: string[] = [];
+        for (const group of tournament.groups) {
+            const groupPlayerIds = group.registrations.map((r: { playerId: string }) => r.playerId);
+            const groupMatches = tournament.matches.filter((m: { groupId: string | null }) => m.groupId === group.id);
+            const groupStandings = calculateStandings(groupMatches, groupPlayerIds);
 
-        const bracketSize = playerIds.length <= 8 ? 8 : 16;
-        const bracket = generateBracketWithAdjustment(tournamentId, playerResults, bracketSize);
+            groupStandings
+                .sort((a: { matchPoints: number; generalAverage: number }, b: { matchPoints: number; generalAverage: number }) => {
+                    if (b.matchPoints !== a.matchPoints) return b.matchPoints - a.matchPoints;
+                    return b.generalAverage - a.generalAverage;
+                })
+                .slice(0, advancingCount)
+                .forEach((s: { playerId: string }) => advancingPlayerIds.push(s.playerId));
+        }
+
+        if (advancingPlayerIds.length < 2) {
+            return { success: false, error: "No hay suficientes jugadores clasificados para generar el cuadro eliminatorio." };
+        }
+
+        const bracket = generateSingleEliminationBracket(tournamentId, advancingPlayerIds);
 
         // Eliminar TODOS los cruces de llave anteriores (cualquier ronda, sin grupo)
         await prisma.match.deleteMany({
@@ -429,14 +435,14 @@ export async function generateKnockoutPhaseAction(tournamentId: string) {
             !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
         await prisma.match.createMany({
-            data: bracket.matches.map(m => ({
+            data: bracket.matches.map((m: { id: string; homePlayerId: string | null; awayPlayerId: string | null; round: number; position: number; winnerId: string | null; isBye: boolean }) => ({
                 id: m.id,
                 tournamentId,
                 homePlayerId: isRealId(m.homePlayerId) ? m.homePlayerId : null,
                 awayPlayerId: isRealId(m.awayPlayerId) ? m.awayPlayerId : null,
                 round: m.round,
                 matchOrder: m.position + 1,
-                matchDistance: (tournament.config as any)?.inningsPerPhase ?? 30,
+                matchDistance: cfg.inningsPlayoffs ?? cfg.inningsPerPhase ?? 30,
                 winnerId: isRealId(m.winnerId) ? m.winnerId : null,
                 isWO: m.isBye,
             }))
