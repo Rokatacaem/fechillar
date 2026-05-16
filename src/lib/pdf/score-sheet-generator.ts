@@ -17,14 +17,12 @@ export interface ScoreSheetData {
 const OFICIO_MM: [number, number] = [215.9, 330.2];
 
 export const generateScoreSheetPDF = async (dataList: ScoreSheetData[]) => {
-    // Todas las planillas de una misma fase comparten el mismo tope de entradas
-    const maxInnings = dataList[0]?.maxInnings ?? 35;
-    const useOficio  = maxInnings > 35;
+    const maxInnings = 40;
 
     const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: useOficio ? OFICIO_MM : 'letter'
+        format: OFICIO_MM
     });
 
     const pageWidth  = doc.internal.pageSize.getWidth();
