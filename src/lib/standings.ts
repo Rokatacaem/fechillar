@@ -33,7 +33,8 @@ export async function getGroupStandings(groupId: string): Promise<GroupStanding[
                 where: {
                     OR: [
                         { winnerId: { not: null } },
-                        { isWO: true }
+                        { isWO: true },
+                        { homeScore: { not: null } }
                     ]
                 },
                 include: {
