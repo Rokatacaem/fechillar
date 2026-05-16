@@ -192,10 +192,11 @@ export async function generateMatchSheetsPDF(matches: MatchWithPlayers[]): Promi
     doc.setFont('helvetica', 'bold');
     doc.text('RESULTADOS FINALES', pageWidth / 2, yTable, { align: 'center' });
 
-    doc.setFillColor(15, 23, 42);
-    doc.setTextColor(255, 255, 255);
-    doc.rect(margin, yTable + 2, boxWidth, 16, 'F');
-    doc.rect(margin + boxWidth + 4, yTable + 2, boxWidth, 16, 'F');
+    doc.setFillColor(241, 245, 249);
+    doc.setDrawColor(203, 213, 225);
+    doc.setTextColor(0, 0, 0);
+    doc.rect(margin, yTable + 2, boxWidth, 16, 'FD');
+    doc.rect(margin + boxWidth + 4, yTable + 2, boxWidth, 16, 'FD');
 
     doc.setFontSize(7);
     const metrics = ['CARAMBOLAS:', 'ENTRADAS:', 'SERIE MAYOR:'];
