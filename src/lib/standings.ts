@@ -34,7 +34,7 @@ export async function getGroupStandings(groupId: string): Promise<GroupStanding[
                     OR: [
                         { winnerId: { not: null } },
                         { isWO: true },
-                        { homeScore: { not: null } }
+                        { homeScore: { gt: 0 } }
                     ]
                 },
                 include: {
@@ -95,7 +95,17 @@ export async function getGroupStandings(groupId: string): Promise<GroupStanding[
             away.highRun = Math.max(away.highRun, match.awayHighRun || 0);
         }
 
-        if (match.winnerId === match.homePlayerId) {
+        // Empate en carambolas: scores iguales y > 0 → 1 punto cada uno (el arrime define el cuadro, no los puntos)
+        const isCarambolaDraw = !match.isWO &&
+            typeof match.homeScore === 'number' && match.homeScore > 0 &&
+            match.homeScore === match.awayScore;
+
+        if (isCarambolaDraw) {
+            home.drawn++;
+            away.drawn++;
+            home.points += 1;
+            away.points += 1;
+        } else if (match.winnerId === match.homePlayerId) {
             home.won++;
             home.points += 2;
             away.lost++;
@@ -103,11 +113,6 @@ export async function getGroupStandings(groupId: string): Promise<GroupStanding[
             away.won++;
             away.points += 2;
             home.lost++;
-        } else if (match.winnerId === null && match.homeScore === match.awayScore) {
-            home.drawn++;
-            away.drawn++;
-            home.points += 1;
-            away.points += 1;
         }
     }
 
