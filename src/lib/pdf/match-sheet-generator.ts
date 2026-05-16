@@ -10,11 +10,13 @@ interface MatchWithPlayers extends Match {
   group?: { name: string } | null;
 }
 
+const OFICIO_MM: [number, number] = [215.9, 330.2];
+
 export async function generateMatchSheetsPDF(matches: MatchWithPlayers[]): Promise<Buffer> {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
-    format: 'letter'
+    format: OFICIO_MM
   });
 
   const margin = 10;
@@ -141,8 +143,7 @@ export async function generateMatchSheetsPDF(matches: MatchWithPlayers[]): Promi
     yTable += 6;
     doc.setFont('helvetica', 'normal');
     
-    // Filas de la tabla (Ajustado para que quepa en una sola hoja Carta)
-    for (let i = 1; i <= 38; i++) {
+    for (let i = 1; i <= 40; i++) {
       doc.setDrawColor(203, 213, 225);
       doc.rect(margin, yTable, 8, 4.5); 
       doc.rect(margin + 8, yTable, 25, 4.5); 
@@ -161,23 +162,23 @@ export async function generateMatchSheetsPDF(matches: MatchWithPlayers[]): Promi
     }
 
     // ─── RESUMEN FINAL ───
-    yTable += 4;
+    yTable += 2;
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.text('RESULTADOS FINALES', pageWidth / 2, yTable, { align: 'center' });
-    
-    doc.setFillColor(15, 23, 42); 
+
+    doc.setFillColor(15, 23, 42);
     doc.setTextColor(255, 255, 255);
-    doc.rect(margin, yTable + 2, boxWidth, 18, 'F');
-    doc.rect(margin + boxWidth + 4, yTable + 2, boxWidth, 18, 'F');
+    doc.rect(margin, yTable + 2, boxWidth, 16, 'F');
+    doc.rect(margin + boxWidth + 4, yTable + 2, boxWidth, 16, 'F');
 
     doc.setFontSize(7);
     const metrics = ['CARAMBOLAS:', 'ENTRADAS:', 'SERIE MAYOR:'];
     metrics.forEach((m, i) => {
-        const yLine = yTable + 6.5 + (i * 4.5);
+        const yLine = yTable + 6 + (i * 4);
         doc.text(m, margin + 4, yLine);
         doc.text('_________', margin + 30, yLine);
-        
+
         doc.text(m, margin + boxWidth + 8, yLine);
         doc.text('_________', margin + boxWidth + 34, yLine);
     });
@@ -185,7 +186,7 @@ export async function generateMatchSheetsPDF(matches: MatchWithPlayers[]): Promi
     // ─── FIRMAS ───
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(8);
-    yTable += 26;
+    yTable += 22;
     const sigWidth = 50;
     doc.line(margin + 5, yTable, margin + 5 + sigWidth, yTable);
     doc.line(pageWidth - margin - 5 - sigWidth, yTable, pageWidth - margin - 5, yTable);
