@@ -23,8 +23,19 @@ export async function getGroupStandings(groupId: string): Promise<GroupStanding[
     const group = await prisma.tournamentGroup.findUnique({
         where: { id: groupId },
         include: {
+            registrations: {
+                where: { status: "APPROVED" },
+                include: {
+                    player: { include: { user: true, club: true } }
+                }
+            },
             matches: {
-                where: { winnerId: { not: null } }, // Solo partidos terminados
+                where: {
+                    OR: [
+                        { winnerId: { not: null } },
+                        { isWO: true }
+                    ]
+                },
                 include: {
                     homePlayer: { include: { user: true, club: true } },
                     awayPlayer: { include: { user: true, club: true } }
@@ -57,6 +68,11 @@ export async function getGroupStandings(groupId: string): Promise<GroupStanding[
         }
         return statsMap.get(playerId)!;
     };
+
+    // Inicializar todos los registrados con stats en cero
+    for (const reg of group.registrations) {
+        getOrInit(reg.player.id, reg.player);
+    }
 
     for (const match of group.matches) {
         if (!match.homePlayerId || !match.awayPlayerId) continue;
