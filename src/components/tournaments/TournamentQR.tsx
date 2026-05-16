@@ -16,8 +16,7 @@ interface Props {
 export function TournamentQR({ tournamentId, tournamentName, showLabel = true, size = 150, groupName, standingsSummary }: Props) {
     const [qrDataUrl, setQrDataUrl] = useState<string>("");
     
-    // Asumimos la URL de producción (Vercel)
-    const publicUrl = `https://nacional-mayo.fechillar.cl/torneos/${tournamentId}`;
+    const publicUrl = `${typeof window !== "undefined" ? window.location.origin : "https://fechillar-three.vercel.app"}/torneos/${tournamentId}`;
 
     useEffect(() => {
         QRCode.toDataURL(publicUrl, {
