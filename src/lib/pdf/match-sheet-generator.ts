@@ -6,7 +6,13 @@ import path from 'path';
 interface MatchWithPlayers extends Match {
   homePlayer: PlayerProfile | null;
   awayPlayer: PlayerProfile | null;
-  tournament?: { name: string; discipline: string; category: string };
+  tournament?: {
+    name: string;
+    discipline: string;
+    category: string;
+    venueLogoUrl?: string | null;
+    hostClub?: { logoUrl?: string | null } | null;
+  };
   group?: { name: string } | null;
 }
 
@@ -39,8 +45,23 @@ export async function generateMatchSheetsPDF(matches: MatchWithPlayers[]): Promi
     return null;
   };
 
+  const getClubLogoBase64 = (urlPath: string): { data: string; format: 'JPEG' | 'PNG' } | null => {
+    try {
+      const cleanPath = urlPath.startsWith('/') ? urlPath.substring(1) : urlPath;
+      const filePath = path.join(process.cwd(), 'public', cleanPath);
+      if (fs.existsSync(filePath)) {
+        const ext = path.extname(filePath).replace('.', '').toLowerCase();
+        const data = fs.readFileSync(filePath).toString('base64');
+        const format = (ext === 'jpg' || ext === 'jpeg') ? 'JPEG' : 'PNG';
+        return { data: `data:image/${format === 'JPEG' ? 'jpeg' : 'png'};base64,${data}`, format };
+      }
+    } catch (e) {
+      console.error(`Error cargando logo club: ${urlPath}`, e);
+    }
+    return null;
+  };
+
   const imgFechillar = getLogoBase64('fechillar.png');
-  const imgSantiago = getLogoBase64('club santiago.jpg');
   const imgIND = getLogoBase64('Instituto-nacional-de-deportes.png');
 
   matches.forEach((match, index) => {
@@ -51,7 +72,11 @@ export async function generateMatchSheetsPDF(matches: MatchWithPlayers[]): Promi
     
     // Logos con proporciones y posiciones fijas
     if (imgFechillar) doc.addImage(imgFechillar, 'PNG', margin, headerY, 28, 0, undefined, 'FAST');
-    if (imgSantiago) doc.addImage(imgSantiago, 'JPEG', (pageWidth / 2) - 10, headerY, 20, 0, undefined, 'FAST'); // Centrado
+    const clubLogoUrl = match.tournament?.hostClub?.logoUrl || match.tournament?.venueLogoUrl;
+    if (clubLogoUrl) {
+      const clubLogo = getClubLogoBase64(clubLogoUrl);
+      if (clubLogo) doc.addImage(clubLogo.data, clubLogo.format, (pageWidth / 2) - 10, headerY, 20, 0, undefined, 'FAST');
+    }
     if (imgIND) doc.addImage(imgIND, 'PNG', pageWidth - margin - 35, headerY, 35, 0, undefined, 'FAST');
 
     // TÍTULO DEL TORNEO (CENTRAL)

@@ -20,7 +20,7 @@ export async function GET(
       include: {
         homePlayer: true,
         awayPlayer: true,
-        tournament: { select: { name: true, discipline: true, category: true } },
+        tournament: { select: { name: true, discipline: true, category: true, venueLogoUrl: true, hostClub: { select: { logoUrl: true } } } },
         group: { select: { name: true } }
       },
       orderBy: [
