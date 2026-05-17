@@ -42,15 +42,10 @@ export function TournamentLiveView({ tournamentId }: Props) {
     const [searchTerm, setSearchTerm] = useState("");
     const [showRankingOverlay, setShowRankingOverlay] = useState(false);
 
-    if (isLoading) return <LiveLoader />;
-    if (error || !data) return <LiveError />;
-
-    const tournament = data.tournament as any;
-
-    // Detectar fases de eliminatoria
+    // Hooks SIEMPRE antes de cualquier early return (Rules of Hooks)
     const knockoutMatches = useMemo(
-        () => (data.matches || []).filter((m: any) => !m.groupId),
-        [data.matches]
+        () => (data?.matches || []).filter((m: any) => !m.groupId),
+        [data?.matches]
     );
     const maxKnockoutRound = knockoutMatches.length > 0
         ? Math.max(...knockoutMatches.map((m: any) => m.round))
@@ -58,6 +53,11 @@ export function TournamentLiveView({ tournamentId }: Props) {
     const knockoutRounds = maxKnockoutRound > 0
         ? Array.from({ length: maxKnockoutRound }, (_, i) => i + 1)
         : [];
+
+    if (isLoading) return <LiveLoader />;
+    if (error || !data) return <LiveError />;
+
+    const tournament = data.tournament as any;
 
     // Tabs dinámicos
     const baseTabs = [
