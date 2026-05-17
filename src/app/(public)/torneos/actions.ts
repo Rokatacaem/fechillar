@@ -62,6 +62,8 @@ export async function getPublicTournamentData(tournamentId: string) {
         const topByAvg = [...allStandings].sort((a, b) => b.average - a.average).slice(0, 5);
         const topByHighRun = [...allStandings].sort((a, b) => b.highRun - a.highRun).slice(0, 5);
 
+        const totalCarambolas = allStandings.reduce((sum, s) => sum + (s.carambolas ?? 0), 0);
+
         return {
             success: true,
             tournament,
@@ -69,6 +71,7 @@ export async function getPublicTournamentData(tournamentId: string) {
             matches,
             allStandings,
             classifyCount,
+            totalCarambolas,
             topPerformers: {
                 byAverage: topByAvg,
                 byHighRun: topByHighRun
