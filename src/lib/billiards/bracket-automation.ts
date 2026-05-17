@@ -161,24 +161,21 @@ function applySeedingOrder(playerIds: string[]): string[] {
 
 /**
  * Construye el orden de posiciones para seeding estándar.
+ * Produce los cruces clásicos: 1v8, 4v5, 2v7, 3v6 para n=8.
  * Garantiza que seed 1 y seed 2 solo se crucen en la final.
  */
 function buildSeedPositions(size: number): number[] {
   if (size === 1) return [0];
   if (size === 2) return [0, 1];
 
-  const positions: number[] = [];
-  const half = size / 2;
-  const firstHalf = buildSeedPositions(half);
-  const secondHalf = buildSeedPositions(half);
+  const half = buildSeedPositions(size / 2);
+  const reversed = [...half].reverse();
 
-  // Intercalar: primeros seeds en mitad superior, resto en inferior
-  for (let i = 0; i < firstHalf.length; i++) {
-    positions.push(firstHalf[i]);
-    positions.push(secondHalf[i] + half);
-  }
-
-  return positions;
+  // Seeds top van a slots pares, seeds bottom (invertidos) a slots impares
+  return [
+    ...half.map(p => p * 2),
+    ...reversed.map(p => p * 2 + 1),
+  ];
 }
 
 // ─────────────────────────────────────────────
@@ -483,7 +480,7 @@ export function matchesToBracket(tournamentId: string, prismaMatches: any[]): To
   const matches: BracketMatch[] = prismaMatches.map(m => ({
     id: m.id,
     round: m.round,
-    position: m.matchOrder,
+    position: (m.matchOrder ?? 1) - 1,
     homePlayerId: m.homePlayerId,
     awayPlayerId: m.awayPlayerId,
     winnerId: m.winnerId,

@@ -24,9 +24,9 @@ export async function advanceMatch(input: {
   if (match.winnerId) throw new Error("La partida ya tiene resultado")
 
   const allMatches = await prisma.match.findMany({
-    where: { 
+    where: {
       tournamentId: match.tournamentId,
-      phaseId: match.phaseId 
+      groupId: null,
     },
     orderBy: [{ round: 'asc' }, { matchOrder: 'asc' }]
   })

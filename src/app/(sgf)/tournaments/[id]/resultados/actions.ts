@@ -404,8 +404,8 @@ export async function generateKnockoutPhaseAction(tournamentId: string) {
         const cfg = (tournament.config as any) ?? {};
         const advancingCount: number = cfg.advancingCount ?? 2;
 
-        // Collect top advancingCount players from each group based on group standings
-        const advancingPlayerIds: string[] = [];
+        // Collect top advancingCount players from each group, then seed globally
+        const classifiers: Array<{ playerId: string; matchPoints: number; generalAverage: number; highRun: number }> = [];
         for (const group of tournament.groups) {
             const groupPlayerIds = group.registrations.map((r: { playerId: string }) => r.playerId);
             const groupMatches = tournament.matches.filter((m: { groupId: string | null }) => m.groupId === group.id);
@@ -417,8 +417,17 @@ export async function generateKnockoutPhaseAction(tournamentId: string) {
                     return b.generalAverage - a.generalAverage;
                 })
                 .slice(0, advancingCount)
-                .forEach((s: { playerId: string }) => advancingPlayerIds.push(s.playerId));
+                .forEach((s: { playerId: string; matchPoints: number; generalAverage: number; highRun: number }) => classifiers.push(s));
         }
+
+        // Sort all classifiers globally so seed 1 = best overall → 1v8, 4v5, 2v7, 3v6 matchups
+        classifiers.sort((a, b) => {
+            if (b.matchPoints !== a.matchPoints) return b.matchPoints - a.matchPoints;
+            if (b.generalAverage !== a.generalAverage) return b.generalAverage - a.generalAverage;
+            return b.highRun - a.highRun;
+        });
+
+        const advancingPlayerIds = classifiers.map(s => s.playerId);
 
         if (advancingPlayerIds.length < 2) {
             return { success: false, error: "No hay suficientes jugadores clasificados para generar el cuadro eliminatorio." };
