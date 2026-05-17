@@ -12,11 +12,7 @@ interface Standing {
     highRun: number;
 }
 
-export function LiveGeneralRanking({ standings }: { standings: Standing[] }) {
-    // Definir zonas
-    // 1-28: Clasificados Directos (Verde)
-    // 29-36: Zona de Barrage (Naranja)
-    // 37+: Eliminados (Gris/Rojo)
+export function LiveGeneralRanking({ standings, classifyCount = 8 }: { standings: Standing[]; classifyCount?: number }) {
 
     return (
         <div className="max-w-6xl mx-auto px-4 pt-2 pb-4 h-full flex flex-col">
@@ -34,11 +30,11 @@ export function LiveGeneralRanking({ standings }: { standings: Standing[] }) {
                 <div className="flex gap-3">
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
                         <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                        <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Top 28: Directo</span>
+                        <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Top {classifyCount}: Clasificados</span>
                     </div>
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 rounded-xl border border-amber-500/20">
-                        <AlertTriangle className="w-3 h-3 text-amber-500" />
-                        <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">29-36: Barrage</span>
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 rounded-xl border border-rose-500/20">
+                        <AlertTriangle className="w-3 h-3 text-rose-500" />
+                        <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">Eliminados</span>
                     </div>
                 </div>
             </div>
@@ -46,16 +42,16 @@ export function LiveGeneralRanking({ standings }: { standings: Standing[] }) {
             <div className="flex-grow overflow-hidden bg-slate-900/40 border border-white/5 rounded-[2.5rem] backdrop-blur-3xl">
                 <div className="grid grid-cols-1 md:grid-cols-2 h-full">
                     {/* Primera Columna (1-27) */}
-                    <RankingColumn players={standings.slice(0, 27)} startRank={1} />
-                    
+                    <RankingColumn players={standings.slice(0, 27)} startRank={1} classifyCount={classifyCount} />
+
                     {/* Segunda Columna (28-54) en Escritorio */}
                     <div className="hidden md:block h-full">
-                        <RankingColumn players={standings.slice(27, 54)} startRank={28} />
+                        <RankingColumn players={standings.slice(27, 54)} startRank={28} classifyCount={classifyCount} />
                     </div>
-                    
+
                     {/* En móviles, mostramos el resto de la lista debajo de la primera */}
                     <div className="md:hidden">
-                         <RankingColumn players={standings.slice(27, 54)} startRank={28} />
+                         <RankingColumn players={standings.slice(27, 54)} startRank={28} classifyCount={classifyCount} />
                     </div>
                 </div>
             </div>
@@ -63,7 +59,7 @@ export function LiveGeneralRanking({ standings }: { standings: Standing[] }) {
     );
 }
 
-function RankingColumn({ players, startRank }: { players: Standing[], startRank: number }) {
+function RankingColumn({ players, startRank, classifyCount }: { players: Standing[], startRank: number, classifyCount: number }) {
     return (
         <div className="flex flex-col divide-y divide-white/5 h-full">
             <div className="grid grid-cols-12 gap-1 px-4 py-1.5 text-[9px] font-black text-slate-600 uppercase tracking-widest border-b border-white/5">
@@ -79,11 +75,8 @@ function RankingColumn({ players, startRank }: { players: Standing[], startRank:
                     let zoneColor = "text-slate-400";
                     let bgColor = "hover:bg-white/[0.02]";
 
-                    if (rank <= 28) {
+                    if (rank <= classifyCount) {
                         zoneColor = "text-emerald-400";
-                    } else if (rank <= 36) {
-                        zoneColor = "text-amber-500";
-                        bgColor = "bg-amber-500/[0.05] hover:bg-amber-500/[0.1]";
                     }
 
                     return (

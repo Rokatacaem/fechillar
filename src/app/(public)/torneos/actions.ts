@@ -38,15 +38,27 @@ export async function getPublicTournamentData(tournamentId: string) {
             orderBy: [{ round: 'asc' }, { matchOrder: 'asc' }]
         });
 
-        // 3. Ranking General (Todos los jugadores ordenados por criterios federados)
-        const allStandings = groupsWithStandings
-            .flatMap(g => g.standings)
-            .sort((a, b) => {
-                if (b.points !== a.points) return b.points - a.points;
-                if (b.average !== a.average) return b.average - a.average;
-                return b.highRun - a.highRun;
-            });
-        
+        // 3. Ranking General: top N por grupo ordenados globalmente, luego eliminados
+        const cfg = (tournament.config as any) ?? {};
+        const advancingCount: number = cfg.advancingCount ?? 2;
+
+        const sort = (a: any, b: any) => {
+            if (b.points !== a.points) return b.points - a.points;
+            if (b.average !== a.average) return b.average - a.average;
+            return b.highRun - a.highRun;
+        };
+
+        const classifiers = groupsWithStandings
+            .flatMap(g => g.standings.slice(0, advancingCount))
+            .sort(sort);
+
+        const eliminated = groupsWithStandings
+            .flatMap(g => g.standings.slice(advancingCount))
+            .sort(sort);
+
+        const allStandings = [...classifiers, ...eliminated];
+        const classifyCount = classifiers.length;
+
         const topByAvg = [...allStandings].sort((a, b) => b.average - a.average).slice(0, 5);
         const topByHighRun = [...allStandings].sort((a, b) => b.highRun - a.highRun).slice(0, 5);
 
@@ -55,7 +67,8 @@ export async function getPublicTournamentData(tournamentId: string) {
             tournament,
             groups: groupsWithStandings,
             matches,
-            allStandings, // Ranking 1-54
+            allStandings,
+            classifyCount,
             topPerformers: {
                 byAverage: topByAvg,
                 byHighRun: topByHighRun

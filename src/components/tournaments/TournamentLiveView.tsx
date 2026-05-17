@@ -271,7 +271,7 @@ function BracketsView({ data }: { data: any }) {
 function StatsView({ data }: { data: any }) {
     return (
         <div className="py-8">
-            <LiveGeneralRanking standings={data.allStandings || []} />
+            <LiveGeneralRanking standings={data.allStandings || []} classifyCount={data.classifyCount ?? 8} />
         </div>
     );
 }
