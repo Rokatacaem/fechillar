@@ -10,6 +10,8 @@ interface Standing {
     points: number;
     average: number;
     highRun: number;
+    carambolas?: number;
+    innings?: number;
 }
 
 export function LiveGeneralRanking({
@@ -21,7 +23,6 @@ export function LiveGeneralRanking({
     classifyCount?: number;
     totalCarambolas?: number;
 }) {
-
     return (
         <div className="max-w-6xl mx-auto px-4 pt-2 pb-4 h-full flex flex-col">
             <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
@@ -36,11 +37,11 @@ export function LiveGeneralRanking({
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                    {totalCarambolas !== undefined && (
+                    {totalCarambolas !== undefined && totalCarambolas > 0 && (
                         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500/10 rounded-xl border border-violet-500/20">
                             <Crosshair className="w-3 h-3 text-violet-400" />
                             <span className="text-[9px] font-black text-violet-300 uppercase tracking-widest">
-                                {totalCarambolas.toLocaleString("es-CL")} carambolas
+                                Total: {totalCarambolas.toLocaleString("es-CL")} carambolas
                             </span>
                         </div>
                     )}
@@ -57,17 +58,12 @@ export function LiveGeneralRanking({
 
             <div className="flex-grow overflow-hidden bg-slate-900/40 border border-white/5 rounded-[2.5rem] backdrop-blur-3xl">
                 <div className="grid grid-cols-1 md:grid-cols-2 h-full">
-                    {/* Primera Columna (1-27) */}
                     <RankingColumn players={standings.slice(0, 27)} startRank={1} classifyCount={classifyCount} />
-
-                    {/* Segunda Columna (28-54) en Escritorio */}
                     <div className="hidden md:block h-full">
                         <RankingColumn players={standings.slice(27, 54)} startRank={28} classifyCount={classifyCount} />
                     </div>
-
-                    {/* En móviles, mostramos el resto de la lista debajo de la primera */}
                     <div className="md:hidden">
-                         <RankingColumn players={standings.slice(27, 54)} startRank={28} classifyCount={classifyCount} />
+                        <RankingColumn players={standings.slice(27, 54)} startRank={28} classifyCount={classifyCount} />
                     </div>
                 </div>
             </div>
@@ -75,32 +71,36 @@ export function LiveGeneralRanking({
     );
 }
 
-function RankingColumn({ players, startRank, classifyCount }: { players: Standing[], startRank: number, classifyCount: number }) {
+function RankingColumn({ players, startRank, classifyCount }: { players: Standing[]; startRank: number; classifyCount: number }) {
     return (
         <div className="flex flex-col divide-y divide-white/5 h-full">
+            {/* Cabecera */}
             <div className="grid grid-cols-12 gap-1 px-4 py-1.5 text-[9px] font-black text-slate-600 uppercase tracking-widest border-b border-white/5">
                 <div className="col-span-1">#</div>
-                <div className="col-span-6">Atleta / Club</div>
+                <div className="col-span-4">Atleta / Club</div>
                 <div className="col-span-1 text-center">PTS</div>
+                <div className="col-span-2 text-center">CAR</div>
                 <div className="col-span-2 text-center">AVG</div>
                 <div className="col-span-2 text-center">HR</div>
             </div>
+
             <div className="flex-grow overflow-y-auto no-scrollbar">
                 {players.map((p, i) => {
                     const rank = startRank + i;
-                    let zoneColor = "text-slate-400";
-                    let bgColor = "hover:bg-white/[0.02]";
-
-                    if (rank <= classifyCount) {
-                        zoneColor = "text-emerald-400";
-                    }
+                    const zoneColor = rank <= classifyCount ? "text-emerald-400" : "text-slate-400";
+                    const bgColor = rank <= classifyCount
+                        ? "hover:bg-emerald-500/[0.03]"
+                        : "hover:bg-white/[0.02]";
 
                     return (
                         <div key={p.playerId} className={`grid grid-cols-12 items-center gap-1 px-4 py-[3px] transition-all ${bgColor}`}>
+                            {/* # */}
                             <div className={`col-span-1 text-[10px] font-black ${zoneColor}`}>
                                 {rank}
                             </div>
-                            <div className="col-span-6 min-w-0">
+
+                            {/* Nombre / Club */}
+                            <div className="col-span-4 min-w-0">
                                 <p className="text-[10px] font-black text-white truncate uppercase tracking-tight leading-tight">
                                     {p.playerName}
                                 </p>
@@ -108,12 +108,23 @@ function RankingColumn({ players, startRank, classifyCount }: { players: Standin
                                     {p.clubName}
                                 </p>
                             </div>
+
+                            {/* PTS */}
                             <div className="col-span-1 text-center text-[10px] font-black text-white tabular-nums">
                                 {p.points}
                             </div>
+
+                            {/* Carambolas */}
+                            <div className="col-span-2 text-center text-[9px] font-black text-amber-400 tabular-nums">
+                                {p.carambolas ?? "-"}
+                            </div>
+
+                            {/* AVG */}
                             <div className="col-span-2 text-center text-[9px] font-bold text-slate-400 tabular-nums">
                                 {p.average.toFixed(3)}
                             </div>
+
+                            {/* HR */}
                             <div className="col-span-2 text-center text-[9px] font-black text-violet-400 tabular-nums">
                                 {p.highRun}
                             </div>
