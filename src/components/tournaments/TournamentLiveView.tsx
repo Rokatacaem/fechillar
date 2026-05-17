@@ -58,6 +58,9 @@ export function TournamentLiveView({ tournamentId }: Props) {
     if (error || !data) return <LiveError />;
 
     const tournament = data.tournament as any;
+    const totalCarambolas: number = (data.allStandings || []).reduce(
+        (sum: number, s: any) => sum + (s.carambolas ?? 0), 0
+    );
 
     // Tabs dinámicos
     const baseTabs = [
@@ -96,6 +99,7 @@ export function TournamentLiveView({ tournamentId }: Props) {
                         <LiveGeneralRanking
                             standings={data.allStandings || []}
                             classifyCount={data.classifyCount ?? 8}
+                            totalCarambolas={totalCarambolas}
                         />
                     </div>
                 </div>
@@ -184,6 +188,7 @@ export function TournamentLiveView({ tournamentId }: Props) {
                             <LiveGeneralRanking
                                 standings={data.allStandings || []}
                                 classifyCount={data.classifyCount ?? 8}
+                                totalCarambolas={totalCarambolas}
                             />
                         )}
                         {knockoutRounds.map(round =>

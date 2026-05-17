@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ListOrdered, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ListOrdered, AlertTriangle, CheckCircle2, Crosshair } from "lucide-react";
 
 interface Standing {
     playerId: string;
@@ -12,11 +12,19 @@ interface Standing {
     highRun: number;
 }
 
-export function LiveGeneralRanking({ standings, classifyCount = 8 }: { standings: Standing[]; classifyCount?: number }) {
+export function LiveGeneralRanking({
+    standings,
+    classifyCount = 8,
+    totalCarambolas,
+}: {
+    standings: Standing[];
+    classifyCount?: number;
+    totalCarambolas?: number;
+}) {
 
     return (
         <div className="max-w-6xl mx-auto px-4 pt-2 pb-4 h-full flex flex-col">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-violet-500/10 rounded-xl">
                         <ListOrdered className="w-5 h-5 text-violet-500" />
@@ -27,7 +35,15 @@ export function LiveGeneralRanking({ standings, classifyCount = 8 }: { standings
                     </div>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-2">
+                    {totalCarambolas !== undefined && (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500/10 rounded-xl border border-violet-500/20">
+                            <Crosshair className="w-3 h-3 text-violet-400" />
+                            <span className="text-[9px] font-black text-violet-300 uppercase tracking-widest">
+                                {totalCarambolas.toLocaleString("es-CL")} carambolas
+                            </span>
+                        </div>
+                    )}
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
                         <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                         <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Top {classifyCount}: Clasificados</span>
